@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ProPresenter AI Studio - Production Control</title>
+  <script type="module" crossorigin src="/assets/main-D8QcuAYY.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/broadcast-BBdxr0p4.js">
+  <link rel="stylesheet" crossorigin href="/assets/main-csxtx0H-.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Top Header Bar -->
+    <header class="top-header">
+      <div class="brand">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="5 3 19 12 5 21 5 3"></polygon>
+        </svg>
+        <span>ProPresenter <span style="color: var(--accent-purple)">AI Studio</span></span>
+        <span class="brand-badge">PRO v7.5</span>
+      </div>
+
+      <div class="output-launchers">
+        <button id="btn-open-audience" class="btn-output" title="Abrir ventana de Proyección o Señal OBS">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+            <line x1="8" y1="21" x2="16" y2="21"></line>
+            <line x1="12" y1="17" x2="12" y2="21"></line>
+          </svg>
+          Salida Audiencia (OBS/Proyector)
+        </button>
+
+        <button id="btn-open-stage" class="btn-output" title="Abrir pantalla de monitoreo para oradores/músicos">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
+            <rect x="9" y="9" width="6" height="6"></rect>
+            <line x1="9" y1="1" x2="15" y2="1"></line>
+          </svg>
+          Stage Display (Monitor)
+        </button>
+      </div>
+    </header>
+
+    <!-- ProPresenter Core Master Clear Bar (CON ATAJOS VISIBLES: ESC, F2, F3, F4) -->
+    <section class="master-clear-bar">
+      <button id="btn-clear-all" class="clear-btn clear-all" title="Atajo: ESC">CLEAR ALL <span style="font-size:0.65rem; background:rgba(0,0,0,0.3); padding:1px 5px; border-radius:3px; margin-left:4px;">ESC</span></button>
+      <button id="btn-clear-text" class="clear-btn" title="Atajo: F2">Clear Text <span style="font-size:0.65rem; background:rgba(0,0,0,0.3); padding:1px 5px; border-radius:3px; margin-left:4px;">F2</span></button>
+      <button id="btn-clear-media" class="clear-btn" title="Atajo: F3">Clear Media <span style="font-size:0.65rem; background:rgba(0,0,0,0.3); padding:1px 5px; border-radius:3px; margin-left:4px;">F3</span></button>
+      <button id="btn-clear-overlays" class="clear-btn" title="Atajo: F4">Clear Overlays <span style="font-size:0.65rem; background:rgba(0,0,0,0.3); padding:1px 5px; border-radius:3px; margin-left:4px;">F4</span></button>
+      
+      <div style="margin-left: auto; display: flex; align-items: center; gap: 10px;">
+        <span style="font-size: 0.72rem; color: var(--text-muted);">Atajos: <kbd style="background:#222; padding: 2px 6px; border-radius: 4px; color:#fff;">F2</kbd> Texto | <kbd style="background:#222; padding: 2px 6px; border-radius: 4px; color:#fff;">F3</kbd> Media | <kbd style="background:#222; padding: 2px 6px; border-radius: 4px; color:#fff;">F4</kbd> Overlays | <kbd style="background:#222; padding: 2px 6px; border-radius: 4px; color:#fff;">Espacio</kbd> Siguiente</span>
+      </div>
+    </section>
+
+    <!-- Main Workspace -->
+    <main class="main-workspace">
+      <!-- Left Sidebar: Library Decks & Playlists -->
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <span class="sidebar-title">Biblioteca de Decks</span>
+          <button id="btn-add-deck-manual" style="background: var(--bg-card); border: 1px solid var(--border-color); color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer;">+ Nuevo</button>
+        </div>
+        <div id="deck-list" class="deck-list">
+          <!-- Dynamically populated -->
+        </div>
+      </aside>
+
+      <!-- Center Column: Presentation Grid -->
+      <section class="center-column">
+        <div class="deck-banner">
+          <div class="deck-info">
+            <h2 id="active-deck-title">Cuan Grande Es Él</h2>
+            <p id="active-deck-category">Alabanza • 3 Secciones</p>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button id="btn-prev-slide" class="btn-output">◀ Anterior</button>
+            <button id="btn-next-slide" class="btn-output" style="background: var(--accent-blue); color: #fff; border: none; font-weight: 700;">Siguiente ▶</button>
+          </div>
+        </div>
+
+        <div class="slide-grid-container">
+          <div id="slide-groups-wrapper">
+            <!-- Dynamically populated slide cards -->
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Panel: Previews, AI Copilot & Media Video Library -->
+      <aside class="right-panel">
+        <div class="panel-tabs">
+          <div class="panel-tab active" data-tab="tab-monitors">Monitores</div>
+          <div class="panel-tab tab-media" data-tab="tab-media">Videos & Medios 🎬</div>
+          <div class="panel-tab tab-ai" data-tab="tab-ai">IA Studio ✨</div>
+        </div>
+
+        <!-- Tab 1: Live Previews -->
+        <div id="tab-monitors" class="tab-content active">
+          <div class="monitors-container">
+            <div class="monitor-box">
+              <div class="monitor-header">
+                <span>PANTALLA AUDIENCIA (LIVE)</span>
+                <span id="badge-live-status" style="background: var(--accent-red); color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.65rem;">EN VIVO</span>
+              </div>
+              <div class="monitor-screen">
+                <video id="operator-video-preview" autoplay loop muted playsinline style="position: absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:1; display:none;"></video>
+                <div id="operator-live-text" class="monitor-screen-content">-- Sin Texto Proyectado --</div>
+              </div>
+            </div>
+
+            <div class="monitor-box">
+              <div class="monitor-header">
+                <span>STAGE DISPLAY (MONITOR CONFIANZA)</span>
+                <span style="color: var(--accent-cyan);">ORADOR / MÚSICOS</span>
+              </div>
+              <div class="monitor-screen" style="background: #05080e; flex-direction: column; justify-content: space-between; align-items: stretch; text-align: left;">
+                <div style="display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--accent-gold); font-weight: 700;">
+                  <span>RELOJ: <span id="stage-clock">00:00:00</span></span>
+                  <span>TIEMPO: <span id="stage-timer">10:00</span></span>
+                </div>
+                <div id="stage-current-preview" style="font-size: 0.85rem; color: #fff; font-weight: 700;">TEXTO ACTUAL: --</div>
+                <div id="stage-next-preview" style="font-size: 0.72rem; color: var(--text-muted);">SIGUIENTE: --</div>
+              </div>
+            </div>
+
+            <!-- Stage Control Quick Panel -->
+            <div style="background: var(--bg-panel); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 8px;">
+              <span style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted);">CONTROL DE TEMPORIZADOR Y MENSAJES</span>
+              <div style="display: flex; gap: 6px;">
+                <button id="btn-timer-10m" class="btn-output" style="font-size: 0.75rem; padding: 4px 8px;">10 Mins</button>
+                <button id="btn-timer-5m" class="btn-output" style="font-size: 0.75rem; padding: 4px 8px;">5 Mins</button>
+                <button id="btn-timer-toggle" class="btn-output" style="font-size: 0.75rem; padding: 4px 8px; background: var(--accent-green); color: white; border: none;">▶ Iniciar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 2: Videos & Media Explorer -->
+        <div id="tab-media" class="tab-content">
+          <div class="media-container">
+            <input type="file" id="input-video-file" accept="video/*" multiple style="display: none;" />
+            
+            <div id="dropzone-video" class="dropzone-box">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--accent-blue)" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
+              <div style="font-weight: 700; font-size: 0.85rem; color: #fff;">Explorar o Arrastrar Videos de la PC</div>
+              <div style="font-size: 0.72rem; color: var(--text-muted);">Soporta archivos .MP4, .WEBM, .MOV para fondos en vivo</div>
+              <button id="btn-browse-videos" class="btn-output" style="margin-top: 6px; background: var(--accent-blue); color: white; border: none; font-weight: 700;">📂 Cargar Archivos de Video</button>
+            </div>
+
+            <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); margin-top: 10px;">FONDOS DE VIDEO EN BIBLIOTECA:</div>
+            <div id="media-grid" class="media-grid">
+              <!-- Dynamically populated video cards -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 3: AI Copilot -->
+        <div id="tab-ai" class="tab-content">
+          <div class="ai-copilot-container">
+            <div class="ai-prompt-box">
+              <label style="font-size: 0.78rem; font-weight: 700; color: var(--accent-purple);">PROMPT DE INTELIGENCIA ARTIFICIAL</label>
+              <textarea id="ai-input" class="ai-prompt-input" placeholder="Ejemplo: 'Crea una canción de alabanza sobre la gracia y el perdón con estrofas y coro', o 'Sermón sobre la esperanza'"></textarea>
+              <button id="btn-ai-submit" class="btn-ai-submit">
+                <span>✨ Generar con IA</span>
+              </button>
+            </div>
+
+            <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); margin-top: 4px;">PRESETS RÁPIDOS IA:</div>
+            <div class="ai-presets">
+              <div class="chip-preset" data-preset="Genera la canción 'Cuan Grande es Dios' con estrofas y coro">🎵 Canto de Alabanza</div>
+              <div class="chip-preset" data-preset="Sermón sobre la fe en tiempos difíciles con 3 puntos clave">📖 Presentación Sermón</div>
+              <div class="chip-preset" data-preset="Lower third para Pastor Alejandro Morales - Conferencia Principal">👤 Lower Third Pastor</div>
+            </div>
+
+            <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); margin-top: 8px;">CONSOLA IA STUDIO:</div>
+            <div id="ai-log" class="ai-log">
+              Escribe un prompt arriba para generar diapositivas, sermones o letras en tiempo real.
+            </div>
+          </div>
+        </div>
+      </aside>
+    </main>
+
+    <!-- Footer Status Bar -->
+    <footer class="status-bar">
+      <div class="status-item">
+        <div id="status-dot" class="status-dot"></div>
+        <span id="status-text">Consola lista • Sincronización activa</span>
+      </div>
+      <div class="status-item">
+        <span>Capa de Texto: <strong id="status-text-layer" style="color: var(--accent-green)">ACTIVA</strong></span>
+        <span style="margin: 0 8px;">|</span>
+        <span>Fondo de Video: <strong id="status-bg-layer" style="color: var(--accent-cyan)">VIDEO LOOP</strong></span>
+      </div>
+    </footer>
+  </div>
+</body>
+</html>

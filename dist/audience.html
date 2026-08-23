@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ProPresenter AI Studio - Salida Principal (Audiencia / Stream)</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #000;
+      color: #fff;
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+    }
+
+    #bg-video {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      z-index: 1;
+      transition: opacity 0.4s ease;
+    }
+
+    #bg-fallback {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle at center, #1e293b 0%, #090d16 100%);
+      z-index: 0;
+    }
+
+    #slide-text-container {
+      position: relative;
+      z-index: 2;
+      max-width: 85%;
+      text-align: center;
+      font-size: 3.8rem;
+      font-weight: 800;
+      line-height: 1.25;
+      letter-spacing: -1px;
+      color: #ffffff;
+      text-shadow: 0 4px 20px rgba(0, 0, 0, 0.9), 0 2px 4px rgba(0, 0, 0, 0.8);
+      white-space: pre-wrap;
+      transition: opacity 0.25s ease, transform 0.25s ease;
+    }
+
+    #slide-text-container.cleared {
+      opacity: 0;
+      transform: scale(0.98);
+    }
+
+    /* Lower Third Overlay Banner */
+    #lower-third-banner {
+      position: absolute;
+      bottom: 40px;
+      left: 60px;
+      z-index: 3;
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.9));
+      border-left: 6px solid #3b82f6;
+      border-top: 1px solid rgba(255, 255, 255, 0.15);
+      border-right: 1px solid rgba(255, 255, 255, 0.15);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+      padding: 16px 28px;
+      border-radius: 0 12px 12px 0;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.7), 0 0 15px rgba(59, 130, 246, 0.3);
+      backdrop-filter: blur(12px);
+      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      transform: translateX(-120%);
+      opacity: 0;
+    }
+
+    #lower-third-banner.active {
+      transform: translateX(0);
+      opacity: 1;
+    }
+
+    #lower-third-title {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: #ffffff;
+      margin-bottom: 4px;
+      letter-spacing: -0.5px;
+    }
+
+    #lower-third-subtitle {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #93c5fd;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+  </style>
+  <script type="module" crossorigin src="/assets/audience-CuFZdtbq.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/broadcast-BBdxr0p4.js">
+</head>
+<body>
+  <div id="bg-fallback"></div>
+  <video id="bg-video" autoplay loop muted playsinline style="display: none;"></video>
+  
+  <div id="slide-text-container"></div>
+
+  <div id="lower-third-banner">
+    <div id="lower-third-title">--</div>
+    <div id="lower-third-subtitle">--</div>
+  </div>
+
+</body>
+</html>

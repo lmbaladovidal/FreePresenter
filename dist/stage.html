@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ProPresenter AI Studio - Stage Display (Monitor de Escenario)</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=Fira+Code:wght@600;700&display=swap');
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #000000;
+      color: #ffffff;
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: 90px 1fr 140px;
+      padding: 24px 36px;
+      gap: 20px;
+      user-select: none;
+    }
+
+    /* Top Stage Bar: Clock & Timers */
+    .stage-top-bar {
+      border-bottom: 2px solid #1e293b;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .stage-clock-box {
+      font-family: 'Fira Code', monospace;
+      font-size: 2.4rem;
+      font-weight: 700;
+      color: #94a3b8;
+    }
+
+    .stage-timer-box {
+      font-family: 'Fira Code', monospace;
+      font-size: 3rem;
+      font-weight: 800;
+      color: #10b981;
+      background: #064e3b;
+      padding: 4px 20px;
+      border-radius: 12px;
+      border: 1px solid #059669;
+    }
+
+    .stage-timer-box.warning {
+      color: #ef4444;
+      background: #7f1d1d;
+      border-color: #dc2626;
+      animation: pulse 1s infinite;
+    }
+
+    /* Center: Current Slide (Giant) */
+    .current-slide-area {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      border: 2px solid #334155;
+      border-radius: 16px;
+      padding: 24px;
+      background: #0f172a;
+    }
+
+    .slide-label {
+      font-size: 1rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #fbbf24;
+      margin-bottom: 12px;
+    }
+
+    .current-text {
+      font-size: 3.2rem;
+      font-weight: 800;
+      line-height: 1.3;
+      color: #ffffff;
+      white-space: pre-wrap;
+    }
+
+    /* Bottom: Next Slide Preview */
+    .next-slide-area {
+      border: 2px solid #1e293b;
+      border-radius: 16px;
+      padding: 16px 24px;
+      background: #090d16;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .next-label {
+      font-size: 0.85rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      color: #38bdf8;
+      margin-bottom: 6px;
+    }
+
+    .next-text {
+      font-size: 1.6rem;
+      font-weight: 600;
+      color: #94a3b8;
+      white-space: pre-wrap;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.6; }
+      100% { opacity: 1; }
+    }
+  </style>
+  <script type="module" crossorigin src="/assets/stage-Muh46n3H.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/broadcast-BBdxr0p4.js">
+</head>
+<body>
+  <div class="stage-top-bar">
+    <div class="stage-clock-box">RELOJ: <span id="clock">00:00:00</span></div>
+    <div id="timer-container" class="stage-timer-box">10:00</div>
+  </div>
+
+  <div class="current-slide-area">
+    <div class="slide-label">● DIAPOSITIVA ACTUAL</div>
+    <div id="current-text" class="current-text">-- ESPERANDO DIAPOSITIVA --</div>
+  </div>
+
+  <div class="next-slide-area">
+    <div class="next-label">SIGUIENTE DIAPOSITIVA ▶</div>
+    <div id="next-text" class="next-text">-- SIN SIGUIENTE --</div>
+  </div>
+
+</body>
+</html>
