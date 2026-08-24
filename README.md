@@ -1,6 +1,6 @@
-# 🎭 ProPresenter AI Studio
+# 🎭 ProPresenter Studio
 
-> **Aplicación de escritorio nativa para transmisión en vivo, proyección en pantalla gigante (Audiencia) y monitor de escenario (Stage Display) con Copiloto de Inteligencia Artificial y gestor dinámico de escrituras.**
+> **Aplicación de escritorio nativa para transmisión en vivo, proyección en pantalla gigante (Audiencia) y monitor de escenario (Stage Display) con gestor de escrituras, calendario de eventos y control multipantalla.**
 
 ![License MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 ![Electron](https://img.shields.io/badge/Electron-43.4.1-47848F?logo=electron&logoColor=white)
@@ -11,7 +11,7 @@
 
 ## 🌟 Descripción General
 
-**ProPresenter AI Studio** es una estación de control multimedia para iglesias, conferencias, transmisiones en vivo y eventos escénicos. Diseñada como una **aplicación de escritorio nativa (.exe / instalador)** basada en **Electron y Vite**, ofrece rendimiento ultrarrápido, gestión multipantalla (Pantalla de Audiencia + Monitor de Escenario para predicadores y músicos), transiciones fluidas en tiempo real (Cut / Fade configurable) y un navegador inteligente de Escrituras capaz de importar cualquier Biblia vía enlace URL o archivo JSON.
+**ProPresenter Studio** es una estación de control multimedia para iglesias, conferencias, transmisiones en vivo y eventos escénicos. Diseñada como una **aplicación de escritorio nativa (.exe / instalador)** basada en **Electron y Vite**, ofrece rendimiento ultrarrápido, gestión multipantalla (Pantalla de Audiencia + Monitor de Escenario para predicadores y músicos), transiciones fluidas en tiempo real (Cut / Fade configurable), gestor de eventos con **Calendario** e importador inteligente de Escrituras capaz de cargar cualquier Biblia vía enlace URL o archivo JSON.
 
 ---
 
@@ -25,22 +25,24 @@
   - Control independiente para **Texto** y **FONDOS de Video / Imagen** (`Cut` instantáneo o `Fade` suave).
   - Deslizador de tiempo de transición ajustable en tiempo real de **100ms a 1000ms**.
 
+- 📅 **Calendario & Gestor de Eventos Integrado:**
+  - Pestaña de **Calendar** en el dock inferior para agendar servicios, ensayos de alabanza, reuniones de jóvenes y conferencias.
+  - Asignación de fecha, hora, categoría y notas con **proyección directa de anuncios en vivo** a la pantalla de Audiencia.
+
 - 📖 **Navegador Bíblico Avanzado y Carga Dinámica:**
   - Búsqueda en árbol inteligente con **autocompletado instantáneo con tecla `Tab ↹`**.
   - **Importador de Biblias en tiempo real:** Carga cualquier versión de la Biblia pasándole una **URL directa** o un archivo `.json` local.
   - **Manejo inteligente de versículos extensos:** Algoritmo automático de división en varias filminas sin cortar palabras.
   - **Configuración de visualización:** Ajuste de renglones máximos por filmina (*1, 2, 3 o Sin Límite*), tipografías personalizadas e inclusión de cita bíblica al pie (*Libro Cap:Versículo*).
 
-- 🎵 **Librería de Canciones y Shows:**
+- 🎵 **Librería de Canciones con Buscador Web:**
   - Cuadrícula de diapositivas fluida horizontalmente con etiquetas de sección (*Estrofa 1, Coro, Puente*).
-  - Menú contextual con botón derecho y atajo de teclado **`Supr` / `Delete`** para eliminar canciones, fondos multimedia y Biblias personalizadas.
+  - Búsqueda de canciones en la web por nombre o autor con importador en 1 clic.
+  - Menú contextual con botón derecho y atajo de teclado **`Supr` / `Delete`** para eliminar elementos.
 
-- ✨ **Copiloto de IA Integrado:**
-  - Generación asistida por Inteligencia Artificial para letras de canciones, estrofas y sermones estructurados.
-
-- 🖱️ **Diseño de Interfaz Pro (Dark Theme):**
-  - Panel inferior redimensionable verticalmente mediante arrastre.
-  - Organización de fondos multimedia en **carpetas virtuales** personalizadas.
+- 📐 **Diseño de Interfaz Simplificado y Pro (Dark Theme):**
+  - Dock inferior optimizado con pestañas esenciales (**Shows, Media, Templates, Scripture, Calendar**).
+  - **Panel inferior con altura por defecto del 30% de la pantalla (`30vh`)**, redimensionable verticalmente mediante arrastre.
 
 ---
 
@@ -100,16 +102,6 @@ Para generar la aplicación ejecutable nativa para Windows (`.exe`):
    ```
 2. El archivo ejecutable nativo quedará disponible en la carpeta:
    `release-builds/ProPresenter AI Studio-win32-x64/ProPresenter AI Studio.exe`
-
----
-
-## 🛠️ Tecnologías Utilizadas
-
-- **Framework Nativo:** [Electron](https://www.electronjs.org/)
-- **Bundler & Build Tool:** [Vite](https://vitejs.dev/)
-- **Frontend Logic:** JavaScript ES Modules (ES6+)
-- **Estilos:** Vanilla CSS3 con Variables CSS y Diseño Responsive
-- **Sincronización:** BroadcastChannel API & Inter-Process Communication (IPC)
 
 ---
 

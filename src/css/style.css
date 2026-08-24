@@ -48,7 +48,7 @@ body {
 
 #app {
   display: grid;
-  grid-template-rows: 54px 1fr var(--bottom-dock-height, 250px) 28px;
+  grid-template-rows: 54px 1fr var(--bottom-dock-height, 30vh) 28px;
   height: 100vh;
   width: 100vw;
   overflow: hidden;
@@ -302,22 +302,7 @@ body {
 }
 
 .fab-btn-add {
-  position: absolute;
-  bottom: 20px;
-  left: 20px;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--accent-pink), #db2777);
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  box-shadow: 0 6px 20px rgba(236, 72, 153, 0.45);
-  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  z-index: 10;
+  display: none !important;
 }
 
 .fab-btn-add:hover {
@@ -1440,12 +1425,15 @@ input, select, textarea {
 .shows-dock-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  grid-auto-rows: 145px;
+  align-items: start;
   gap: 8px;
   overflow-y: auto;
   flex: 1;
 }
 
 .show-dock-card {
+  height: 145px;
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: 6px;
@@ -1457,6 +1445,7 @@ input, select, textarea {
   gap: 4px;
   transition: all 0.15s ease;
   position: relative;
+  overflow: hidden;
 }
 
 .show-dock-card:hover {

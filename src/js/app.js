@@ -4,9 +4,10 @@
 
 import { store } from './state.js';
 import { sync } from './broadcast.js';
-import { aiCopilot } from './ai-copilot.js';
 import { stageManager } from './stage-manager.js';
 import { BIBLE_BOOKS, BIBLE_VERSIONS, getAllBibleVersions, getChapterVerses, splitVerseText, fetchAndLoadBibleFromUrl, parseAndAddCustomBible, deleteCustomBible } from './bible-data.js';
+import { searchSongsOnline } from './song-search.js';
+import { calendarManager } from './calendar-manager.js';
 
 class ProPresenterApp {
   constructor() {
@@ -175,6 +176,10 @@ class ProPresenterApp {
           document.getElementById('sub-sidebar-scripture')?.classList.add('active');
           this.renderScriptureSubSidebar();
           this.renderScripture3ColView();
+        } else if (resType === 'calendar') {
+          document.getElementById('res-tab-calendar')?.classList.add('active');
+          document.getElementById('sub-sidebar-calendar')?.classList.add('active');
+          calendarManager.renderCalendarUI();
         } else {
           const generic = document.getElementById('res-tab-generic');
           const placeholder = document.getElementById('generic-tab-placeholder');
@@ -186,6 +191,8 @@ class ProPresenterApp {
         }
       });
     });
+
+    this.bindCalendarEvents();
 
     this.bindScriptureEvents();
     this.initDockResizer();
@@ -208,9 +215,107 @@ class ProPresenterApp {
     });
 
     // 7. New Show Modal Handlers
+    const tabManual = document.getElementById('tab-create-manual');
+    const tabSearch = document.getElementById('tab-create-search');
+    const viewManual = document.getElementById('view-create-manual');
+    const viewSearch = document.getElementById('view-create-search');
+
+    const switchModalMode = (mode) => {
+      if (mode === 'manual') {
+        tabManual?.classList.add('active');
+        if (tabManual) tabManual.style.background = 'var(--bg-card)';
+        if (tabManual) tabManual.style.color = '#fff';
+
+        tabSearch?.classList.remove('active');
+        if (tabSearch) tabSearch.style.background = 'transparent';
+        if (tabSearch) tabSearch.style.color = 'var(--text-muted)';
+
+        if (viewManual) viewManual.style.display = 'block';
+        if (viewSearch) viewSearch.style.display = 'none';
+      } else {
+        tabSearch?.classList.add('active');
+        if (tabSearch) tabSearch.style.background = 'var(--bg-card)';
+        if (tabSearch) tabSearch.style.color = '#fff';
+
+        tabManual?.classList.remove('active');
+        if (tabManual) tabManual.style.background = 'transparent';
+        if (tabManual) tabManual.style.color = 'var(--text-muted)';
+
+        if (viewSearch) viewSearch.style.display = 'block';
+        if (viewManual) viewManual.style.display = 'none';
+        document.getElementById('input-song-search-query')?.focus();
+      }
+    };
+
+    tabManual?.addEventListener('click', () => switchModalMode('manual'));
+    tabSearch?.addEventListener('click', () => switchModalMode('search'));
+
+    // Web Song Search Logic
+    const btnSongSearch = document.getElementById('btn-song-search-submit');
+    const inputSongQuery = document.getElementById('input-song-search-query');
+    const songResultsList = document.getElementById('song-search-results-list');
+
+    let currentSearchResults = [];
+
+    const handleSongSearch = async () => {
+      const q = inputSongQuery?.value.trim();
+      if (!q) return;
+
+      btnSongSearch.disabled = true;
+      btnSongSearch.textContent = "⌛ Buscando...";
+      songResultsList.innerHTML = `<div style="padding: 20px; text-align: center; color: var(--text-muted); font-size: 0.8rem;">⏳ Buscando letras en la web para "<strong>${q}</strong>"...</div>`;
+
+      try {
+        currentSearchResults = await searchSongsOnline(q);
+        
+        if (currentSearchResults.length === 0) {
+          songResultsList.innerHTML = `<div style="padding: 20px; text-align: center; color: var(--text-muted); font-size: 0.8rem;">❌ No se encontraron canciones. Intenta con otro nombre o artista.</div>`;
+        } else {
+          songResultsList.innerHTML = currentSearchResults.map((song, idx) => `
+            <div class="song-search-item" style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 6px; padding: 8px 12px; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+              <div style="display: flex; flex-direction: column; gap: 2px; overflow: hidden; flex: 1;">
+                <span style="font-size: 0.85rem; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">🎵 ${song.title}</span>
+                <div style="display: flex; align-items: center; gap: 8px; font-size: 0.72rem; color: var(--text-muted);">
+                  <span>👤 <strong>Autor:</strong> ${song.artist}</span>
+                  <span>•</span>
+                  <span style="color: var(--accent-cyan);">🌐 <strong>Página:</strong> ${song.source}</span>
+                </div>
+              </div>
+              <button class="btn-select-song-result" data-song-idx="${idx}" style="background: linear-gradient(135deg, var(--accent-magenta), #db2777); color: white; border: none; padding: 5px 10px; border-radius: 4px; font-size: 0.73rem; font-weight: 700; cursor: pointer; white-space: nowrap;">
+                📥 Cargar Letra
+              </button>
+            </div>
+          `).join('');
+
+          songResultsList.querySelectorAll('.btn-select-song-result').forEach(btn => {
+            btn.addEventListener('click', () => {
+              const idx = parseInt(btn.getAttribute('data-song-idx'));
+              const selectedSong = currentSearchResults[idx];
+              if (selectedSong) {
+                if (this.inputShowTitle) this.inputShowTitle.value = selectedSong.title;
+                if (this.inputShowText) this.inputShowText.value = selectedSong.lyrics;
+                switchModalMode('manual');
+              }
+            });
+          });
+        }
+      } catch (e) {
+        songResultsList.innerHTML = `<div style="padding: 20px; text-align: center; color: #ef4444; font-size: 0.8rem;">⚠️ Error al realizar la búsqueda web: ${e.message}</div>`;
+      } finally {
+        btnSongSearch.disabled = false;
+        btnSongSearch.textContent = "🔍 Buscar";
+      }
+    };
+
+    btnSongSearch?.addEventListener('click', handleSongSearch);
+    inputSongQuery?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') handleSongSearch();
+    });
+
     const openModalShow = () => {
       if (this.modalCreateShow) {
         this.modalCreateShow.classList.add('open');
+        switchModalMode('manual');
         this.inputShowTitle?.focus();
       }
     };
@@ -225,6 +330,7 @@ class ProPresenterApp {
 
     document.getElementById('btn-open-create-modal')?.addEventListener('click', openModalShow);
     document.getElementById('btn-add-deck-manual')?.addEventListener('click', openModalShow);
+    document.getElementById('btn-add-deck-header')?.addEventListener('click', openModalShow);
     document.getElementById('btn-close-modal')?.addEventListener('click', closeModalShow);
     document.getElementById('btn-cancel-show')?.addEventListener('click', closeModalShow);
 
@@ -340,36 +446,7 @@ class ProPresenterApp {
       });
     });
 
-    // 10. AI Copilot Submission
-    const btnAiSubmit = document.getElementById('btn-ai-submit');
-    const aiInput = document.getElementById('ai-input');
-    const aiLog = document.getElementById('ai-log');
 
-    const handleAiSubmit = async () => {
-      const prompt = aiInput.value.trim();
-      if (!prompt) return;
-
-      btnAiSubmit.disabled = true;
-      btnAiSubmit.textContent = "✨ Procesando con IA...";
-      if (aiLog) aiLog.textContent = "⏳ Analizando estructura y generando contenido...";
-
-      const res = await aiCopilot.generateFromPrompt(prompt);
-      
-      btnAiSubmit.disabled = false;
-      btnAiSubmit.innerHTML = "<span>✨ Generar con IA</span>";
-      if (aiLog) aiLog.textContent = res.message;
-      aiInput.value = "";
-    };
-
-    btnAiSubmit?.addEventListener('click', handleAiSubmit);
-
-    document.querySelectorAll('.chip-preset').forEach(chip => {
-      chip.addEventListener('click', () => {
-        const text = chip.getAttribute('data-preset');
-        if (aiInput) aiInput.value = text;
-        handleAiSubmit();
-      });
-    });
 
     // 11. Stage Timer Quick Controls
     document.getElementById('btn-timer-10m')?.addEventListener('click', () => stageManager.startTimer(600));
@@ -523,14 +600,14 @@ class ProPresenterApp {
 
     let isDragging = false;
     let startY = 0;
-    let startHeight = 250;
+    let startHeight = Math.floor(window.innerHeight * 0.3);
 
     const onMouseDown = (e) => {
       isDragging = true;
       startY = e.clientY;
 
       const currentVarVal = getComputedStyle(appEl).getPropertyValue('--bottom-dock-height');
-      startHeight = parseInt(currentVarVal) || 250;
+      startHeight = parseInt(currentVarVal) || Math.floor(window.innerHeight * 0.3);
 
       resizer.classList.add('dragging');
       document.body.style.userSelect = 'none';
@@ -1241,6 +1318,67 @@ class ProPresenterApp {
 
         this.activeVerseData = { vNum, vText, fullTitle };
         this.projectActiveVerse();
+      });
+    });
+  }
+
+  bindCalendarEvents() {
+    const modalEvt = document.getElementById('modal-create-event');
+    const inputTitle = document.getElementById('input-event-title');
+    const inputDate = document.getElementById('input-event-date');
+    const inputTime = document.getElementById('input-event-time');
+    const selectCat = document.getElementById('input-event-category');
+    const inputNotes = document.getElementById('input-event-notes');
+
+    const openModalEvt = () => {
+      if (modalEvt) {
+        modalEvt.classList.add('open');
+        const todayStr = new Date().toISOString().split('T')[0];
+        if (inputDate && !inputDate.value) inputDate.value = todayStr;
+        if (inputTime && !inputTime.value) inputTime.value = "19:00";
+        inputTitle?.focus();
+      }
+    };
+
+    const closeModalEvt = () => {
+      if (modalEvt) {
+        modalEvt.classList.remove('open');
+        if (inputTitle) inputTitle.value = "";
+        if (inputNotes) inputNotes.value = "";
+      }
+    };
+
+    document.getElementById('btn-open-create-event-modal')?.addEventListener('click', openModalEvt);
+    document.getElementById('btn-create-event-dock')?.addEventListener('click', openModalEvt);
+    document.getElementById('btn-close-event-modal')?.addEventListener('click', closeModalEvt);
+    document.getElementById('btn-cancel-event')?.addEventListener('click', closeModalEvt);
+
+    document.getElementById('btn-save-event')?.addEventListener('click', () => {
+      const title = inputTitle?.value.trim();
+      const date = inputDate?.value;
+      const time = inputTime?.value;
+      const category = selectCat?.value;
+      const notes = inputNotes?.value.trim();
+
+      if (!title) {
+        alert("Por favor ingresa un título para el evento.");
+        return;
+      }
+
+      calendarManager.addEvent(title, date, time, category, notes);
+      closeModalEvt();
+    });
+
+    document.getElementById('btn-cal-prev-month')?.addEventListener('click', () => calendarManager.changeMonth(-1));
+    document.getElementById('btn-cal-next-month')?.addEventListener('click', () => calendarManager.changeMonth(1));
+    document.getElementById('btn-cal-today')?.addEventListener('click', () => calendarManager.setToday());
+
+    document.querySelectorAll('#calendar-categories-list .filter-item').forEach(item => {
+      item.addEventListener('click', () => {
+        document.querySelectorAll('#calendar-categories-list .filter-item').forEach(i => i.classList.remove('active'));
+        item.classList.add('active');
+        const filterVal = item.getAttribute('data-cal-filter');
+        calendarManager.setFilter(filterVal);
       });
     });
   }

@@ -4,9 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ProPresenter AI Studio - Production Control</title>
-  <script type="module" crossorigin src="./assets/main-B9j2uUPF.js"></script>
+  <script type="module" crossorigin src="./assets/main-WG6996Gl.js"></script>
   <link rel="modulepreload" crossorigin href="./assets/broadcast-apKW5yD5.js">
-  <link rel="stylesheet" crossorigin href="./assets/main-DxB7kqNf.css">
+  <link rel="stylesheet" crossorigin href="./assets/main-Dz1_w0Na.css">
 </head>
 <body>
   <div id="app">
@@ -97,20 +97,15 @@
             </svg>
             <span class="sidebar-title">Projects</span>
           </div>
-          <span class="project-count-badge">3</span>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span class="project-count-badge">3</span>
+            <button id="btn-add-deck-header" class="btn-add-folder" title="Crear Nuevo Show o Presentación">+</button>
+          </div>
         </div>
 
         <div id="deck-list" class="deck-list">
           <!-- Dynamically populated -->
         </div>
-
-        <!-- Floating Action Button (+) Estilo FreeShow Magenta -->
-        <button id="btn-add-deck-manual" class="fab-btn-add" title="Crear Nuevo Show o Presentación">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-            <line x1="12" y1="5" x2="12" y2="19"></line>
-            <line x1="5" y1="12" x2="19" y2="12"></line>
-          </svg>
-        </button>
       </aside>
 
       <!-- Center Column: Presentation Grid & Mode Canvas -->
@@ -133,48 +128,43 @@
         </div>
       </section>
 
-      <!-- Right Panel: Live Output Preview, Navigation & Master Clear Controls -->
-      <aside class="right-panel">
-        <!-- Live Output Preview Box -->
-        <div class="live-monitor-card">
-          <div class="monitor-screen">
-            <video id="operator-video-preview" autoplay loop muted playsinline style="position: absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:1; display:none;"></video>
-            <div id="operator-live-text" class="monitor-screen-content">-- Sin Texto Proyectado --</div>
+      <!-- Right Column: Operator Controls, Transitions, Timers & Stage Display -->
+      <aside class="right-sidebar">
+        <!-- Live Output Preview Monitor Box -->
+        <div class="monitor-box">
+          <div class="monitor-header">
+            <span class="badge-live">LIVE PROGRAM</span>
+            <span style="font-size: 0.68rem; color: var(--text-muted)">AUDIENCE SCREEN</span>
           </div>
-          <!-- Quick Control Bar under Monitor -->
-          <div class="monitor-quick-bar">
-            <div class="monitor-nav-btns">
-              <button id="btn-quick-prev" class="btn-icon-sm" title="Anterior">‹</button>
-              <button id="btn-quick-next" class="btn-icon-sm" title="Siguiente">›</button>
-              <button id="btn-quick-play" class="btn-icon-sm" title="Play/Pausa">▶</button>
+          
+          <div class="monitor-screen" style="position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+            <video id="operator-video-preview" autoplay loop muted style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.3s ease; z-index: 0;"></video>
+            <div id="operator-live-text" class="monitor-live-text" style="position: relative; z-index: 1; text-align: center; font-size: 0.95rem; font-weight: 700; color: white; text-shadow: 0 2px 4px rgba(0,0,0,0.8); line-height: 1.3; max-width: 90%;">
+              Selecciona una filmina para transmitir en vivo
             </div>
-            <div class="monitor-status-badges">
-              <span id="badge-live-status" class="badge-live">EN VIVO</span>
-            </div>
+          </div>
+
+          <div style="display: flex; gap: 6px; margin-top: 6px;">
+            <button id="btn-quick-prev" class="btn-output" style="padding: 4px 8px;" title="Anterior">‹</button>
+            <button id="btn-quick-next" class="btn-output" style="padding: 4px 8px;" title="Siguiente">›</button>
+            <button class="btn-output" style="flex: 1; text-align: center;" title="Estado Transmisión">EN VIVO</button>
           </div>
         </div>
 
-        <!-- Master Clear Buttons Grid (ESC, F2, F3, F4) -->
-        <div class="master-clear-section">
-          <button id="btn-clear-all" class="clear-btn clear-all" title="Atajo: ESC">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
-            Clear all
-          </button>
-
-          <div class="clear-sub-grid">
-            <button id="btn-clear-text" class="clear-btn-sm" title="Atajo: F2">Text (F2)</button>
-            <button id="btn-clear-media" class="clear-btn-sm" title="Atajo: F3">Media (F3)</button>
-            <button id="btn-clear-overlays" class="clear-btn-sm" title="Atajo: F4">Overlays (F4)</button>
+        <!-- Master Clear Control Panel (Estilo ProPresenter Red) -->
+        <div class="master-clear-panel">
+          <button id="btn-clear-all" class="clear-btn clear-all">✕ CLEAR ALL</button>
+          <div class="clear-btn-group">
+            <button id="btn-clear-text" class="clear-btn">Text (F2)</button>
+            <button id="btn-clear-media" class="clear-btn">Media (F3)</button>
+            <button id="btn-clear-overlays" class="clear-btn">Overlays (F4)</button>
           </div>
         </div>
 
-        <!-- Control Panel: Transiciones en Vivo (Texto & Medios + Control de Tiempo 100ms - 1000ms) -->
-        <div class="transitions-control-section">
-          <div class="transitions-section-title">⚡ TRANSICIONES EN VIVO</div>
-          <div class="transitions-grid">
+        <!-- Transiciones en Vivo (Cut vs Fade + Duration Slider) -->
+        <div class="transitions-control-panel">
+          <div class="transitions-panel-title">⚡ TRANSICIONES EN VIVO</div>
+          <div class="transition-controls-grid">
             <div class="transition-row">
               <span class="transition-label">TEXTO:</span>
               <div class="transition-btn-group">
@@ -199,10 +189,9 @@
           </div>
         </div>
 
-        <!-- Right Panel Tabs: Stage Display & IA Copilot -->
+        <!-- Right Panel Tabs: Stage Display -->
         <div class="panel-tabs">
           <div class="panel-tab active" data-tab="tab-monitors">Stage</div>
-          <div class="panel-tab tab-ai" data-tab="tab-ai">IA Studio ✨</div>
         </div>
 
         <div id="tab-monitors" class="tab-content active">
@@ -217,39 +206,19 @@
                   <span>TIEMPO: <span id="stage-timer">10:00</span></span>
                 </div>
                 <div id="stage-current-preview" style="font-size: 0.82rem; color: #fff; font-weight: 700;">TEXTO ACTUAL: --</div>
-                <div id="stage-next-preview" style="font-size: 0.7rem; color: var(--text-muted);">SIGUIENTE: --</div>
+                <div id="stage-next-preview" style="font-size: 0.7rem; color: #7f8c8d;">SIGUIENTE: --</div>
               </div>
             </div>
 
             <!-- Stage Control Quick Panel -->
             <div style="background: var(--bg-panel); border: 1px solid var(--border-color); border-radius: 8px; padding: 8px; display: flex; flex-direction: column; gap: 6px;">
-              <span style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted);">TEMPORIZADOR ORADOR</span>
+              <span style="font-size: 0.7rem; font-weight: 700; color: #7f8c8d;">TEMPORIZADOR ORADOR</span>
               <div style="display: flex; gap: 4px;">
                 <button id="btn-timer-10m" class="btn-output" style="font-size: 0.7rem; padding: 3px 6px;">10M</button>
                 <button id="btn-timer-5m" class="btn-output" style="font-size: 0.7rem; padding: 3px 6px;">5M</button>
                 <button id="btn-timer-toggle" class="btn-output" style="font-size: 0.7rem; padding: 3px 6px; background: var(--accent-green); color: white; border: none;">▶ Iniciar</button>
               </div>
             </div>
-          </div>
-        </div>
-
-        <div id="tab-ai" class="tab-content">
-          <div class="ai-copilot-container">
-            <div class="ai-prompt-box">
-              <label style="font-size: 0.75rem; font-weight: 700; color: var(--accent-purple);">PROMPT IA STUDIO</label>
-              <textarea id="ai-input" class="ai-prompt-input" placeholder="Ej: 'Crea una canción de alabanza sobre la fe'"></textarea>
-              <button id="btn-ai-submit" class="btn-ai-submit">
-                <span>✨ Generar con IA</span>
-              </button>
-            </div>
-
-            <div style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted);">PRESETS RÁPIDOS:</div>
-            <div class="ai-presets">
-              <div class="chip-preset" data-preset="Genera la canción 'Cuan Grande es Dios' con estrofas y coro">🎵 Canto Alabanza</div>
-              <div class="chip-preset" data-preset="Sermón sobre la fe en tiempos difíciles">📖 Presentación Sermón</div>
-            </div>
-
-            <div id="ai-log" class="ai-log">Consola lista.</div>
           </div>
         </div>
       </aside>
@@ -263,12 +232,9 @@
         <div class="resource-tabs">
           <button class="res-tab active" data-res="shows">Shows</button>
           <button class="res-tab" data-res="media">Media</button>
-          <button class="res-tab" data-res="audio">Audio</button>
-          <button class="res-tab" data-res="overlays">Overlays</button>
           <button class="res-tab" data-res="templates">Templates</button>
           <button class="res-tab" data-res="scripture">Scripture</button>
           <button class="res-tab" data-res="calendar">Calendar</button>
-          <button class="res-tab" data-res="functions">Functions</button>
         </div>
 
         <div class="resource-search-box">
@@ -325,7 +291,37 @@
             </div>
           </div>
 
-          <!-- 5. Menu Lateral Genérico para otras pestañas -->
+          <!-- 5. Menu Lateral para la pestaña CALENDAR -->
+          <div id="sub-sidebar-calendar" class="sub-sidebar-content">
+            <div class="folders-header-row">
+              <span class="folders-header">Eventos & Calendario</span>
+              <button id="btn-open-create-event-modal" class="btn-add-folder" title="Agregar Nuevo Evento">+</button>
+            </div>
+            <div id="calendar-categories-list" class="filter-group">
+              <div class="filter-item active" data-cal-filter="all">
+                <span class="dot-indicator" style="background: var(--accent-cyan);"></span>
+                <span>Todos los Eventos</span>
+              </div>
+              <div class="filter-item" data-cal-filter="domingo">
+                <span class="dot-indicator" style="background: var(--accent-magenta);"></span>
+                <span>Servicios de Domingo</span>
+              </div>
+              <div class="filter-item" data-cal-filter="ensayo">
+                <span class="dot-indicator" style="background: var(--accent-gold);"></span>
+                <span>Ensayos de Alabanza</span>
+              </div>
+              <div class="filter-item" data-cal-filter="jovenes">
+                <span class="dot-indicator" style="background: var(--accent-green);"></span>
+                <span>Reunión de Jóvenes</span>
+              </div>
+              <div class="filter-item" data-cal-filter="conferencia">
+                <span class="dot-indicator" style="background: var(--accent-blue);"></span>
+                <span>Conferencias & Especiales</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 6. Menu Lateral Genérico para otras pestañas -->
           <div id="sub-sidebar-generic" class="sub-sidebar-content">
             <div class="folders-header" style="margin-bottom: 6px;">Categorías</div>
             <div class="filter-group">
@@ -466,7 +462,47 @@
             </div>
           </div>
 
-          <!-- 5. Pestaña Genérica -->
+          <!-- 5. Pestaña CALENDAR (Calendario Mensual Estilo FreeShow) -->
+          <div id="res-tab-calendar" class="res-tab-content">
+            <div class="calendar-monthly-view" style="display: flex; flex-direction: column; height: 100%; position: relative; overflow: hidden; background: #0b0e17;">
+              
+              <!-- Encabezado Días de la Semana (7 Columnas) -->
+              <div class="calendar-weekdays-header" style="display: grid; grid-template-columns: 32px repeat(7, 1fr); background: #11141d; border-bottom: 1px solid var(--border-color); text-align: center; font-weight: 700; font-size: 0.72rem; color: #fff; padding: 4px 0;">
+                <div style="color: var(--accent-pink); font-size: 0.62rem; display: flex; align-items: center; justify-content: center;">#</div>
+                <div>Sunday</div>
+                <div>Monday</div>
+                <div>Tuesday</div>
+                <div>Wednesday</div>
+                <div>Thursday</div>
+                <div>Friday</div>
+                <div>Saturday</div>
+              </div>
+
+              <!-- Grilla Mensual de Días (7 Columnas x 5-6 Filas) -->
+              <div id="calendar-month-grid" class="calendar-month-grid" style="display: grid; grid-template-columns: 32px repeat(7, 1fr); grid-auto-rows: 1fr; flex: 1; overflow-y: auto; background: var(--bg-darkest);">
+                <!-- Dynamically generated days -->
+              </div>
+
+              <!-- Floating Bar Inferior (Navegación de Mes + Nuevo Evento Estilo FreeShow) -->
+              <div class="calendar-floating-footer" style="position: absolute; bottom: 8px; left: 0; right: 0; display: flex; justify-content: space-between; align-items: center; padding: 0 16px; pointer-events: none; z-index: 10;">
+                <!-- Left Nav Control Pill -->
+                <div style="display: flex; align-items: center; gap: 6px; background: rgba(17, 20, 29, 0.95); border: 1px solid var(--border-color); backdrop-filter: blur(8px); padding: 3px 10px; border-radius: 20px; box-shadow: 0 4px 14px rgba(0,0,0,0.6); pointer-events: auto;">
+                  <button id="btn-cal-prev-month" class="btn-cal-icon" title="Mes Anterior" style="background: none; border: none; color: var(--accent-pink); cursor: pointer; font-size: 0.9rem; padding: 0 4px;">‹</button>
+                  <button id="btn-cal-next-month" class="btn-cal-icon" title="Mes Siguiente" style="background: none; border: none; color: var(--accent-pink); cursor: pointer; font-size: 0.9rem; padding: 0 4px;">›</button>
+                  <button id="btn-cal-today" class="btn-cal-icon" title="Ir a Hoy" style="background: none; border: none; color: #fff; cursor: pointer; font-size: 0.82rem; padding: 0 4px;">🏠</button>
+                  <span id="calendar-month-title" style="font-size: 0.78rem; font-weight: 700; color: #fff; margin-left: 4px;">Agosto 2026</span>
+                </div>
+
+                <!-- Right Action Button -->
+                <button id="btn-create-event-dock" class="btn-create-show-dock" style="background: linear-gradient(135deg, var(--accent-pink), #db2777); border-radius: 20px; padding: 5px 14px; font-size: 0.75rem; pointer-events: auto; box-shadow: 0 4px 14px rgba(236, 72, 153, 0.4);">
+                  + New event
+                </button>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- 6. Pestaña Genérica -->
           <div id="res-tab-generic" class="res-tab-content">
             <div id="generic-tab-placeholder" class="generic-placeholder">
               <span>Selecciona una pestaña de recursos para explorar su biblioteca.</span>
@@ -523,28 +559,60 @@
       </div>
     </section>
 
-    <!-- Modal para Crear Nuevo Texto / Show con Persistencia -->
+    <!-- Modal para Crear / Buscar Nuevo Texto o Canción -->
     <div id="modal-create-show" class="modal-overlay">
-      <div class="modal-card">
+      <div class="modal-card" style="max-width: 640px;">
         <div class="modal-header">
-          <h3>📝 Crear Nuevo Texto o Canción</h3>
+          <h3>🎵 Agregar Nueva Canción o Presentación</h3>
           <button id="btn-close-modal" class="modal-close-btn">&times;</button>
         </div>
         <div class="modal-body">
-          <label>Título de la Canción o Presentación:</label>
-          <input type="text" id="input-show-title" placeholder="Ej: 'Cuán Grande Es Dios' o 'Sermón de Fe'" />
 
-          <label style="margin-top: 10px;">Categoría:</label>
-          <select id="input-show-category">
-            <option value="Alabanza">Alabanza</option>
-            <option value="Adoración">Adoración</option>
-            <option value="Sermón">Sermón / Predicación</option>
-            <option value="Lectura">Lectura Bíblica</option>
-            <option value="Anuncio">Anuncios / Avisos</option>
-          </select>
+          <!-- Selector de Modo: Crear de 0 vs Buscar Web -->
+          <div class="modal-mode-tabs" style="display: flex; gap: 8px; margin-bottom: 14px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
+            <button id="tab-create-manual" class="modal-mode-tab active" style="flex: 1; padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-card); color: #fff; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+              <span>✍️ Crear desde Cero</span>
+            </button>
+            <button id="tab-create-search" class="modal-mode-tab" style="flex: 1; padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); background: transparent; color: var(--text-muted); font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+              <span>🔍 Buscar en la Web</span>
+            </button>
+          </div>
 
-          <label style="margin-top: 10px;">Contenido de Diapositivas (separa estrofas dejando una línea en blanco):</label>
-          <textarea id="input-show-text" placeholder="Estrofa 1:&#10;Línea uno del canto&#10;Línea dos del canto&#10;&#10;Coro:&#10;Línea del coro 1&#10;Línea del coro 2"></textarea>
+          <!-- Vista 1: Formulario Manual (Crear desde 0) -->
+          <div id="view-create-manual" class="create-mode-view">
+            <label>Título de la Canción o Presentación:</label>
+            <input type="text" id="input-show-title" placeholder="Ej: 'Cuán Grande Es Dios' o 'Sermón de Fe'" />
+
+            <label style="margin-top: 10px;">Categoría:</label>
+            <select id="input-show-category">
+              <option value="Alabanza">Alabanza</option>
+              <option value="Adoración">Adoración</option>
+              <option value="Sermón">Sermón / Predicación</option>
+              <option value="Lectura">Lectura Bíblica</option>
+              <option value="Anuncio">Anuncios / Avisos</option>
+            </select>
+
+            <label style="margin-top: 10px;">Contenido de Diapositivas (separa estrofas dejando una línea en blanco):</label>
+            <textarea id="input-show-text" placeholder="Estrofa 1:&#10;Línea uno del canto&#10;Línea dos del canto&#10;&#10;Coro:&#10;Línea del coro 1&#10;Línea del coro 2"></textarea>
+          </div>
+
+          <!-- Vista 2: Buscador Web de Letras -->
+          <div id="view-create-search" class="create-mode-view" style="display: none;">
+            <label>Buscar Canción por Nombre, Autor o Frase:</label>
+            <div style="display: flex; gap: 8px; margin-top: 4px;">
+              <input type="text" id="input-song-search-query" placeholder="Ej: 'Cuan Grande es Dios', 'Way Maker', 'Marco Barrientos'..." style="flex: 1;" />
+              <button id="btn-song-search-submit" class="btn-modal-save" style="background: linear-gradient(135deg, var(--accent-magenta), #db2777); white-space: nowrap;">🔍 Buscar</button>
+            </div>
+
+            <div style="margin-top: 12px; font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Resultados Encontrados:</div>
+            
+            <div id="song-search-results-list" style="margin-top: 6px; max-height: 230px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; border: 1px solid var(--border-color); border-radius: 6px; padding: 8px; background: var(--bg-darkest);">
+              <div style="padding: 20px; text-align: center; color: var(--text-muted); font-size: 0.78rem;">
+                🔍 Ingresa el nombre o autor de la canción y presiona <strong>Buscar</strong> para obtener coincidencias con nombre, autor y fuente web.
+              </div>
+            </div>
+          </div>
+
         </div>
         <div class="modal-footer">
           <button id="btn-cancel-show" class="btn-modal-cancel">Cancelar</button>
@@ -617,6 +685,47 @@
           <button id="btn-submit-load-bible" class="btn-modal-save" style="background: linear-gradient(135deg, var(--accent-magenta), #c026d3);">
             ⚡ Cargar Biblia
           </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal para Agregar Nuevo Evento en Calendario -->
+    <div id="modal-create-event" class="modal-overlay">
+      <div class="modal-card" style="max-width: 480px;">
+        <div class="modal-header">
+          <h3>📅 Agregar Evento al Calendario</h3>
+          <button id="btn-close-event-modal" class="modal-close-btn">&times;</button>
+        </div>
+        <div class="modal-body">
+          <label>Título del Evento:</label>
+          <input type="text" id="input-event-title" placeholder="Ej: 'Servicio Dominical de Alabanza' o 'Ensayo General'" />
+
+          <div style="display: flex; gap: 10px; margin-top: 10px;">
+            <div style="flex: 1;">
+              <label>Fecha:</label>
+              <input type="date" id="input-event-date" style="background: var(--bg-darkest); border: 1px solid var(--border-color); color: #fff; padding: 6px 10px; border-radius: 6px; width: 100%; outline: none;" />
+            </div>
+            <div style="flex: 1;">
+              <label>Hora:</label>
+              <input type="time" id="input-event-time" style="background: var(--bg-darkest); border: 1px solid var(--border-color); color: #fff; padding: 6px 10px; border-radius: 6px; width: 100%; outline: none;" />
+            </div>
+          </div>
+
+          <label style="margin-top: 10px;">Categoría / Etiqueta:</label>
+          <select id="input-event-category" style="background: var(--bg-darkest); border: 1px solid var(--border-color); color: #fff; padding: 6px 10px; border-radius: 6px; width: 100%; outline: none;">
+            <option value="Servicio Domingo">Servicio Domingo</option>
+            <option value="Ensayo Alabanza">Ensayo de Alabanza</option>
+            <option value="Reunión Jóvenes">Reunión de Jóvenes</option>
+            <option value="Conferencia">Conferencia / Especial</option>
+            <option value="Reunión Oración">Reunión de Oración</option>
+          </select>
+
+          <label style="margin-top: 10px;">Notas / Descripción del Evento:</label>
+          <textarea id="input-event-notes" placeholder="Ej: 'Dirección a cargo del Pastor Alejandro. Lista de cantos: Cuan Grande es Dios, La Bondad de Dios.'"></textarea>
+        </div>
+        <div class="modal-footer">
+          <button id="btn-cancel-event" class="btn-modal-cancel">Cancelar</button>
+          <button id="btn-save-event" class="btn-modal-save" style="background: linear-gradient(135deg, var(--accent-cyan), #0284c7);">📅 Guardar Evento</button>
         </div>
       </div>
     </div>
