@@ -4,69 +4,116 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ProPresenter AI Studio - Production Control</title>
-  <script type="module" crossorigin src="/assets/main-D8QcuAYY.js"></script>
-  <link rel="modulepreload" crossorigin href="/assets/broadcast-BBdxr0p4.js">
-  <link rel="stylesheet" crossorigin href="/assets/main-csxtx0H-.css">
+  <script type="module" crossorigin src="./assets/main-B9j2uUPF.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/broadcast-apKW5yD5.js">
+  <link rel="stylesheet" crossorigin href="./assets/main-DxB7kqNf.css">
 </head>
 <body>
   <div id="app">
-    <!-- Top Header Bar -->
+    <!-- Top Header Bar (Estilo FreeShow / ProPresenter) -->
     <header class="top-header">
-      <div class="brand">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polygon points="5 3 19 12 5 21 5 3"></polygon>
-        </svg>
-        <span>ProPresenter <span style="color: var(--accent-purple)">AI Studio</span></span>
-        <span class="brand-badge">PRO v7.5</span>
+      <!-- Left Section: App Menu & Brand -->
+      <div class="header-left">
+        <div class="app-menu-bar">
+          <span class="menu-item">File</span>
+          <span class="menu-item">Edit</span>
+          <span class="menu-item">View</span>
+          <span class="menu-item">Help</span>
+        </div>
+        <div class="brand">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-pink)" stroke-width="2.5">
+            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+          </svg>
+          <span class="brand-name">FreePresenter <span style="color: var(--accent-pink)">AI</span></span>
+          <span class="brand-badge">PRO v7.5</span>
+        </div>
       </div>
 
-      <div class="output-launchers">
-        <button id="btn-open-audience" class="btn-output" title="Abrir ventana de Proyección o Señal OBS">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <!-- Center Section: Mode Navigation Tabs -->
+      <nav class="mode-tabs">
+        <button class="mode-tab active" data-mode="show" title="Vista de Proyección / Presentación">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-            <line x1="8" y1="21" x2="16" y2="21"></line>
-            <line x1="12" y1="17" x2="12" y2="21"></line>
+            <polygon points="10 8 16 11.5 10 15 10 8" fill="currentColor"></polygon>
           </svg>
-          Salida Audiencia (OBS/Proyector)
+          <span>Show</span>
         </button>
 
-        <button id="btn-open-stage" class="btn-output" title="Abrir pantalla de monitoreo para oradores/músicos">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
-            <rect x="9" y="9" width="6" height="6"></rect>
-            <line x1="9" y1="1" x2="15" y2="1"></line>
+        <button class="mode-tab" data-mode="edit" title="Editor de Diapositivas y Canvas">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
           </svg>
-          Stage Display (Monitor)
+          <span>Edit</span>
+        </button>
+
+        <button class="mode-tab" data-mode="stage" title="Configurador de Monitor de Orador">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="4" y="4" width="16" height="16" rx="2"></rect>
+            <rect x="9" y="9" width="6" height="6"></rect>
+          </svg>
+          <span>Stage</span>
+        </button>
+      </nav>
+
+      <!-- Right Section: Quick Launchers & Settings -->
+      <div class="header-right">
+        <div class="output-launchers">
+          <button id="btn-open-audience" class="btn-output" title="Abrir ventana de Proyección o Señal OBS">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+              <line x1="8" y1="21" x2="16" y2="21"></line>
+              <line x1="12" y1="17" x2="12" y2="21"></line>
+            </svg>
+            <span>Audiencia</span>
+          </button>
+
+          <button id="btn-open-stage" class="btn-output" title="Abrir pantalla de monitoreo para oradores/músicos">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="4" y="4" width="16" height="16" rx="2"></rect>
+              <rect x="9" y="9" width="6" height="6"></rect>
+            </svg>
+            <span>Stage</span>
+          </button>
+        </div>
+
+        <button id="btn-quick-settings" class="btn-icon" title="Ajustes Rápidos">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
         </button>
       </div>
     </header>
 
-    <!-- ProPresenter Core Master Clear Bar (CON ATAJOS VISIBLES: ESC, F2, F3, F4) -->
-    <section class="master-clear-bar">
-      <button id="btn-clear-all" class="clear-btn clear-all" title="Atajo: ESC">CLEAR ALL <span style="font-size:0.65rem; background:rgba(0,0,0,0.3); padding:1px 5px; border-radius:3px; margin-left:4px;">ESC</span></button>
-      <button id="btn-clear-text" class="clear-btn" title="Atajo: F2">Clear Text <span style="font-size:0.65rem; background:rgba(0,0,0,0.3); padding:1px 5px; border-radius:3px; margin-left:4px;">F2</span></button>
-      <button id="btn-clear-media" class="clear-btn" title="Atajo: F3">Clear Media <span style="font-size:0.65rem; background:rgba(0,0,0,0.3); padding:1px 5px; border-radius:3px; margin-left:4px;">F3</span></button>
-      <button id="btn-clear-overlays" class="clear-btn" title="Atajo: F4">Clear Overlays <span style="font-size:0.65rem; background:rgba(0,0,0,0.3); padding:1px 5px; border-radius:3px; margin-left:4px;">F4</span></button>
-      
-      <div style="margin-left: auto; display: flex; align-items: center; gap: 10px;">
-        <span style="font-size: 0.72rem; color: var(--text-muted);">Atajos: <kbd style="background:#222; padding: 2px 6px; border-radius: 4px; color:#fff;">F2</kbd> Texto | <kbd style="background:#222; padding: 2px 6px; border-radius: 4px; color:#fff;">F3</kbd> Media | <kbd style="background:#222; padding: 2px 6px; border-radius: 4px; color:#fff;">F4</kbd> Overlays | <kbd style="background:#222; padding: 2px 6px; border-radius: 4px; color:#fff;">Espacio</kbd> Siguiente</span>
-      </div>
-    </section>
-
-    <!-- Main Workspace -->
+    <!-- Main Workspace (3 Columnas: Proyectos, Grid/Dashboard, Control En Vivo) -->
     <main class="main-workspace">
-      <!-- Left Sidebar: Library Decks & Playlists -->
+      <!-- Left Sidebar: Library Decks & Playlists (Estilo FreeShow) -->
       <aside class="sidebar">
         <div class="sidebar-header">
-          <span class="sidebar-title">Biblioteca de Decks</span>
-          <button id="btn-add-deck-manual" style="background: var(--bg-card); border: 1px solid var(--border-color); color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer;">+ Nuevo</button>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+            </svg>
+            <span class="sidebar-title">Projects</span>
+          </div>
+          <span class="project-count-badge">3</span>
         </div>
+
         <div id="deck-list" class="deck-list">
           <!-- Dynamically populated -->
         </div>
+
+        <!-- Floating Action Button (+) Estilo FreeShow Magenta -->
+        <button id="btn-add-deck-manual" class="fab-btn-add" title="Crear Nuevo Show o Presentación">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+        </button>
       </aside>
 
-      <!-- Center Column: Presentation Grid -->
+      <!-- Center Column: Presentation Grid & Mode Canvas -->
       <section class="center-column">
         <div class="deck-banner">
           <div class="deck-info">
@@ -86,104 +133,493 @@
         </div>
       </section>
 
-      <!-- Right Panel: Previews, AI Copilot & Media Video Library -->
+      <!-- Right Panel: Live Output Preview, Navigation & Master Clear Controls -->
       <aside class="right-panel">
+        <!-- Live Output Preview Box -->
+        <div class="live-monitor-card">
+          <div class="monitor-screen">
+            <video id="operator-video-preview" autoplay loop muted playsinline style="position: absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:1; display:none;"></video>
+            <div id="operator-live-text" class="monitor-screen-content">-- Sin Texto Proyectado --</div>
+          </div>
+          <!-- Quick Control Bar under Monitor -->
+          <div class="monitor-quick-bar">
+            <div class="monitor-nav-btns">
+              <button id="btn-quick-prev" class="btn-icon-sm" title="Anterior">‹</button>
+              <button id="btn-quick-next" class="btn-icon-sm" title="Siguiente">›</button>
+              <button id="btn-quick-play" class="btn-icon-sm" title="Play/Pausa">▶</button>
+            </div>
+            <div class="monitor-status-badges">
+              <span id="badge-live-status" class="badge-live">EN VIVO</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Master Clear Buttons Grid (ESC, F2, F3, F4) -->
+        <div class="master-clear-section">
+          <button id="btn-clear-all" class="clear-btn clear-all" title="Atajo: ESC">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+            Clear all
+          </button>
+
+          <div class="clear-sub-grid">
+            <button id="btn-clear-text" class="clear-btn-sm" title="Atajo: F2">Text (F2)</button>
+            <button id="btn-clear-media" class="clear-btn-sm" title="Atajo: F3">Media (F3)</button>
+            <button id="btn-clear-overlays" class="clear-btn-sm" title="Atajo: F4">Overlays (F4)</button>
+          </div>
+        </div>
+
+        <!-- Control Panel: Transiciones en Vivo (Texto & Medios + Control de Tiempo 100ms - 1000ms) -->
+        <div class="transitions-control-section">
+          <div class="transitions-section-title">⚡ TRANSICIONES EN VIVO</div>
+          <div class="transitions-grid">
+            <div class="transition-row">
+              <span class="transition-label">TEXTO:</span>
+              <div class="transition-btn-group">
+                <button class="btn-trans-toggle" data-trans-type="text" data-mode="cut">Cut</button>
+                <button class="btn-trans-toggle active" data-trans-type="text" data-mode="fade">Fade</button>
+              </div>
+            </div>
+            <div class="transition-row">
+              <span class="transition-label">MEDIOS:</span>
+              <div class="transition-btn-group">
+                <button class="btn-trans-toggle" data-trans-type="media" data-mode="cut">Cut</button>
+                <button class="btn-trans-toggle active" data-trans-type="media" data-mode="fade">Fade</button>
+              </div>
+            </div>
+            <div class="transition-row transition-slider-row">
+              <span class="transition-label">TIEMPO:</span>
+              <div class="transition-slider-box">
+                <input type="range" id="input-fade-duration" min="100" max="1000" step="50" value="250">
+                <span id="val-fade-duration" class="transition-val-badge">250ms</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Panel Tabs: Stage Display & IA Copilot -->
         <div class="panel-tabs">
-          <div class="panel-tab active" data-tab="tab-monitors">Monitores</div>
-          <div class="panel-tab tab-media" data-tab="tab-media">Videos & Medios 🎬</div>
+          <div class="panel-tab active" data-tab="tab-monitors">Stage</div>
           <div class="panel-tab tab-ai" data-tab="tab-ai">IA Studio ✨</div>
         </div>
 
-        <!-- Tab 1: Live Previews -->
         <div id="tab-monitors" class="tab-content active">
           <div class="monitors-container">
             <div class="monitor-box">
               <div class="monitor-header">
-                <span>PANTALLA AUDIENCIA (LIVE)</span>
-                <span id="badge-live-status" style="background: var(--accent-red); color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.65rem;">EN VIVO</span>
-              </div>
-              <div class="monitor-screen">
-                <video id="operator-video-preview" autoplay loop muted playsinline style="position: absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:1; display:none;"></video>
-                <div id="operator-live-text" class="monitor-screen-content">-- Sin Texto Proyectado --</div>
-              </div>
-            </div>
-
-            <div class="monitor-box">
-              <div class="monitor-header">
                 <span>STAGE DISPLAY (MONITOR CONFIANZA)</span>
-                <span style="color: var(--accent-cyan);">ORADOR / MÚSICOS</span>
               </div>
-              <div class="monitor-screen" style="background: #05080e; flex-direction: column; justify-content: space-between; align-items: stretch; text-align: left;">
+              <div class="monitor-screen" style="background: #05080e; flex-direction: column; justify-content: space-between; align-items: stretch; text-align: left; height: 100px;">
                 <div style="display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--accent-gold); font-weight: 700;">
                   <span>RELOJ: <span id="stage-clock">00:00:00</span></span>
                   <span>TIEMPO: <span id="stage-timer">10:00</span></span>
                 </div>
-                <div id="stage-current-preview" style="font-size: 0.85rem; color: #fff; font-weight: 700;">TEXTO ACTUAL: --</div>
-                <div id="stage-next-preview" style="font-size: 0.72rem; color: var(--text-muted);">SIGUIENTE: --</div>
+                <div id="stage-current-preview" style="font-size: 0.82rem; color: #fff; font-weight: 700;">TEXTO ACTUAL: --</div>
+                <div id="stage-next-preview" style="font-size: 0.7rem; color: var(--text-muted);">SIGUIENTE: --</div>
               </div>
             </div>
 
             <!-- Stage Control Quick Panel -->
-            <div style="background: var(--bg-panel); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 8px;">
-              <span style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted);">CONTROL DE TEMPORIZADOR Y MENSAJES</span>
-              <div style="display: flex; gap: 6px;">
-                <button id="btn-timer-10m" class="btn-output" style="font-size: 0.75rem; padding: 4px 8px;">10 Mins</button>
-                <button id="btn-timer-5m" class="btn-output" style="font-size: 0.75rem; padding: 4px 8px;">5 Mins</button>
-                <button id="btn-timer-toggle" class="btn-output" style="font-size: 0.75rem; padding: 4px 8px; background: var(--accent-green); color: white; border: none;">▶ Iniciar</button>
+            <div style="background: var(--bg-panel); border: 1px solid var(--border-color); border-radius: 8px; padding: 8px; display: flex; flex-direction: column; gap: 6px;">
+              <span style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted);">TEMPORIZADOR ORADOR</span>
+              <div style="display: flex; gap: 4px;">
+                <button id="btn-timer-10m" class="btn-output" style="font-size: 0.7rem; padding: 3px 6px;">10M</button>
+                <button id="btn-timer-5m" class="btn-output" style="font-size: 0.7rem; padding: 3px 6px;">5M</button>
+                <button id="btn-timer-toggle" class="btn-output" style="font-size: 0.7rem; padding: 3px 6px; background: var(--accent-green); color: white; border: none;">▶ Iniciar</button>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Tab 2: Videos & Media Explorer -->
-        <div id="tab-media" class="tab-content">
-          <div class="media-container">
-            <input type="file" id="input-video-file" accept="video/*" multiple style="display: none;" />
-            
-            <div id="dropzone-video" class="dropzone-box">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--accent-blue)" stroke-width="2">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                <polyline points="17 8 12 3 7 8"></polyline>
-                <line x1="12" y1="3" x2="12" y2="15"></line>
-              </svg>
-              <div style="font-weight: 700; font-size: 0.85rem; color: #fff;">Explorar o Arrastrar Videos de la PC</div>
-              <div style="font-size: 0.72rem; color: var(--text-muted);">Soporta archivos .MP4, .WEBM, .MOV para fondos en vivo</div>
-              <button id="btn-browse-videos" class="btn-output" style="margin-top: 6px; background: var(--accent-blue); color: white; border: none; font-weight: 700;">📂 Cargar Archivos de Video</button>
-            </div>
-
-            <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); margin-top: 10px;">FONDOS DE VIDEO EN BIBLIOTECA:</div>
-            <div id="media-grid" class="media-grid">
-              <!-- Dynamically populated video cards -->
-            </div>
-          </div>
-        </div>
-
-        <!-- Tab 3: AI Copilot -->
         <div id="tab-ai" class="tab-content">
           <div class="ai-copilot-container">
             <div class="ai-prompt-box">
-              <label style="font-size: 0.78rem; font-weight: 700; color: var(--accent-purple);">PROMPT DE INTELIGENCIA ARTIFICIAL</label>
-              <textarea id="ai-input" class="ai-prompt-input" placeholder="Ejemplo: 'Crea una canción de alabanza sobre la gracia y el perdón con estrofas y coro', o 'Sermón sobre la esperanza'"></textarea>
+              <label style="font-size: 0.75rem; font-weight: 700; color: var(--accent-purple);">PROMPT IA STUDIO</label>
+              <textarea id="ai-input" class="ai-prompt-input" placeholder="Ej: 'Crea una canción de alabanza sobre la fe'"></textarea>
               <button id="btn-ai-submit" class="btn-ai-submit">
                 <span>✨ Generar con IA</span>
               </button>
             </div>
 
-            <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); margin-top: 4px;">PRESETS RÁPIDOS IA:</div>
+            <div style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted);">PRESETS RÁPIDOS:</div>
             <div class="ai-presets">
-              <div class="chip-preset" data-preset="Genera la canción 'Cuan Grande es Dios' con estrofas y coro">🎵 Canto de Alabanza</div>
-              <div class="chip-preset" data-preset="Sermón sobre la fe en tiempos difíciles con 3 puntos clave">📖 Presentación Sermón</div>
-              <div class="chip-preset" data-preset="Lower third para Pastor Alejandro Morales - Conferencia Principal">👤 Lower Third Pastor</div>
+              <div class="chip-preset" data-preset="Genera la canción 'Cuan Grande es Dios' con estrofas y coro">🎵 Canto Alabanza</div>
+              <div class="chip-preset" data-preset="Sermón sobre la fe en tiempos difíciles">📖 Presentación Sermón</div>
             </div>
 
-            <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); margin-top: 8px;">CONSOLA IA STUDIO:</div>
-            <div id="ai-log" class="ai-log">
-              Escribe un prompt arriba para generar diapositivas, sermones o letras en tiempo real.
-            </div>
+            <div id="ai-log" class="ai-log">Consola lista.</div>
           </div>
         </div>
       </aside>
     </main>
+
+    <!-- Bottom Resource Dock (Sección 4 Estilo FreeShow - Redimensionable) -->
+    <section class="bottom-resource-dock">
+      <div id="bottom-dock-resizer" class="dock-resizer-handle" title="Arrastra hacia arriba o abajo para redimensionar el panel inferior"></div>
+      <!-- Resource Tabs Header -->
+      <div class="resource-tabs-bar">
+        <div class="resource-tabs">
+          <button class="res-tab active" data-res="shows">Shows</button>
+          <button class="res-tab" data-res="media">Media</button>
+          <button class="res-tab" data-res="audio">Audio</button>
+          <button class="res-tab" data-res="overlays">Overlays</button>
+          <button class="res-tab" data-res="templates">Templates</button>
+          <button class="res-tab" data-res="scripture">Scripture</button>
+          <button class="res-tab" data-res="calendar">Calendar</button>
+          <button class="res-tab" data-res="functions">Functions</button>
+        </div>
+
+        <div class="resource-search-box">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input type="text" id="dock-search-input" placeholder="Buscar título o categoría..." />
+        </div>
+      </div>
+
+      <!-- Resource Split Body -->
+      <div class="resource-body">
+        <!-- Sub Sidebar: Menu lateral que cambia según la pestaña activa (Shows vs Media) -->
+        <div class="resource-sub-sidebar">
+          <!-- 1. Menu Lateral para la pestaña SHOWS (Categorías dinámicas: Alabanza, Sermón, Lectura/Escrituras, etc.) -->
+          <div id="sub-sidebar-shows" class="sub-sidebar-content active">
+            <div class="folders-header" style="margin-bottom: 6px;">Categorías de Shows</div>
+            <div id="shows-categories-list" class="filter-group">
+              <!-- Dynamically populated categories -->
+            </div>
+          </div>
+
+          <!-- 2. Menu Lateral para la pestaña MEDIA (Carpetas Virtuales: Anuncios, Rápidos, Estribos, etc.) -->
+          <div id="sub-sidebar-media" class="sub-sidebar-content">
+            <div class="folders-header-row">
+              <span class="folders-header">Carpetas de Medios</span>
+              <button id="btn-add-virtual-folder" class="btn-add-folder" title="Crear Nueva Carpeta Virtual">+</button>
+            </div>
+            <div id="media-folders-list" class="folder-list">
+              <!-- Dynamically populated virtual folders -->
+            </div>
+          </div>
+
+          <!-- 3. Menu Lateral para la pestaña TEMPLATES (Plantillas Editables) -->
+          <div id="sub-sidebar-templates" class="sub-sidebar-content">
+            <div class="folders-header-row">
+              <span class="folders-header">Plantillas de Texto</span>
+              <button id="btn-create-template" class="btn-add-folder" title="Crear Nueva Plantilla">+</button>
+            </div>
+            <div id="template-list-sidebar" class="folder-list">
+              <!-- Dynamically populated templates -->
+            </div>
+          </div>
+
+          <!-- 4. Menu Lateral para la pestaña SCRIPTURE (Biblias) -->
+          <div id="sub-sidebar-scripture" class="sub-sidebar-content">
+            <div class="folders-header-row">
+              <span class="folders-header">Versiones de la Biblia</span>
+              <button id="btn-open-load-bible-modal" class="btn-add-folder" title="Cargar Biblia desde URL o JSON">+</button>
+            </div>
+            <div id="scripture-bibles-list" class="folder-list">
+              <!-- Dynamically populated Bible versions -->
+            </div>
+          </div>
+
+          <!-- 5. Menu Lateral Genérico para otras pestañas -->
+          <div id="sub-sidebar-generic" class="sub-sidebar-content">
+            <div class="folders-header" style="margin-bottom: 6px;">Categorías</div>
+            <div class="filter-group">
+              <div class="filter-item active">
+                <span class="dot-indicator"></span>
+                <span>Todos los Elementos</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Center Media Grid Area with Dynamic Tab Views -->
+        <div class="resource-grid-area">
+          <!-- 1. Pestaña SHOWS -->
+          <div id="res-tab-shows" class="res-tab-content active">
+            <div class="shows-dock-header">
+              <button id="btn-open-create-modal" class="btn-create-show-dock">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                + Nuevo Texto / Canción
+              </button>
+              <span id="dock-shows-info" style="font-size: 0.72rem; color: var(--text-muted);">4 elementos creados</span>
+            </div>
+            <div id="shows-grid" class="shows-dock-grid"></div>
+          </div>
+
+          <!-- 2. Pestaña MEDIA -->
+          <div id="res-tab-media" class="res-tab-content">
+            <div class="media-dock-header">
+              <button id="btn-open-media-modal" class="btn-create-show-dock" style="background: linear-gradient(135deg, var(--accent-cyan), #0284c7);">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                + Cargar Video / Fondo
+              </button>
+              <span id="dock-media-info" style="font-size: 0.72rem; color: var(--text-muted);">Carpeta: Todas</span>
+            </div>
+            <input type="file" id="input-video-file" accept="video/*,image/*" multiple style="display: none;" />
+            <div id="media-grid" class="media-dock-grid"></div>
+          </div>
+
+          <!-- 3. Pestaña TEMPLATES -->
+          <div id="res-tab-templates" class="res-tab-content">
+            <div class="template-editor-wrapper">
+              <div class="template-preview-container">
+                <div class="template-preview-header">
+                  <span>VISTA PREVIA EN VIVO (PLANTILLA ACTIVA)</span>
+                </div>
+                <div class="template-live-preview-box">
+                  <video id="tpl-preview-bg-video" autoplay loop muted playsinline style="position: absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity: 0.8;"></video>
+                  <div id="template-preview-text-wrapper" style="position: absolute; left: 5%; right: 5%; top: 50%; transform: translateY(-50%); text-align: center;">
+                    <div id="template-preview-text" class="template-preview-text-sample">
+                      Porque de tal manera amó Dios al mundo, que ha dado a su Hijo unigénito...
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="template-controls-container">
+                <div class="tpl-section-title">✍️ Tipografía y Nombre</div>
+                <div class="tpl-form-group">
+                  <label>Nombre de la Plantilla:</label>
+                  <input type="text" id="input-tpl-name" placeholder="Ej: Moderno Centrado" />
+                </div>
+                <div class="tpl-grid-2col">
+                  <div class="tpl-form-group">
+                    <label>Fuente Tipográfica:</label>
+                    <select id="select-tpl-font">
+                      <option value="Inter, sans-serif">Inter (Moderna)</option>
+                      <option value="Outfit, sans-serif">Outfit (Neón / Display)</option>
+                      <option value="Montserrat, sans-serif">Montserrat (Elegante)</option>
+                      <option value="Roboto, sans-serif">Roboto</option>
+                      <option value="Georgia, serif">Georgia (Clásica)</option>
+                      <option value="monospace">Monospace</option>
+                    </select>
+                  </div>
+                  <div class="tpl-form-group">
+                    <label>Tamaño de Fuente: <span id="val-tpl-size">52px</span></label>
+                    <input type="range" id="input-tpl-size" min="20" max="100" value="52" />
+                  </div>
+                </div>
+                <div class="tpl-section-title">📐 Espaciado y Alineación</div>
+                <div class="tpl-grid-2col">
+                  <div class="tpl-form-group">
+                    <label>Kerning (Espaciado Letras): <span id="val-tpl-kerning">0px</span></label>
+                    <input type="range" id="input-tpl-kerning" min="-2" max="10" step="0.5" value="0" />
+                  </div>
+                  <div class="tpl-form-group">
+                    <label>Interlineado (Line-Height): <span id="val-tpl-leading">1.25</span></label>
+                    <input type="range" id="input-tpl-leading" min="0.9" max="2.2" step="0.05" value="1.25" />
+                  </div>
+                </div>
+                <div class="tpl-grid-2col">
+                  <div class="tpl-form-group">
+                    <label>Color de Texto:</label>
+                    <input type="color" id="input-tpl-color" value="#ffffff" style="height: 32px; padding: 2px; cursor: pointer;" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 4. Pestaña SCRIPTURE -->
+          <div id="res-tab-scripture" class="res-tab-content">
+            <div class="scripture-container">
+              <div class="scripture-search-bar">
+                <div class="scripture-search-input-box">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                  </svg>
+                  <input type="text" id="input-scripture-search" placeholder="Escribe un libro o pasaje (ej: Mateo, Juan 3:16) — Presiona Tab para autocompletar" autocomplete="off" />
+                  <div id="scripture-autocomplete-hint" class="autocomplete-hint"></div>
+                </div>
+                <div class="scripture-header-actions">
+                  <span id="scripture-active-ref" class="scripture-ref-tag">📖 Juan 3 (RVR1960)</span>
+                  <button id="btn-convert-scripture-to-show" class="btn-create-show-dock" style="background: linear-gradient(135deg, var(--accent-magenta), #c026d3); padding: 4px 10px; font-size: 0.72rem;">
+                    ✨ Convertir a Show
+                  </button>
+                </div>
+              </div>
+              <div class="scripture-3col-grid">
+                <div class="scripture-col scripture-col-books">
+                  <div class="scripture-col-header">LIBROS (<span id="count-scripture-books">66</span>)</div>
+                  <div id="scripture-books-list" class="scripture-list"></div>
+                </div>
+                <div class="scripture-col scripture-col-chapters">
+                  <div class="scripture-col-header">CAPÍTULO <span id="label-scripture-book">Juan</span></div>
+                  <div id="scripture-chapters-list" class="scripture-grid-chapters"></div>
+                </div>
+                <div class="scripture-col scripture-col-verses">
+                  <div class="scripture-col-header">VERSÍCULOS EN <span id="label-scripture-chapter-ref">Juan 3</span></div>
+                  <div id="scripture-verses-list" class="scripture-list-verses"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 5. Pestaña Genérica -->
+          <div id="res-tab-generic" class="res-tab-content">
+            <div id="generic-tab-placeholder" class="generic-placeholder">
+              <span>Selecciona una pestaña de recursos para explorar su biblioteca.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Far Right Digital Live Clock & Scripture Settings Widget -->
+        <div class="resource-clock-widget">
+          <!-- Configuración de Escrituras -->
+          <div class="scripture-dock-settings">
+            <div class="scripture-settings-title">⚙️ Ajustes de Escrituras</div>
+            
+            <div class="scripture-setting-group">
+              <label>Máx Renglones por filmina:</label>
+              <select id="select-scripture-maxlines">
+                <option value="1">1 Renglón</option>
+                <option value="2" selected>2 Renglones</option>
+                <option value="3">3 Renglones</option>
+                <option value="0">Sin Límite</option>
+              </select>
+            </div>
+
+            <div class="scripture-setting-group">
+              <label>Tipografía:</label>
+              <select id="select-scripture-font">
+                <option value="Inter, sans-serif">Inter (Moderna)</option>
+                <option value="Outfit, sans-serif">Outfit (Display)</option>
+                <option value="Montserrat, sans-serif">Montserrat</option>
+                <option value="Georgia, serif">Georgia (Clásica)</option>
+                <option value="Roboto, sans-serif">Roboto</option>
+              </select>
+            </div>
+
+            <div class="scripture-setting-group">
+              <label>Versículos Largos:</label>
+              <select id="select-scripture-split">
+                <option value="true">Dividir en varias filminas</option>
+                <option value="false">Ajustar tamaño de letra</option>
+              </select>
+            </div>
+
+            <div class="scripture-setting-checkbox">
+              <label><input type="checkbox" id="check-scripture-show-ref" checked /> Mostrar Referencia al pie</label>
+            </div>
+          </div>
+
+          <!-- Reloj Digital -->
+          <div class="dock-clock-wrapper">
+            <div id="dock-digital-clock" class="dock-digital-clock">01:44:57 <span class="ampm">AM</span></div>
+            <div id="dock-digital-date" class="dock-digital-date">Sunday 23. August 2026</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Modal para Crear Nuevo Texto / Show con Persistencia -->
+    <div id="modal-create-show" class="modal-overlay">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3>📝 Crear Nuevo Texto o Canción</h3>
+          <button id="btn-close-modal" class="modal-close-btn">&times;</button>
+        </div>
+        <div class="modal-body">
+          <label>Título de la Canción o Presentación:</label>
+          <input type="text" id="input-show-title" placeholder="Ej: 'Cuán Grande Es Dios' o 'Sermón de Fe'" />
+
+          <label style="margin-top: 10px;">Categoría:</label>
+          <select id="input-show-category">
+            <option value="Alabanza">Alabanza</option>
+            <option value="Adoración">Adoración</option>
+            <option value="Sermón">Sermón / Predicación</option>
+            <option value="Lectura">Lectura Bíblica</option>
+            <option value="Anuncio">Anuncios / Avisos</option>
+          </select>
+
+          <label style="margin-top: 10px;">Contenido de Diapositivas (separa estrofas dejando una línea en blanco):</label>
+          <textarea id="input-show-text" placeholder="Estrofa 1:&#10;Línea uno del canto&#10;Línea dos del canto&#10;&#10;Coro:&#10;Línea del coro 1&#10;Línea del coro 2"></textarea>
+        </div>
+        <div class="modal-footer">
+          <button id="btn-cancel-show" class="btn-modal-cancel">Cancelar</button>
+          <button id="btn-save-show" class="btn-modal-save">💾 Guardar y Proyectar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal para Cargar Fondo / Video asignando Carpeta Virtual -->
+    <div id="modal-upload-media" class="modal-overlay">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3>🎬 Cargar Fondo de Video / Imagen</h3>
+          <button id="btn-close-media-modal" class="modal-close-btn">&times;</button>
+        </div>
+        <div class="modal-body">
+          <label>Seleccionar Archivo de Video/Imagen:</label>
+          <div style="display: flex; gap: 8px;">
+            <button id="btn-select-media-file" class="btn-output" style="background: var(--accent-cyan); color: white; border: none; font-weight: 700;">📂 Explorar Archivo...</button>
+            <span id="selected-media-filename" style="font-size: 0.75rem; color: var(--text-muted); align-self: center;">Ningún archivo seleccionado</span>
+          </div>
+
+          <label style="margin-top: 12px;">Nombre del Recurso:</label>
+          <input type="text" id="input-media-name" placeholder="Ej: 'Fondo Animado Anuncios'" />
+          <input type="text" id="input-media-url" placeholder="URL directa o ruta del archivo" style="margin-top: 6px;" />
+
+          <label style="margin-top: 12px;">Asignar a Carpeta Virtual:</label>
+          <select id="select-media-folder">
+            <!-- Dynamically populated options -->
+          </select>
+
+          <label style="margin-top: 10px;">o Crear una Nueva Carpeta Virtual:</label>
+          <input type="text" id="input-new-folder-name" placeholder="Ej: 'Anuncios', 'Rápidos', 'Estribos'..." />
+        </div>
+        <div class="modal-footer">
+          <button id="btn-cancel-media" class="btn-modal-cancel">Cancelar</button>
+          <button id="btn-save-media" class="btn-modal-save" style="background: linear-gradient(135deg, var(--accent-cyan), #0284c7);">🎬 Guardar y Asignar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal para Cargar Biblia desde URL o Archivo JSON -->
+    <div id="modal-load-bible" class="modal-overlay">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3>📖 Cargar Nueva Biblia (URL / JSON)</h3>
+          <button id="btn-close-load-bible-modal" class="modal-close-btn">&times;</button>
+        </div>
+        <div class="modal-body">
+          <label>Ingresa el enlace URL de la Biblia en formato JSON:</label>
+          <input type="text" id="input-bible-url" placeholder="https://mrk214.github.io/snapshots/es___spa___spa/DHH94I_vid_52.json" value="https://mrk214.github.io/snapshots/es___spa___spa/DHH94I_vid_52.json" />
+          
+          <div style="margin: 14px 0 8px 0; text-align: center; font-size: 0.72rem; color: var(--text-muted); position: relative;">
+            <span style="background: var(--bg-card); padding: 0 8px; position: relative; z-index: 1;">O SELECCIONAR ARCHIVO LOCAL (.JSON)</span>
+            <div style="position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: var(--border-color); z-index: 0;"></div>
+          </div>
+
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <button id="btn-select-bible-file" class="btn-modal-save" style="background: var(--bg-card); border: 1px solid var(--border-color); color: #fff; font-size: 0.75rem;">
+              📁 Elegir archivo JSON...
+            </button>
+            <span id="label-selected-bible-file" style="font-size: 0.72rem; color: var(--text-muted);">Ningún archivo seleccionado</span>
+            <input type="file" id="input-bible-file" accept=".json" style="display: none;" />
+          </div>
+          
+          <div id="bible-load-status" style="margin-top: 12px; font-size: 0.76rem; font-weight: 700; color: var(--accent-cyan); display: none;"></div>
+        </div>
+        <div class="modal-footer">
+          <button id="btn-cancel-load-bible" class="btn-modal-cancel">Cancelar</button>
+          <button id="btn-submit-load-bible" class="btn-modal-save" style="background: linear-gradient(135deg, var(--accent-magenta), #c026d3);">
+            ⚡ Cargar Biblia
+          </button>
+        </div>
+      </div>
+    </div>
 
     <!-- Footer Status Bar -->
     <footer class="status-bar">
@@ -196,7 +632,17 @@
         <span style="margin: 0 8px;">|</span>
         <span>Fondo de Video: <strong id="status-bg-layer" style="color: var(--accent-cyan)">VIDEO LOOP</strong></span>
       </div>
-    </footer>
+    <!-- Menú Contextual Personalizado (Clic Derecho) -->
+    <div id="custom-context-menu" class="custom-context-menu">
+      <div id="ctx-item-delete" class="context-menu-item item-danger">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <polyline points="3 6 5 6 21 6"></polyline>
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+        </svg>
+        <span id="ctx-item-label">Eliminar Elemento</span>
+        <span class="context-menu-shortcut">Supr</span>
+      </div>
+    </div>
   </div>
 </body>
 </html>

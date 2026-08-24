@@ -15,6 +15,13 @@ export class BroadcastSync {
         this.listeners.forEach(fn => fn(event.data.payload));
       }
     };
+
+    // Electron native IPC listener
+    if (window.electronAPI && window.electronAPI.onBroadcastUpdate) {
+      window.electronAPI.onBroadcastUpdate((state) => {
+        this.listeners.forEach(fn => fn(state));
+      });
+    }
   }
 
   // Operator sends state updates to all open displays
@@ -24,6 +31,10 @@ export class BroadcastSync {
       payload: state,
       timestamp: Date.now()
     });
+
+    if (window.electronAPI && window.electronAPI.sendBroadcast) {
+      window.electronAPI.sendBroadcast(state);
+    }
   }
 
   // Audience or Stage displays listen for state updates

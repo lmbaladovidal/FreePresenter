@@ -1,14 +1,49 @@
 {
   "name": "propresenter-ai-studio",
-  "private": true,
   "version": "1.0.0",
-  "type": "module",
+  "description": "Estación de control multimedia de escritorio para proyección multipantalla, transmisión en vivo y monitor de escenario con soporte para IA y Biblias JSON.",
+  "main": "main.js",
+  "author": "ProPresenter AI Studio Team",
+  "license": "MIT",
+  "keywords": [
+    "propresenter",
+    "worship-presentation",
+    "live-projection",
+    "electron",
+    "stage-display",
+    "bible-importer",
+    "worship-software"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "electron:dev": "vite",
+    "electron:start": "electron .",
+    "package:exe": "npm run build && electron-packager . \"ProPresenter AI Studio\" --platform=win32 --arch=x64 --out=release-builds --overwrite"
+  },
+  "build": {
+    "appId": "com.propresenter.aistudio",
+    "productName": "ProPresenter AI Studio",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "dist/**/*",
+      "main.js",
+      "preload.js",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        "portable"
+      ]
+    }
   },
   "devDependencies": {
+    "electron": "^43.4.1",
+    "electron-builder": "^26.0.12",
+    "electron-packager": "^17.1.2",
     "vite": "^5.0.0"
   }
 }
