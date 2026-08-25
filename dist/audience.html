@@ -26,14 +26,15 @@
       user-select: none;
     }
 
-    #bg-video {
+    .bg-media-layer {
       position: absolute;
       inset: 0;
       width: 100%;
       height: 100%;
       object-fit: cover;
       z-index: 1;
-      transition: opacity 0.4s ease;
+      opacity: 0;
+      pointer-events: none;
     }
 
     #bg-fallback {
@@ -102,11 +103,10 @@
     }
 
     #lower-third-title {
-      font-size: 1.5rem;
+      font-size: 1.6rem;
       font-weight: 800;
       color: #ffffff;
       margin-bottom: 4px;
-      letter-spacing: -0.5px;
     }
 
     #lower-third-subtitle {
@@ -117,12 +117,15 @@
       letter-spacing: 0.5px;
     }
   </style>
-  <script type="module" crossorigin src="./assets/audience-Dnf5N5bo.js"></script>
+  <script type="module" crossorigin src="./assets/audience-h6knSSwI.js"></script>
   <link rel="modulepreload" crossorigin href="./assets/broadcast-apKW5yD5.js">
 </head>
 <body>
   <div id="bg-fallback"></div>
-  <video id="bg-video" autoplay loop muted playsinline style="display: none;"></video>
+  
+  <!-- Dual Layer Video for Smooth Crossfade Transitions -->
+  <video id="bg-video-a" class="bg-media-layer" autoplay loop muted playsinline></video>
+  <video id="bg-video-b" class="bg-media-layer" autoplay loop muted playsinline></video>
   
   <div id="slide-text-container"></div>
 

@@ -327,9 +327,19 @@ export class Store {
     const template = this.templates.find(t => t.id === templateId);
     if (template) {
       this.activeTemplateId = templateId;
-      this.state.activeTemplate = template;
+      this.state.activeTemplate = { ...template };
       this.notify();
     }
+  }
+
+  updateActiveTemplateProperties(props) {
+    if (!this.state.activeTemplate) return;
+    this.state.activeTemplate = { ...this.state.activeTemplate, ...props };
+    const idx = this.templates.findIndex(t => t.id === (props.id || this.activeTemplateId));
+    if (idx !== -1) {
+      this.templates[idx] = { ...this.state.activeTemplate };
+    }
+    this.notify();
   }
 
   saveTemplate(templateData) {
@@ -543,7 +553,28 @@ export class Store {
       folder: targetFolder || "General"
     };
     this.state.mediaLibrary.unshift(newItem);
-    this.setActiveVideo(url, name);
+    this.notify();
+  }
+
+  addMediaBatch(items) {
+    if (!Array.isArray(items) || items.length === 0) return;
+    
+    items.forEach((item, index) => {
+      const targetFolder = item.folder ? item.folder.trim() : "General";
+      if (targetFolder && !this.state.mediaFolders.includes(targetFolder)) {
+        this.state.mediaFolders.push(targetFolder);
+      }
+      const newItem = {
+        id: "media-" + Date.now() + "-" + index + "-" + Math.random().toString(36).substr(2, 4),
+        name: item.name || "Video sin nombre",
+        url: item.url,
+        type: item.type || "video/mp4",
+        folder: targetFolder || "General"
+      };
+      this.state.mediaLibrary.unshift(newItem);
+    });
+
+    this.notify();
   }
 
   deleteMediaItem(itemId) {

@@ -4,12 +4,45 @@ Este archivo registra el control de versiones, cambios granulares, mejoras y cor
 
 ---
 
-## 📌 Versión Actual: `v1.1.0` (Build 20260824.1)
+## 📌 Versión Actual: `v1.1.0` (Build 20260825.4)
 
 ### 🗓️ Registro de Cambios (Changelog Histórico)
 
-### [1.1.0] - 2026-08-24
-#### 🆕 Nuevas Funcionalidades
+### [1.1.0] - 2026-08-25
+#### 🆕 Nuevas Funcionalidades & Correcciones
+- **📜 Corrección Definitiva del Scrollbar en Panel Derecho (Dock Resizing Flex Fix):**
+  - Asignado `flex-shrink: 0` a todos los contenedores hijos de `.right-sidebar` y removido `flex: 1; overflow: hidden;` de `.tab-content`.
+  - Al incrementar la altura del dock inferior o reducir la resolución del monitor, `.right-sidebar` activa de inmediato su barra de desplazamiento vertical (`overflow-y: auto`), permitiendo navegar el 100% de los elementos (Live Program, Clear All, Transiciones en Vivo y Stage Display) sin que nada quede cortado.
+- **📺 Vista Previa del Operador 100% Fiel y Equivalente a la Audiencia:**
+  - El monitor de vista previa del operador (`LIVE PROGRAM / AUDIENCE SCREEN`) en la barra derecha ahora escala y proyecta de forma idéntica a la pantalla final de Audiencia.
+  - Sincronizados de forma fiel la fuente tipográfica, tamaño, espaciado de letras, interlineado, color de texto, sombras, alineación, **posición vertical Y (top %)**, color y opacidad de caja de fondo, padding, esquinas redondeadas y límite de líneas.
+- **🎨 Corrección en Selección de Plantillas (Respeto del Estado de Audiencia):**
+  - Al seleccionar o modificar plantillas de texto, la pantalla de Audiencia **conserva rigurosamente su estado actual**. Si la pantalla está limpia o sin texto en vivo (`isTextCleared === true`), permanece totalmente limpia sin forzar proyecciones involuntarias.
+  - Los ajustes de plantilla solo re-estilizan el texto proyectado cuando la diapositiva ya está activa en vivo.
+- **🎨 Corrección de Carga de Estilos CSS en Producción (`base: './'`):**
+  - Añadida la propiedad `base: './'` en `vite.config.js` para asegurar que todos los estilos CSS y scripts JavaScript empaquetados en la build de Electron se vinculen mediante rutas relativas universales (`./assets/...`).
+  - Solucionado el problema donde los estilos no se cargaban al abrir la aplicación ejecutable nativa `.exe`.
+- **📦 Carga por Lotes de Videos e Imágenes (Batch Upload & Multi-Drag):**
+  - Implementado el método `addMediaBatch` en `Store` para importar decenas de archivos multimedia en un único pase ultra rápido.
+  - El selector de archivos del modal (`📂 Explorar Archivo...`) y el campo de entrada `<input type="file" multiple>` permiten seleccionar múltiples videos (ej: 10, 20 o 50 archivos MP4/JPG/WebM) a la vez en Windows Explorer y asignarlos en lote a cualquier carpeta virtual (*General*, *Anuncios*, *Alabanza*, etc.).
+  - Añadido soporte para **Arrastrar y Soltar (Drag & Drop)** múltiple directamente sobre la pestaña de Medios.
+- **🎥 Corrección en Carga de Medios (Sin Proyección Automática Involuntaria):**
+  - Al agregar o importar un nuevo archivo de video/imagen a la biblioteca, este ya **no se proyecta automáticamente** a la pantalla de Audiencia.
+  - El elemento permanece registrado en la grilla multimedia para que el operador decida cuándo activarlo explícitamente haciendo clic sobre él.
+- **🎨 Edición y Sincronización en Tiempo Real de Plantillas de Texto:**
+  - Implementado el método `updateActiveTemplateProperties` en `Store` para que cada movimiento de control (tamaño de fuente, alineación, posición Y, kerning, interlineado, color de texto, color y opacidad de fondo de caja, padding y esquinas redondeadas) actualice la diapositiva proyectada en **tiempo real**.
+  - Añadidos en la interfaz todos los controles faltantes (alineación, posición vertical Y, color de caja, opacidad, padding y límite de líneas) para una personalización completa y reactiva.
+- **⚡ Optimización Anti-Parpadeo (Memoización DOM en Grilla Multimedia):**
+  - Implementación de claves de caché para el renderizado del dock de medios y shows (`renderMediaDock` y `renderShowsDock`).
+  - Previene que los nodos `<video>` de las miniaturas se destruyan y recarguen cada segundo con los tics del reloj o temporizadores, eliminando los parpadeos por completo y ofreciendo máxima fluidez visual.
+- **📜 Scrollbar en Panel Derecho (Navegación Fluida al Redimensionar Dock):**
+  - Añadido soporte para desplazamiento vertical automático (`overflow-y: auto`) con barra de desplazamiento oscura personalizada en el panel derecho (`.right-sidebar`).
+  - Al aumentar la altura del dock inferior o en pantallas de menor resolución, el operador puede desplazarse verticalmente y acceder a todos los controles (Live Program, Clear All, Transiciones y Stage Display).
+- **🎥 Transición de Fade Fluida para Medios (Crossfade de Doble Capa):**
+  - Implementación de un motor de reproducción multimedia de doble capa (`bg-video-a` / `bg-video-b`) para eliminar los cortes bruscos al cambiar entre fondos de video o imágenes.
+  - Sincronización precisa de las transiciones `Cut` vs `Fade` y el control deslizante de duración (100ms - 1000ms) tanto en la Salida de Audiencia como en la vista previa del operador.
+- **🏷️ Preselección Automática de Categoría Activa al Crear/Importar Shows:**
+  - Si el usuario está ubicado dentro de una categoría específica (ej: *Rápidos*, *Adoración*, *Alabanza*, *Sermón*), al pulsar el botón `+` o importar una canción de la web, esa categoría se selecciona automáticamente por defecto en el formulario.
 - **📅 Calendario Mensual Estilo FreeShow (7 Columnas):**
   - Implementación de la vista mensual completa de 7 columnas (`Sunday` a `Saturday`) con numeración lateral de semana (`#`).
   - Resaltado automático del día actual en círculo magenta brillante (`var(--accent-pink)`).

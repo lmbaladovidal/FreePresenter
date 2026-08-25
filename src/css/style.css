@@ -500,12 +500,37 @@ body {
   overflow: hidden;
 }
 
-/* Right Panel Tabs */
-.right-panel {
+/* Right Sidebar Container (con scroll-y automático al reducir altura) */
+.right-sidebar {
   background: var(--bg-dark);
   border-left: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
+  gap: 10px;
+  padding: 10px;
+  height: 100%;
+  max-height: 100%;
+  overflow-y: auto !important;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+.right-sidebar > * {
+  flex-shrink: 0;
+}
+
+.right-sidebar::-webkit-scrollbar {
+  width: 8px;
+}
+.right-sidebar::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.3);
+}
+.right-sidebar::-webkit-scrollbar-thumb {
+  background: var(--border-light);
+  border-radius: 4px;
+}
+.right-sidebar::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-pink);
 }
 
 .panel-tabs {
@@ -548,10 +573,10 @@ body {
 }
 
 .tab-content {
-  flex: 1;
   display: none;
   flex-direction: column;
-  overflow: hidden;
+  flex-shrink: 0;
+  overflow: visible;
 }
 
 .tab-content.active {
@@ -560,11 +585,9 @@ body {
 
 /* Live Monitors */
 .monitors-container {
-  padding: 12px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  overflow-y: auto;
+  gap: 10px;
 }
 
 .monitor-box {

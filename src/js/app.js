@@ -14,7 +14,9 @@ class ProPresenterApp {
     this.operatorVideoPreview = document.getElementById('operator-video-preview');
     this.contextTarget = null;
 
-    // State for Scriptures Navigator
+    // State for Scriptures Navigator & Operator Video Crossfade
+    this.operatorVideoUrl = "";
+    this.operatorActiveMediaLayer = 'A';
     this.selectedBibleVersion = '';
     this.selectedBookId = 'JHN';
     this.selectedChapter = 3;
@@ -294,6 +296,9 @@ class ProPresenterApp {
               if (selectedSong) {
                 if (this.inputShowTitle) this.inputShowTitle.value = selectedSong.title;
                 if (this.inputShowText) this.inputShowText.value = selectedSong.lyrics;
+                if (this.activeFilter && this.activeFilter !== 'all' && this.inputShowCategory) {
+                  this.inputShowCategory.value = this.activeFilter;
+                }
                 switchModalMode('manual');
               }
             });
@@ -316,6 +321,27 @@ class ProPresenterApp {
       if (this.modalCreateShow) {
         this.modalCreateShow.classList.add('open');
         switchModalMode('manual');
+
+        // Auto-seleccionar la categoría activa actual
+        if (this.activeFilter && this.activeFilter !== 'all' && this.inputShowCategory) {
+          const filterCategory = this.activeFilter;
+          const options = Array.from(this.inputShowCategory.options);
+          let matchedOption = options.find(opt => 
+            opt.value.toLowerCase() === filterCategory.toLowerCase()
+          );
+
+          if (matchedOption) {
+            this.inputShowCategory.value = matchedOption.value;
+          } else {
+            // Añadir dinámicamente la opción si es una categoría personalizada
+            const newOpt = document.createElement('option');
+            newOpt.value = filterCategory;
+            newOpt.textContent = filterCategory;
+            this.inputShowCategory.appendChild(newOpt);
+            this.inputShowCategory.value = filterCategory;
+          }
+        }
+
         this.inputShowTitle?.focus();
       }
     };
@@ -350,25 +376,30 @@ class ProPresenterApp {
 
     // 8. Upload Media Modal Handlers (Cargar Video asignando carpeta virtual)
     const openModalMedia = () => {
-      if (this.modalUploadMedia) {
-        // Populate folder select dropdown options
-        if (this.selectMediaFolder) {
-          this.selectMediaFolder.innerHTML = store.state.mediaFolders.map(f => 
-            `<option value="${f}">${f}</option>`
-          ).join('');
+      this.pendingBatchFiles = [];
+      if (this.inputMediaName) this.inputMediaName.value = "";
+      if (this.inputMediaUrl) this.inputMediaUrl.value = "";
+      if (this.inputNewFolderName) this.inputNewFolderName.value = "";
+      if (this.selectedMediaFilename) this.selectedMediaFilename.textContent = "Ningún archivo seleccionado";
+
+      if (this.selectMediaFolder) {
+        const folders = store.state.mediaFolders || ["General"];
+        this.selectMediaFolder.innerHTML = folders.map(f => `<option value="${f}">${f}</option>`).join('');
+        if (this.selectedMediaFolder && this.selectedMediaFolder !== 'all') {
+          this.selectMediaFolder.value = this.selectedMediaFolder;
         }
+      }
+
+      if (this.modalUploadMedia) {
         this.modalUploadMedia.classList.add('open');
         this.inputMediaName?.focus();
       }
     };
 
     const closeModalMedia = () => {
+      this.pendingBatchFiles = [];
       if (this.modalUploadMedia) {
         this.modalUploadMedia.classList.remove('open');
-        if (this.inputMediaName) this.inputMediaName.value = "";
-        if (this.inputMediaUrl) this.inputMediaUrl.value = "";
-        if (this.inputNewFolderName) this.inputNewFolderName.value = "";
-        if (this.selectedMediaFilename) this.selectedMediaFilename.textContent = "Ningún archivo seleccionado";
       }
     };
 
@@ -376,15 +407,23 @@ class ProPresenterApp {
     document.getElementById('btn-close-media-modal')?.addEventListener('click', closeModalMedia);
     document.getElementById('btn-cancel-media')?.addEventListener('click', closeModalMedia);
 
-    // File Browser button inside Upload Modal (Soporte Nativo Electron)
+    // File Browser button inside Upload Modal (Soporte Nativo Electron + Multi-archivo)
     document.getElementById('btn-select-media-file')?.addEventListener('click', async () => {
       if (window.electronAPI && window.electronAPI.selectMediaFiles) {
         const files = await window.electronAPI.selectMediaFiles();
         if (files && files.length > 0) {
-          const first = files[0];
-          if (this.inputMediaName) this.inputMediaName.value = first.name;
-          if (this.inputMediaUrl) this.inputMediaUrl.value = first.url;
-          if (this.selectedMediaFilename) this.selectedMediaFilename.textContent = `Archivo: ${first.name}`;
+          this.pendingBatchFiles = files.map(f => {
+            const fileName = typeof f === 'string' ? f.split(/[\\/]/).pop() : (f.name || 'Video');
+            const fileUrl = typeof f === 'string' ? f : f.url;
+            return { name: fileName, url: fileUrl, type: 'video/mp4' };
+          });
+
+          if (this.selectedMediaFilename) {
+            this.selectedMediaFilename.textContent = `${this.pendingBatchFiles.length} archivo(s) seleccionado(s)`;
+          }
+          if (this.inputMediaName && this.pendingBatchFiles.length === 1) {
+            this.inputMediaName.value = this.pendingBatchFiles[0].name;
+          }
         }
       } else {
         this.videoFileInput?.click();
@@ -392,39 +431,77 @@ class ProPresenterApp {
     });
 
     this.videoFileInput?.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (file) {
-        const objectUrl = URL.createObjectURL(file);
-        if (this.inputMediaName && !this.inputMediaName.value) {
-          this.inputMediaName.value = file.name;
-        }
-        if (this.inputMediaUrl) {
-          this.inputMediaUrl.value = objectUrl;
-        }
+      const selectedFiles = Array.from(e.target.files || []);
+      if (selectedFiles.length > 0) {
+        this.pendingBatchFiles = selectedFiles.map(file => ({
+          name: file.name,
+          url: URL.createObjectURL(file),
+          type: file.type || 'video/mp4'
+        }));
+
         if (this.selectedMediaFilename) {
-          this.selectedMediaFilename.textContent = `Archivo: ${file.name}`;
+          const namesSnippet = selectedFiles.map(f => f.name).slice(0, 2).join(', ');
+          const extraCount = selectedFiles.length > 2 ? ` (+${selectedFiles.length - 2} más)` : '';
+          this.selectedMediaFilename.textContent = `${selectedFiles.length} archivo(s): ${namesSnippet}${extraCount}`;
+        }
+
+        if (this.inputMediaName) {
+          this.inputMediaName.value = selectedFiles.length === 1 ? selectedFiles[0].name : `Lote de ${selectedFiles.length} videos`;
         }
       }
     });
 
     this.btnSaveMedia?.addEventListener('click', () => {
-      const name = this.inputMediaName.value.trim();
-      let url = this.inputMediaUrl.value.trim();
+      const customName = this.inputMediaName.value.trim();
+      let customUrl = this.inputMediaUrl.value.trim();
       const newFolder = this.inputNewFolderName.value.trim();
       let folder = newFolder || this.selectMediaFolder.value || "General";
 
-      if (!name) {
-        alert("Por favor ingresa un nombre para el fondo/video.");
+      if (this.pendingBatchFiles && this.pendingBatchFiles.length > 0) {
+        const batchToSave = this.pendingBatchFiles.map((item, idx) => ({
+          name: this.pendingBatchFiles.length === 1 && customName ? customName : item.name,
+          url: item.url,
+          type: item.type,
+          folder: folder
+        }));
+        store.addMediaBatch(batchToSave);
+        closeModalMedia();
         return;
       }
 
-      if (!url) {
-        url = "https://assets.mixkit.co/videos/preview/mixkit-stars-in-space-background-1610-large.mp4";
+      if (customUrl) {
+        store.addMediaItem(customName || "Video sin nombre", customUrl, "video/mp4", folder);
+        closeModalMedia();
+        return;
       }
 
-      store.addMediaItem(name, url, "video/mp4", folder);
-      closeModalMedia();
+      alert("Por favor selecciona uno o más archivos de video/imagen o ingresa una URL.");
     });
+
+    // Drag & Drop Directo sobre la pestaña de Medios para carga por lotes
+    const mediaTab = document.getElementById('res-tab-media');
+    if (mediaTab) {
+      ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        mediaTab.addEventListener(eventName, (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        });
+      });
+
+      mediaTab.addEventListener('drop', (e) => {
+        const files = Array.from(e.dataTransfer.files || []).filter(f => f.type.startsWith('video/') || f.type.startsWith('image/'));
+        if (files.length > 0) {
+          const targetFolder = this.selectedMediaFolder && this.selectedMediaFolder !== 'all' ? this.selectedMediaFolder : 'General';
+          const batchItems = files.map(f => ({
+            name: f.name,
+            url: URL.createObjectURL(f),
+            type: f.type,
+            folder: targetFolder
+          }));
+          store.addMediaBatch(batchItems);
+        }
+      });
+    }
 
     // Add Virtual Folder quick button (+)
     document.getElementById('btn-add-virtual-folder')?.addEventListener('click', () => {
@@ -485,10 +562,16 @@ class ProPresenterApp {
   }
 
   handleLoadedVideoFiles(files) {
-    files.forEach(file => {
-      const objectUrl = URL.createObjectURL(file);
-      store.addMediaItem(file.name, objectUrl, file.type, "General");
-    });
+    const fileList = Array.from(files || []);
+    if (fileList.length === 0) return;
+    const targetFolder = this.selectedMediaFolder && this.selectedMediaFolder !== 'all' ? this.selectedMediaFolder : 'General';
+    const batchItems = fileList.map(file => ({
+      name: file.name,
+      url: URL.createObjectURL(file),
+      type: file.type || 'video/mp4',
+      folder: targetFolder
+    }));
+    store.addMediaBatch(batchItems);
   }
 
   showContextMenu(e, target) {
@@ -729,88 +812,103 @@ class ProPresenterApp {
     if (projectBadge) projectBadge.textContent = decks.length;
     if (dockInfo) dockInfo.textContent = `${filteredDecks.length} de ${decks.length} textos`;
 
-    if (filteredDecks.length === 0) {
-      this.showsGridEl.innerHTML = `
-        <div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 20px; font-size: 0.78rem;">
-          No se encontraron resultados para "${this.searchQuery}".
-        </div>
-      `;
-      return;
+    const showsCacheKey = JSON.stringify(filteredDecks.map(d => d.id + d.title + d.category)) + '|' + this.searchQuery + '|' + this.activeFilter;
+
+    if (this.lastShowsCacheKey !== showsCacheKey) {
+      this.lastShowsCacheKey = showsCacheKey;
+
+      if (filteredDecks.length === 0) {
+        this.showsGridEl.innerHTML = `
+          <div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 20px; font-size: 0.78rem;">
+            No se encontraron resultados para "${this.searchQuery}".
+          </div>
+        `;
+      } else {
+        this.showsGridEl.innerHTML = filteredDecks.map(deck => {
+          const isActive = deck.id === store.activeDeckId;
+          const slideCount = deck.groups.reduce((acc, g) => acc + g.slides.length, 0);
+          const snippetText = deck.groups[0]?.slides[0]?.text || "Sin texto";
+
+          return `
+            <div class="show-dock-card ${isActive ? 'active-dock-show' : ''}" data-deck-id="${deck.id}">
+              <div class="show-card-top">
+                <span class="show-card-title" title="${deck.title}">${deck.title}</span>
+                <span class="show-card-badge">${deck.category || 'General'}</span>
+              </div>
+              <div class="show-card-snippet">${snippetText}</div>
+              <div class="show-card-footer">
+                <span>${slideCount} Diapositivas</span>
+                <button class="btn-delete-show" data-delete-id="${deck.id}" title="Eliminar este show">&times;</button>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        this.showsGridEl.querySelectorAll('.show-dock-card').forEach(card => {
+          const id = card.getAttribute('data-deck-id');
+          const deckObj = decks.find(d => d.id === id);
+          card.addEventListener('click', (e) => {
+            if (e.target.classList.contains('btn-delete-show')) return;
+            store.setActiveDeck(id);
+          });
+          card.addEventListener('contextmenu', (e) => {
+            if (deckObj) this.showContextMenu(e, { type: 'deck', id: deckObj.id, name: deckObj.title });
+          });
+        });
+
+        this.showsGridEl.querySelectorAll('.btn-delete-show').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const id = btn.getAttribute('data-delete-id');
+            if (confirm("¿Deseas eliminar este texto/show de la biblioteca?")) {
+              store.deleteDeck(id);
+            }
+          });
+        });
+      }
     }
 
-    this.showsGridEl.innerHTML = filteredDecks.map(deck => {
-      const isActive = deck.id === store.activeDeckId;
-      const slideCount = deck.groups.reduce((acc, g) => acc + g.slides.length, 0);
-      const snippetText = deck.groups[0]?.slides[0]?.text || "Sin texto";
-
-      return `
-        <div class="show-dock-card ${isActive ? 'active-dock-show' : ''}" data-deck-id="${deck.id}">
-          <div class="show-card-top">
-            <span class="show-card-title" title="${deck.title}">${deck.title}</span>
-            <span class="show-card-badge">${deck.category || 'General'}</span>
-          </div>
-          <div class="show-card-snippet">${snippetText}</div>
-          <div class="show-card-footer">
-            <span>${slideCount} Diapositivas</span>
-            <button class="btn-delete-show" data-delete-id="${deck.id}" title="Eliminar este show">&times;</button>
-          </div>
-        </div>
-      `;
-    }).join('');
-
+    // Fast CSS active class toggle without DOM destruction
     this.showsGridEl.querySelectorAll('.show-dock-card').forEach(card => {
       const id = card.getAttribute('data-deck-id');
-      const deckObj = decks.find(d => d.id === id);
-      card.addEventListener('click', (e) => {
-        if (e.target.classList.contains('btn-delete-show')) return;
-        store.setActiveDeck(id);
-      });
-      card.addEventListener('contextmenu', (e) => {
-        if (deckObj) this.showContextMenu(e, { type: 'deck', id: deckObj.id, name: deckObj.title });
-      });
-    });
-
-    this.showsGridEl.querySelectorAll('.btn-delete-show').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const id = btn.getAttribute('data-delete-id');
-        if (confirm("¿Deseas eliminar este texto/show de la biblioteca?")) {
-          store.deleteDeck(id);
-        }
-      });
+      card.classList.toggle('active-dock-show', id === store.activeDeckId);
     });
   }
 
   renderMediaDock(state) {
     if (!this.mediaGridEl || !this.mediaFoldersListEl) return;
 
-    // 1. Render Virtual Folders list in Sub-sidebar
+    // 1. Render Virtual Folders list in Sub-sidebar (Memoized)
     const folders = state.mediaFolders || ["General"];
     const allCount = state.mediaLibrary.length;
+    const folderCacheKey = JSON.stringify(folders) + '|' + allCount + '|' + this.selectedMediaFolder;
 
-    this.mediaFoldersListEl.innerHTML = `
-      <div class="folder-item ${this.selectedMediaFolder === 'all' ? 'active' : ''}" data-folder-name="all">
-        <span>📁 Todos los Medios</span>
-        <span class="count">${allCount}</span>
-      </div>
-      ${folders.map(folder => {
-        const count = state.mediaLibrary.filter(m => m.folder === folder).length;
-        const isActive = this.selectedMediaFolder === folder;
-        return `
-          <div class="folder-item ${isActive ? 'active' : ''}" data-folder-name="${folder}">
-            <span>📁 ${folder}</span>
-            <span class="count">${count}</span>
-          </div>
-        `;
-      }).join('')}
-    `;
+    if (this.lastFolderCacheKey !== folderCacheKey) {
+      this.lastFolderCacheKey = folderCacheKey;
+      this.mediaFoldersListEl.innerHTML = `
+        <div class="folder-item ${this.selectedMediaFolder === 'all' ? 'active' : ''}" data-folder-name="all">
+          <span>📁 Todos los Medios</span>
+          <span class="count">${allCount}</span>
+        </div>
+        ${folders.map(folder => {
+          const count = state.mediaLibrary.filter(m => m.folder === folder).length;
+          const isActive = this.selectedMediaFolder === folder;
+          return `
+            <div class="folder-item ${isActive ? 'active' : ''}" data-folder-name="${folder}">
+              <span>📁 ${folder}</span>
+              <span class="count">${count}</span>
+            </div>
+          `;
+        }).join('')}
+      `;
 
-    this.mediaFoldersListEl.querySelectorAll('.folder-item').forEach(item => {
-      item.addEventListener('click', () => {
-        this.selectedMediaFolder = item.getAttribute('data-folder-name');
-        this.renderMediaDock(state);
+      this.mediaFoldersListEl.querySelectorAll('.folder-item').forEach(item => {
+        item.addEventListener('click', () => {
+          this.selectedMediaFolder = item.getAttribute('data-folder-name');
+          this.renderMediaDock(state);
+        });
       });
-    });
+    }
 
     // Update Dock Header Info
     const mediaInfo = document.getElementById('dock-media-info');
@@ -827,56 +925,68 @@ class ProPresenterApp {
       return matchesFolder && matchesSearch;
     });
 
-    if (filteredMedia.length === 0) {
-      this.mediaGridEl.innerHTML = `
-        <div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 20px; font-size: 0.78rem;">
-          No hay videos o imágenes en la carpeta "${this.selectedMediaFolder === 'all' ? 'Todas' : this.selectedMediaFolder}".
-        </div>
-      `;
-      return;
+    const mediaGridCacheKey = JSON.stringify(filteredMedia.map(m => m.id + m.name + m.url + m.folder)) + '|' + this.selectedMediaFolder + '|' + this.searchQuery;
+
+    if (this.lastMediaGridCacheKey !== mediaGridCacheKey) {
+      this.lastMediaGridCacheKey = mediaGridCacheKey;
+
+      if (filteredMedia.length === 0) {
+        this.mediaGridEl.innerHTML = `
+          <div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 20px; font-size: 0.78rem;">
+            No hay videos o imágenes en la carpeta "${this.selectedMediaFolder === 'all' ? 'Todas' : this.selectedMediaFolder}".
+          </div>
+        `;
+      } else {
+        this.mediaGridEl.innerHTML = filteredMedia.map(item => {
+          const isActive = state.activeVideoUrl === item.url && !state.isMediaCleared;
+          return `
+            <div class="video-card ${isActive ? 'active-video' : ''}" data-video-url="${item.url}" data-video-name="${item.name}">
+              <div class="video-card-top-bar">
+                <span class="video-folder-tag">${item.folder || 'General'}</span>
+                <button class="btn-delete-media" data-media-id="${item.id}" title="Eliminar este video">&times;</button>
+              </div>
+              <video src="${item.url}" muted preload="metadata"></video>
+              <div class="video-card-overlay">
+                <div class="video-card-title">${item.name}</div>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        // Bind video click (proyectar fondo) & delete click & contextmenu
+        this.mediaGridEl.querySelectorAll('.video-card').forEach(card => {
+          const mediaId = card.querySelector('.btn-delete-media')?.getAttribute('data-media-id');
+          const mediaItem = state.mediaLibrary.find(m => m.id === mediaId);
+          card.addEventListener('click', (e) => {
+            if (e.target.classList.contains('btn-delete-media')) return;
+            const url = card.getAttribute('data-video-url');
+            const name = card.getAttribute('data-video-name');
+            store.setActiveVideo(url, name);
+          });
+          card.addEventListener('contextmenu', (e) => {
+            if (mediaItem) {
+              this.showContextMenu(e, { type: 'media', id: mediaItem.id, name: mediaItem.name });
+            }
+          });
+        });
+
+        this.mediaGridEl.querySelectorAll('.btn-delete-media').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const id = btn.getAttribute('data-media-id');
+            if (confirm("¿Deseas eliminar este video/medio de la biblioteca?")) {
+              store.deleteMediaItem(id);
+            }
+          });
+        });
+      }
     }
 
-    this.mediaGridEl.innerHTML = filteredMedia.map(item => {
-      const isActive = state.activeVideoUrl === item.url && !state.isMediaCleared;
-      return `
-        <div class="video-card ${isActive ? 'active-video' : ''}" data-video-url="${item.url}" data-video-name="${item.name}">
-          <div class="video-card-top-bar">
-            <span class="video-folder-tag">${item.folder || 'General'}</span>
-            <button class="btn-delete-media" data-media-id="${item.id}" title="Eliminar este video">&times;</button>
-          </div>
-          <video src="${item.url}" muted preload="metadata"></video>
-          <div class="video-card-overlay">
-            <div class="video-card-title">${item.name}</div>
-          </div>
-        </div>
-      `;
-    }).join('');
-
-    // Bind video click (proyectar fondo) & delete click & contextmenu
+    // 3. Fast CSS active class update without DOM destruction
     this.mediaGridEl.querySelectorAll('.video-card').forEach(card => {
-      const mediaId = card.querySelector('.btn-delete-media')?.getAttribute('data-media-id');
-      const mediaItem = state.mediaLibrary.find(m => m.id === mediaId);
-      card.addEventListener('click', (e) => {
-        if (e.target.classList.contains('btn-delete-media')) return;
-        const url = card.getAttribute('data-video-url');
-        const name = card.getAttribute('data-video-name');
-        store.setActiveVideo(url, name);
-      });
-      card.addEventListener('contextmenu', (e) => {
-        if (mediaItem) {
-          this.showContextMenu(e, { type: 'media', id: mediaItem.id, name: mediaItem.name });
-        }
-      });
-    });
-
-    this.mediaGridEl.querySelectorAll('.btn-delete-media').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const id = btn.getAttribute('data-media-id');
-        if (confirm("¿Deseas eliminar este video/medio de la biblioteca?")) {
-          store.deleteMediaItem(id);
-        }
-      });
+      const url = card.getAttribute('data-video-url');
+      const isActive = state.activeVideoUrl === url && !state.isMediaCleared;
+      card.classList.toggle('active-video', isActive);
     });
   }
 
@@ -906,11 +1016,6 @@ class ProPresenterApp {
         if (store.activeDeck) {
           store.activeDeck.templateId = id;
         }
-        if (store.state.liveGroupIndex !== null && store.state.liveSlideIndex !== null) {
-          store.setLiveSlide(store.state.liveGroupIndex, store.state.liveSlideIndex);
-        } else {
-          store.notify();
-        }
         this.populateTemplateForm(store.state.activeTemplate);
       });
     });
@@ -925,6 +1030,45 @@ class ProPresenterApp {
         }
       });
     });
+  }
+
+  getCurrentTemplateFormObject() {
+    const name = document.getElementById('input-tpl-name')?.value.trim() || 'Plantilla Personalizada';
+    const font = document.getElementById('select-tpl-font')?.value || 'Inter, sans-serif';
+    const size = parseInt(document.getElementById('input-tpl-size')?.value || 52);
+    const kerning = parseFloat(document.getElementById('input-tpl-kerning')?.value || 0);
+    const leading = parseFloat(document.getElementById('input-tpl-leading')?.value || 1.25);
+    const color = document.getElementById('input-tpl-color')?.value || '#ffffff';
+    const align = document.getElementById('select-tpl-align')?.value || 'center';
+    const maxlines = parseInt(document.getElementById('select-tpl-maxlines')?.value || 0);
+    const posy = parseInt(document.getElementById('input-tpl-posy')?.value || 50);
+    const bgHex = document.getElementById('input-tpl-bgcolor-hex')?.value || '#000000';
+    const bgOpacity = parseFloat(document.getElementById('input-tpl-bgopacity')?.value || 0.4);
+    const padding = parseInt(document.getElementById('input-tpl-padding')?.value || 20);
+    const radius = parseInt(document.getElementById('input-tpl-radius')?.value || 8);
+    const bgImage = document.getElementById('input-tpl-bgimage')?.value.trim() || "";
+
+    const r = parseInt(bgHex.slice(1, 3), 16) || 0;
+    const g = parseInt(bgHex.slice(3, 5), 16) || 0;
+    const b = parseInt(bgHex.slice(5, 7), 16) || 0;
+    const rgbaBg = `rgba(${r}, ${g}, ${b}, ${bgOpacity})`;
+
+    return {
+      id: store.activeTemplateId || 'tpl-' + Date.now(),
+      name,
+      fontFamily: font,
+      fontSize: size,
+      letterSpacing: kerning,
+      lineHeight: leading,
+      color,
+      textAlign: align,
+      maxLines: maxlines,
+      posY: posy,
+      bgColor: rgbaBg,
+      padding,
+      borderRadius: radius,
+      bgImageUrl: bgImage
+    };
   }
 
   populateTemplateForm(tpl) {
@@ -962,13 +1106,31 @@ class ProPresenterApp {
     if (colorEl) colorEl.value = tpl.color || "#ffffff";
     if (alignEl) alignEl.value = tpl.textAlign || "center";
     if (maxlinesEl) maxlinesEl.value = tpl.maxLines !== undefined ? tpl.maxLines : 0;
-    if (posyEl) posyEl.value = tpl.posY || 50;
-    if (valPosyEl) valPosyEl.textContent = (tpl.posY || 50) + "%";
+    if (posyEl) posyEl.value = tpl.posY !== undefined ? tpl.posY : 50;
+    if (valPosyEl) valPosyEl.textContent = (tpl.posY !== undefined ? tpl.posY : 50) + "%";
+
+    // Extraer Hex y Opacidad desde rgba si existe
+    let hexBg = "#000000";
+    let alphaBg = 0.4;
+    if (tpl.bgColor) {
+      const rgbaMatch = tpl.bgColor.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
+      if (rgbaMatch) {
+        const r = parseInt(rgbaMatch[1]).toString(16).padStart(2, '0');
+        const g = parseInt(rgbaMatch[2]).toString(16).padStart(2, '0');
+        const b = parseInt(rgbaMatch[3]).toString(16).padStart(2, '0');
+        hexBg = `#${r}${g}${b}`;
+        alphaBg = rgbaMatch[4] !== undefined ? parseFloat(rgbaMatch[4]) : 1;
+      }
+    }
+
+    if (bgHexEl) bgHexEl.value = hexBg;
+    if (bgOpacityEl) bgOpacityEl.value = alphaBg;
+    if (valOpacityEl) valOpacityEl.textContent = Math.round(alphaBg * 100) + "%";
     
-    if (paddingEl) paddingEl.value = tpl.padding || 20;
-    if (valPaddingEl) valPaddingEl.textContent = (tpl.padding || 20) + "px";
-    if (radiusEl) radiusEl.value = tpl.borderRadius || 8;
-    if (valRadiusEl) valRadiusEl.textContent = (tpl.borderRadius || 8) + "px";
+    if (paddingEl) paddingEl.value = tpl.padding !== undefined ? tpl.padding : 20;
+    if (valPaddingEl) valPaddingEl.textContent = (tpl.padding !== undefined ? tpl.padding : 20) + "px";
+    if (radiusEl) radiusEl.value = tpl.borderRadius !== undefined ? tpl.borderRadius : 8;
+    if (valRadiusEl) valRadiusEl.textContent = (tpl.borderRadius !== undefined ? tpl.borderRadius : 8) + "px";
     if (bgImageEl) bgImageEl.value = tpl.bgImageUrl || "";
 
     this.updateTemplateLivePreview();
@@ -979,39 +1141,23 @@ class ProPresenterApp {
     const textWrapper = document.getElementById('template-preview-text-wrapper');
     if (!textPreview || !textWrapper) return;
 
-    const font = document.getElementById('select-tpl-font')?.value || 'Inter, sans-serif';
-    const size = document.getElementById('input-tpl-size')?.value || 52;
-    const kerning = document.getElementById('input-tpl-kerning')?.value || 0;
-    const leading = document.getElementById('input-tpl-leading')?.value || 1.25;
-    const color = document.getElementById('input-tpl-color')?.value || '#ffffff';
-    const align = document.getElementById('select-tpl-align')?.value || 'center';
-    const maxlines = parseInt(document.getElementById('select-tpl-maxlines')?.value || 0);
-    const posy = document.getElementById('input-tpl-posy')?.value || 50;
-    const bgHex = document.getElementById('input-tpl-bgcolor-hex')?.value || '#000000';
-    const bgOpacity = parseFloat(document.getElementById('input-tpl-bgopacity')?.value || 0.5);
-    const padding = document.getElementById('input-tpl-padding')?.value || 20;
-    const radius = document.getElementById('input-tpl-radius')?.value || 8;
+    const tpl = this.getCurrentTemplateFormObject();
 
-    const r = parseInt(bgHex.slice(1, 3), 16) || 0;
-    const g = parseInt(bgHex.slice(3, 5), 16) || 0;
-    const b = parseInt(bgHex.slice(5, 7), 16) || 0;
-    const rgbaBg = `rgba(${r}, ${g}, ${b}, ${bgOpacity})`;
-
-    textWrapper.style.top = posy + '%';
+    textWrapper.style.top = tpl.posY + '%';
     
-    textPreview.style.fontFamily = font;
-    textPreview.style.fontSize = (size * 0.45) + 'px';
-    textPreview.style.letterSpacing = kerning + 'px';
-    textPreview.style.lineHeight = leading;
-    textPreview.style.color = color;
-    textPreview.style.textAlign = align;
-    textPreview.style.backgroundColor = rgbaBg;
-    textPreview.style.padding = (padding * 0.5) + 'px';
-    textPreview.style.borderRadius = (radius * 0.5) + 'px';
+    textPreview.style.fontFamily = tpl.fontFamily;
+    textPreview.style.fontSize = Math.round(tpl.fontSize * 0.45) + 'px';
+    textPreview.style.letterSpacing = tpl.letterSpacing + 'px';
+    textPreview.style.lineHeight = tpl.lineHeight;
+    textPreview.style.color = tpl.color;
+    textPreview.style.textAlign = tpl.textAlign;
+    textPreview.style.backgroundColor = tpl.bgColor;
+    textPreview.style.padding = Math.round(tpl.padding * 0.5) + 'px';
+    textPreview.style.borderRadius = Math.round(tpl.borderRadius * 0.5) + 'px';
 
-    if (maxlines > 0) {
+    if (tpl.maxLines > 0) {
       textPreview.style.display = '-webkit-box';
-      textPreview.style['-webkit-line-clamp'] = maxlines;
+      textPreview.style['-webkit-line-clamp'] = tpl.maxLines;
       textPreview.style['-webkit-box-orient'] = 'vertical';
       textPreview.style.overflow = 'hidden';
     } else {
@@ -1030,7 +1176,7 @@ class ProPresenterApp {
 
     inputs.forEach(id => {
       const el = document.getElementById(id);
-      el?.addEventListener('input', () => {
+      const handleInput = () => {
         if (id === 'input-tpl-size') document.getElementById('val-tpl-size').textContent = el.value + 'px';
         if (id === 'input-tpl-kerning') document.getElementById('val-tpl-kerning').textContent = el.value + 'px';
         if (id === 'input-tpl-leading') document.getElementById('val-tpl-leading').textContent = el.value;
@@ -1040,69 +1186,27 @@ class ProPresenterApp {
         if (id === 'input-tpl-radius') document.getElementById('val-tpl-radius').textContent = el.value + 'px';
 
         this.updateTemplateLivePreview();
-      });
+
+        // INSTANT REAL-TIME UPDATE TO ACTIVE SLIDE & AUDIENCE DISPLAY
+        const updatedTpl = this.getCurrentTemplateFormObject();
+        store.updateActiveTemplateProperties(updatedTpl);
+      };
+
+      el?.addEventListener('input', handleInput);
+      el?.addEventListener('change', handleInput);
     });
 
     const applyCurrentTemplate = () => {
-      const name = document.getElementById('input-tpl-name')?.value.trim() || 'Plantilla Personalizada';
-      const font = document.getElementById('select-tpl-font')?.value;
-      const size = parseInt(document.getElementById('input-tpl-size')?.value || 52);
-      const kerning = parseFloat(document.getElementById('input-tpl-kerning')?.value || 0);
-      const leading = parseFloat(document.getElementById('input-tpl-leading')?.value || 1.25);
-      const color = document.getElementById('input-tpl-color')?.value;
-      const align = document.getElementById('select-tpl-align')?.value;
-      const maxlines = parseInt(document.getElementById('select-tpl-maxlines')?.value || 0);
-      const posy = parseInt(document.getElementById('input-tpl-posy')?.value || 50);
-      const bgHex = document.getElementById('input-tpl-bgcolor-hex')?.value || '#000000';
-      const bgOpacity = parseFloat(document.getElementById('input-tpl-bgopacity')?.value || 0.5);
-      const padding = parseInt(document.getElementById('input-tpl-padding')?.value || 20);
-      const radius = parseInt(document.getElementById('input-tpl-radius')?.value || 8);
-      const bgImage = document.getElementById('input-tpl-bgimage')?.value.trim() || "";
-
-      const r = parseInt(bgHex.slice(1, 3), 16) || 0;
-      const g = parseInt(bgHex.slice(3, 5), 16) || 0;
-      const b = parseInt(bgHex.slice(5, 7), 16) || 0;
-      const rgbaBg = `rgba(${r}, ${g}, ${b}, ${bgOpacity})`;
-
-      const tplObj = {
-        id: store.activeTemplateId || 'tpl-' + Date.now(),
-        name,
-        fontFamily: font,
-        fontSize: size,
-        letterSpacing: kerning,
-        lineHeight: leading,
-        color,
-        textAlign: align,
-        maxLines: maxlines,
-        posY: posy,
-        bgColor: rgbaBg,
-        padding,
-        borderRadius: radius,
-        bgImageUrl: bgImage
-      };
-
-      // 1. Save and set active template
+      const tplObj = this.getCurrentTemplateFormObject();
       store.saveTemplate(tplObj);
-
-      // 2. Assign template to active deck/scripture
       const activeDeck = store.activeDeck;
       if (activeDeck) {
         activeDeck.templateId = tplObj.id;
       }
-
-      // 3. Immediately re-render live projected slide on Audience screen
-      if (store.state.liveGroupIndex !== null && store.state.liveSlideIndex !== null) {
-        store.setLiveSlide(store.state.liveGroupIndex, store.state.liveSlideIndex);
-      } else {
-        store.notify();
-      }
-
-      const activeTitle = activeDeck ? activeDeck.title : 'Texto Actual';
-      alert(`✨ Plantilla '${name}' aplicada exitosamente a "${activeTitle}" y proyectada en vivo.`);
+      this.renderTemplatesSidebar(store.state);
     };
 
     document.getElementById('btn-save-tpl')?.addEventListener('click', applyCurrentTemplate);
-    document.getElementById('btn-apply-tpl')?.addEventListener('click', applyCurrentTemplate);
 
     document.getElementById('btn-create-template')?.addEventListener('click', () => {
       const tplName = prompt("Ingresa el nombre para la nueva plantilla:");
@@ -1672,39 +1776,82 @@ class ProPresenterApp {
       });
     }
 
-    // 4. Operator Live Video Preview
-    if (this.operatorVideoPreview) {
+    // Sync transition toggle buttons active state
+    document.querySelectorAll('.btn-trans-toggle[data-trans-type="text"]').forEach(btn => {
+      btn.classList.toggle('active', btn.getAttribute('data-mode') === state.textTransition);
+    });
+    document.querySelectorAll('.btn-trans-toggle[data-trans-type="media"]').forEach(btn => {
+      btn.classList.toggle('active', btn.getAttribute('data-mode') === state.mediaTransition);
+    });
+
+    // 4. Operator Live Video Preview (Dual Layer Crossfade)
+    const dur = state.fadeDuration || 250;
+    const mediaMode = state.mediaTransition || 'fade';
+    const bgA = document.getElementById('operator-video-preview-a');
+    const bgB = document.getElementById('operator-video-preview-b');
+
+    if (bgA && bgB) {
       if (state.isMediaCleared || !state.activeVideoUrl) {
-        this.operatorVideoPreview.style.display = 'none';
-        this.operatorVideoPreview.pause();
-      } else {
-        this.operatorVideoPreview.style.display = 'block';
-        if (this.operatorVideoPreview.src !== state.activeVideoUrl) {
-          this.operatorVideoPreview.src = state.activeVideoUrl;
-          this.operatorVideoPreview.play().catch(e => console.log("Muted preview autoplay", e));
+        if (mediaMode === 'cut') {
+          bgA.style.transition = 'opacity 0s';
+          bgB.style.transition = 'opacity 0s';
+        } else {
+          bgA.style.transition = `opacity ${dur}ms ease-in-out`;
+          bgB.style.transition = `opacity ${dur}ms ease-in-out`;
         }
+        bgA.style.opacity = '0';
+        bgB.style.opacity = '0';
+        this.operatorVideoUrl = "";
+      } else if (this.operatorVideoUrl !== state.activeVideoUrl) {
+        this.operatorVideoUrl = state.activeVideoUrl;
+
+        const incoming = this.operatorActiveMediaLayer === 'A' ? bgB : bgA;
+        const outgoing = this.operatorActiveMediaLayer === 'A' ? bgA : bgB;
+        this.operatorActiveMediaLayer = this.operatorActiveMediaLayer === 'A' ? 'B' : 'A';
+
+        incoming.src = state.activeVideoUrl;
+        incoming.currentTime = 0;
+
+        const performOperatorFade = () => {
+          if (mediaMode === 'cut') {
+            incoming.style.transition = 'opacity 0s';
+            outgoing.style.transition = 'opacity 0s';
+          } else {
+            incoming.style.transition = `opacity ${dur}ms ease-in-out`;
+            outgoing.style.transition = `opacity ${dur}ms ease-in-out`;
+          }
+          incoming.style.opacity = '1';
+          outgoing.style.opacity = '0';
+        };
+
+        incoming.play()
+          .then(() => performOperatorFade())
+          .catch(e => performOperatorFade());
       }
     }
 
-    // 5. Text & Stage Previews
+    // 5. Text & Stage Previews (Escalado equivalente e idéntico a la pantalla de Audiencia)
     const targetText = (state.isTextCleared || !state.liveText) ? "" : state.liveText;
+    const operatorTextWrapper = document.getElementById('operator-live-text-wrapper');
 
     if (!targetText) {
-      this.liveTextEl.textContent = "-- Sin Texto Proyectado --";
-      this.liveTextEl.style.opacity = "0.5";
-      this.liveTextEl.style.backgroundColor = "transparent";
-      this.liveTextEl.style.padding = "0px";
+      if (operatorTextWrapper) operatorTextWrapper.style.display = 'none';
+      if (this.liveTextEl) {
+        this.liveTextEl.style.opacity = "0";
+        this.liveTextEl.innerHTML = "";
+      }
       this.operatorLiveTextContent = "";
-    } else if (targetText !== this.operatorLiveTextContent) {
+    } else {
+      if (operatorTextWrapper) operatorTextWrapper.style.display = 'block';
       const formattedHTML = targetText.replace(/\n/g, '<br/>');
 
-      if (state.textTransition === 'fade' && this.operatorLiveTextContent && this.liveTextEl.textContent !== "-- Sin Texto Proyectado --") {
+      if (state.textTransition === 'fade' && this.operatorLiveTextContent && this.liveTextEl.style.opacity === '1') {
         this.liveTextEl.style.opacity = '0';
         if (this.operatorFadeTimeout) clearTimeout(this.operatorFadeTimeout);
         this.operatorFadeTimeout = setTimeout(() => {
           this.liveTextEl.innerHTML = formattedHTML;
           this.liveTextEl.style.opacity = '1';
-        }, 120);
+        }, Math.round(dur * 0.48));
       } else {
         if (this.operatorFadeTimeout) clearTimeout(this.operatorFadeTimeout);
         this.liveTextEl.innerHTML = formattedHTML;
@@ -1713,18 +1860,27 @@ class ProPresenterApp {
       this.operatorLiveTextContent = targetText;
     }
 
-    if (targetText && state.activeTemplate) {
+    if (targetText && state.activeTemplate && this.liveTextEl) {
       const tpl = state.activeTemplate;
+
+      if (operatorTextWrapper) {
+        operatorTextWrapper.style.position = 'absolute';
+        operatorTextWrapper.style.left = '5%';
+        operatorTextWrapper.style.right = '5%';
+        operatorTextWrapper.style.top = (tpl.posY !== undefined ? tpl.posY : 50) + '%';
+        operatorTextWrapper.style.transform = 'translateY(-50%)';
+      }
+
       this.liveTextEl.style.fontFamily = tpl.fontFamily || 'Inter, sans-serif';
-      this.liveTextEl.style.fontSize = Math.max(12, Math.round((tpl.fontSize || 52) * 0.3)) + 'px';
-      this.liveTextEl.style.letterSpacing = (tpl.letterSpacing || 0) + 'px';
+      this.liveTextEl.style.fontSize = Math.max(9, Math.round((tpl.fontSize || 52) * 0.28)) + 'px';
+      this.liveTextEl.style.letterSpacing = Math.round((tpl.letterSpacing || 0) * 0.3) + 'px';
       this.liveTextEl.style.lineHeight = tpl.lineHeight || 1.25;
       this.liveTextEl.style.color = tpl.color || '#ffffff';
-      this.liveTextEl.style.textShadow = tpl.textShadow || '0 2px 8px rgba(0,0,0,0.8)';
+      this.liveTextEl.style.textShadow = tpl.textShadow || '0 2px 6px rgba(0,0,0,0.8)';
       this.liveTextEl.style.textAlign = tpl.textAlign || 'center';
       this.liveTextEl.style.backgroundColor = tpl.bgColor || 'transparent';
-      this.liveTextEl.style.padding = Math.round((tpl.padding || 10) * 0.4) + 'px';
-      this.liveTextEl.style.borderRadius = Math.round((tpl.borderRadius || 8) * 0.5) + 'px';
+      this.liveTextEl.style.padding = Math.round((tpl.padding || 0) * 0.3) + 'px';
+      this.liveTextEl.style.borderRadius = Math.round((tpl.borderRadius || 0) * 0.3) + 'px';
 
       if (tpl.maxLines && tpl.maxLines > 0) {
         this.liveTextEl.style.display = '-webkit-box';
@@ -1762,12 +1918,8 @@ class ProPresenterApp {
     }
 
     // Apply live transition timing CSS to operator live preview
-    const dur = state.fadeDuration || 250;
     if (this.liveTextEl) {
       this.liveTextEl.style.transition = state.textTransition === 'cut' ? 'opacity 0s, transform 0s' : `opacity ${dur}ms ease-in-out, transform ${dur}ms ease-in-out`;
-    }
-    if (this.operatorVideoPreview) {
-      this.operatorVideoPreview.style.transition = state.mediaTransition === 'cut' ? 'opacity 0s' : `opacity ${dur}ms ease-in-out`;
     }
 
     // Status bar updates
