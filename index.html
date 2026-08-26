@@ -629,10 +629,10 @@
 
           <!-- Selector de Modo: Crear de 0 vs Buscar Web -->
           <div class="modal-mode-tabs" style="display: flex; gap: 8px; margin-bottom: 14px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
-            <button id="tab-create-manual" class="modal-mode-tab active" style="flex: 1; padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-card); color: #fff; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+            <button type="button" id="tab-create-manual" class="modal-mode-tab active" style="flex: 1; padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-card); color: #fff; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
               <span>✍️ Crear desde Cero</span>
             </button>
-            <button id="tab-create-search" class="modal-mode-tab" style="flex: 1; padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); background: transparent; color: var(--text-muted); font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+            <button type="button" id="tab-create-search" class="modal-mode-tab" style="flex: 1; padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); background: transparent; color: var(--text-muted); font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
               <span>🔍 Buscar en la Web</span>
             </button>
           </div>
@@ -660,7 +660,7 @@
             <label>Buscar Canción por Nombre, Autor o Frase:</label>
             <div style="display: flex; gap: 8px; margin-top: 4px;">
               <input type="text" id="input-song-search-query" placeholder="Ej: 'Cuan Grande es Dios', 'Way Maker', 'Marco Barrientos'..." style="flex: 1;" />
-              <button id="btn-song-search-submit" class="btn-modal-save" style="background: linear-gradient(135deg, var(--accent-magenta), #db2777); white-space: nowrap;">🔍 Buscar</button>
+              <button type="button" id="btn-song-search-submit" class="btn-modal-save" style="background: linear-gradient(135deg, var(--accent-magenta), #db2777); white-space: nowrap;">🔍 Buscar</button>
             </div>
 
             <div style="margin-top: 12px; font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Resultados Encontrados:</div>
@@ -674,8 +674,8 @@
 
         </div>
         <div class="modal-footer">
-          <button id="btn-cancel-show" class="btn-modal-cancel">Cancelar</button>
-          <button id="btn-save-show" class="btn-modal-save">💾 Guardar y Proyectar</button>
+          <button type="button" id="btn-cancel-show" class="btn-modal-cancel">Cancelar</button>
+          <button type="button" id="btn-save-show" class="btn-modal-save">💾 Guardar y Proyectar</button>
         </div>
       </div>
     </div>

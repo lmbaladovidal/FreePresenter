@@ -5,6 +5,12 @@
 const { app, BrowserWindow, ipcMain, dialog, screen } = require('electron');
 const path = require('path');
 
+// Optimize Chromium GPU Hardware Acceleration & Video Decoding Performance
+app.commandLine.appendSwitch('ignore-gpu-blocklist');
+app.commandLine.appendSwitch('enable-gpu-rasterization');
+app.commandLine.appendSwitch('enable-zero-copy');
+app.commandLine.appendSwitch('enable-accelerated-video-decode');
+
 let mainWindow = null;
 let audienceWindow = null;
 let stageWindow = null;
@@ -34,6 +40,8 @@ function createMainWindow() {
     }
   });
 
+  mainWindow.maximize();
+
   if (isDev) {
     mainWindow.loadURL(DEV_URL);
   } else {
@@ -54,14 +62,15 @@ function openAudienceWindow() {
   }
 
   const displays = screen.getAllDisplays();
-  // Target external projector/display 2 if available, otherwise display 1
-  const targetDisplay = displays[1] || displays[0];
+  const primaryDisplay = screen.getPrimaryDisplay();
+  // Target secondary display if available, otherwise display 1
+  const secondaryDisplay = displays.find(d => d.id !== primaryDisplay.id) || displays[0];
 
   audienceWindow = new BrowserWindow({
-    x: targetDisplay.bounds.x,
-    y: targetDisplay.bounds.y,
-    width: targetDisplay.bounds.width,
-    height: targetDisplay.bounds.height,
+    x: secondaryDisplay.bounds.x,
+    y: secondaryDisplay.bounds.y,
+    width: secondaryDisplay.bounds.width,
+    height: secondaryDisplay.bounds.height,
     fullscreen: displays.length > 1, // Auto-fullscreen on secondary screen
     frame: false,
     autoHideMenuBar: true,
@@ -74,6 +83,8 @@ function openAudienceWindow() {
       webSecurity: false
     }
   });
+
+  audienceWindow.maximize();
 
   if (isDev) {
     audienceWindow.loadURL(`${DEV_URL}/audience.html`);
@@ -183,6 +194,15 @@ ipcMain.on('broadcast-update', (event, state) => {
 
 app.whenReady().then(() => {
   createMainWindow();
+
+  // Auto-launch Audience Window on secondary screen if multiple displays are connected
+  const displays = screen.getAllDisplays();
+  const primaryDisplay = screen.getPrimaryDisplay();
+  const hasSecondaryDisplay = displays.some(d => d.id !== primaryDisplay.id);
+
+  if (hasSecondaryDisplay) {
+    openAudienceWindow();
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createMainWindow();

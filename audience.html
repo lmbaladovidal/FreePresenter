@@ -234,6 +234,8 @@
         }
         bgVideoA.style.opacity = '0';
         bgVideoB.style.opacity = '0';
+        bgVideoA.pause();
+        bgVideoB.pause();
         currentVideoUrl = "";
       } else if (currentVideoUrl !== state.activeVideoUrl) {
         currentVideoUrl = state.activeVideoUrl;
@@ -245,13 +247,21 @@
         incoming.src = currentVideoUrl;
         incoming.currentTime = 0;
 
+        if (window.audienceMediaFadeTimeout) {
+          clearTimeout(window.audienceMediaFadeTimeout);
+        }
+
         const performCrossfade = () => {
           if (mediaMode === 'cut') {
             incoming.style.transition = 'opacity 0s';
             outgoing.style.transition = 'opacity 0s';
+            outgoing.pause();
           } else {
             incoming.style.transition = `opacity ${dur}ms ease-in-out`;
             outgoing.style.transition = `opacity ${dur}ms ease-in-out`;
+            window.audienceMediaFadeTimeout = setTimeout(() => {
+              outgoing.pause();
+            }, dur + 50);
           }
           incoming.style.opacity = '1';
           outgoing.style.opacity = '0';

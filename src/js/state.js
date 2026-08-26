@@ -581,6 +581,14 @@ export class Store {
     const target = this.state.mediaLibrary.find(m => m.id === itemId);
     if (!target) return;
 
+    if (target.url && target.url.startsWith('blob:')) {
+      try {
+        URL.revokeObjectURL(target.url);
+      } catch (e) {
+        console.warn("Failed to revoke Blob URL:", e);
+      }
+    }
+
     this.state.mediaLibrary = this.state.mediaLibrary.filter(m => m.id !== itemId);
     if (this.state.activeVideoUrl === target.url) {
       this.clearMedia();

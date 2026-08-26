@@ -259,62 +259,81 @@ class ProPresenterApp {
 
     let currentSearchResults = [];
 
-    const handleSongSearch = async () => {
+    const handleSongSearch = async (e) => {
+      if (e) e.preventDefault();
       const q = inputSongQuery?.value.trim();
-      if (!q) return;
+      if (!q) {
+        if (songResultsList) {
+          songResultsList.innerHTML = `<div style="padding: 20px; text-align: center; color: var(--text-muted); font-size: 0.8rem;">⚠️ Por favor ingresa el título o autor de la canción.</div>`;
+        }
+        return;
+      }
 
-      btnSongSearch.disabled = true;
-      btnSongSearch.textContent = "⌛ Buscando...";
-      songResultsList.innerHTML = `<div style="padding: 20px; text-align: center; color: var(--text-muted); font-size: 0.8rem;">⏳ Buscando letras en la web para "<strong>${q}</strong>"...</div>`;
+      if (btnSongSearch) {
+        btnSongSearch.disabled = true;
+        btnSongSearch.textContent = "⌛ Buscando...";
+      }
+      if (songResultsList) {
+        songResultsList.innerHTML = `<div style="padding: 20px; text-align: center; color: var(--text-muted); font-size: 0.8rem;">⏳ Buscando letras en la web para "<strong>${q}</strong>"...</div>`;
+      }
 
       try {
         currentSearchResults = await searchSongsOnline(q);
         
         if (currentSearchResults.length === 0) {
-          songResultsList.innerHTML = `<div style="padding: 20px; text-align: center; color: var(--text-muted); font-size: 0.8rem;">❌ No se encontraron canciones. Intenta con otro nombre o artista.</div>`;
+          if (songResultsList) {
+            songResultsList.innerHTML = `<div style="padding: 20px; text-align: center; color: var(--text-muted); font-size: 0.8rem;">❌ No se encontraron canciones. Intenta con otro nombre o artista.</div>`;
+          }
         } else {
-          songResultsList.innerHTML = currentSearchResults.map((song, idx) => `
-            <div class="song-search-item" style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 6px; padding: 8px 12px; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
-              <div style="display: flex; flex-direction: column; gap: 2px; overflow: hidden; flex: 1;">
-                <span style="font-size: 0.85rem; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">🎵 ${song.title}</span>
-                <div style="display: flex; align-items: center; gap: 8px; font-size: 0.72rem; color: var(--text-muted);">
-                  <span>👤 <strong>Autor:</strong> ${song.artist}</span>
-                  <span>•</span>
-                  <span style="color: var(--accent-cyan);">🌐 <strong>Página:</strong> ${song.source}</span>
+          if (songResultsList) {
+            songResultsList.innerHTML = currentSearchResults.map((song, idx) => `
+              <div class="song-search-item" style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 6px; padding: 8px 12px; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+                <div style="display: flex; flex-direction: column; gap: 2px; overflow: hidden; flex: 1;">
+                  <span style="font-size: 0.85rem; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">🎵 ${song.title}</span>
+                  <div style="display: flex; align-items: center; gap: 8px; font-size: 0.72rem; color: var(--text-muted);">
+                    <span>👤 <strong>Autor:</strong> ${song.artist}</span>
+                    <span>•</span>
+                    <span style="color: var(--accent-cyan);">🌐 <strong>Página:</strong> ${song.source}</span>
+                  </div>
                 </div>
+                <button type="button" class="btn-select-song-result" data-song-idx="${idx}" style="background: linear-gradient(135deg, var(--accent-magenta), #db2777); color: white; border: none; padding: 5px 10px; border-radius: 4px; font-size: 0.73rem; font-weight: 700; cursor: pointer; white-space: nowrap;">
+                  📥 Cargar Letra
+                </button>
               </div>
-              <button class="btn-select-song-result" data-song-idx="${idx}" style="background: linear-gradient(135deg, var(--accent-magenta), #db2777); color: white; border: none; padding: 5px 10px; border-radius: 4px; font-size: 0.73rem; font-weight: 700; cursor: pointer; white-space: nowrap;">
-                📥 Cargar Letra
-              </button>
-            </div>
-          `).join('');
+            `).join('');
 
-          songResultsList.querySelectorAll('.btn-select-song-result').forEach(btn => {
-            btn.addEventListener('click', () => {
-              const idx = parseInt(btn.getAttribute('data-song-idx'));
-              const selectedSong = currentSearchResults[idx];
-              if (selectedSong) {
-                if (this.inputShowTitle) this.inputShowTitle.value = selectedSong.title;
-                if (this.inputShowText) this.inputShowText.value = selectedSong.lyrics;
-                if (this.activeFilter && this.activeFilter !== 'all' && this.inputShowCategory) {
-                  this.inputShowCategory.value = this.activeFilter;
+            songResultsList.querySelectorAll('.btn-select-song-result').forEach(btn => {
+              btn.addEventListener('click', (ev) => {
+                ev.preventDefault();
+                const idx = parseInt(btn.getAttribute('data-song-idx'));
+                const selectedSong = currentSearchResults[idx];
+                if (selectedSong) {
+                  if (this.inputShowTitle) this.inputShowTitle.value = selectedSong.title;
+                  if (this.inputShowText) this.inputShowText.value = selectedSong.lyrics;
+                  if (this.activeFilter && this.activeFilter !== 'all' && this.inputShowCategory) {
+                    this.inputShowCategory.value = this.activeFilter;
+                  }
+                  switchModalMode('manual');
                 }
-                switchModalMode('manual');
-              }
+              });
             });
-          });
+          }
         }
-      } catch (e) {
-        songResultsList.innerHTML = `<div style="padding: 20px; text-align: center; color: #ef4444; font-size: 0.8rem;">⚠️ Error al realizar la búsqueda web: ${e.message}</div>`;
+      } catch (err) {
+        if (songResultsList) {
+          songResultsList.innerHTML = `<div style="padding: 20px; text-align: center; color: #ef4444; font-size: 0.8rem;">⚠️ Error al realizar la búsqueda web: ${err.message}</div>`;
+        }
       } finally {
-        btnSongSearch.disabled = false;
-        btnSongSearch.textContent = "🔍 Buscar";
+        if (btnSongSearch) {
+          btnSongSearch.disabled = false;
+          btnSongSearch.textContent = "🔍 Buscar";
+        }
       }
     };
 
     btnSongSearch?.addEventListener('click', handleSongSearch);
     inputSongQuery?.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') handleSongSearch();
+      if (e.key === 'Enter') handleSongSearch(e);
     });
 
     const openModalShow = () => {
@@ -607,6 +626,7 @@ class ProPresenterApp {
   hideContextMenu() {
     const menu = document.getElementById('custom-context-menu');
     if (menu) menu.style.display = 'none';
+    this.contextTarget = null;
   }
 
   executeDeleteTarget(target) {
@@ -930,6 +950,10 @@ class ProPresenterApp {
     if (this.lastMediaGridCacheKey !== mediaGridCacheKey) {
       this.lastMediaGridCacheKey = mediaGridCacheKey;
 
+      if (this.mediaIntersectionObserver) {
+        this.mediaIntersectionObserver.disconnect();
+      }
+
       if (filteredMedia.length === 0) {
         this.mediaGridEl.innerHTML = `
           <div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 20px; font-size: 0.78rem;">
@@ -945,7 +969,7 @@ class ProPresenterApp {
                 <span class="video-folder-tag">${item.folder || 'General'}</span>
                 <button class="btn-delete-media" data-media-id="${item.id}" title="Eliminar este video">&times;</button>
               </div>
-              <video src="${item.url}" muted preload="metadata"></video>
+              <video data-src="${item.url}" muted preload="none" playsinline></video>
               <div class="video-card-overlay">
                 <div class="video-card-title">${item.name}</div>
               </div>
@@ -953,8 +977,41 @@ class ProPresenterApp {
           `;
         }).join('');
 
-        // Bind video click (proyectar fondo) & delete click & contextmenu
+        // Setup IntersectionObserver for Lazy Video Loading in Grid
+        this.mediaIntersectionObserver = new IntersectionObserver((entries) => {
+          entries.forEach(entry => {
+            const video = entry.target.querySelector('video');
+            if (!video) return;
+            if (entry.isIntersecting) {
+              if (!video.src && video.dataset.src) {
+                video.src = video.dataset.src;
+                video.preload = "metadata";
+              }
+            } else {
+              if (!video.paused) {
+                video.pause();
+              }
+            }
+          });
+        }, { root: this.mediaGridEl.parentElement, rootMargin: '150px' });
+
+        // Bind video click, delete click, mouseenter/mouseleave hover play
         this.mediaGridEl.querySelectorAll('.video-card').forEach(card => {
+          const video = card.querySelector('video');
+          if (video) {
+            this.mediaIntersectionObserver.observe(card);
+
+            card.addEventListener('mouseenter', () => {
+              if (video.src) {
+                video.play().catch(() => {});
+              }
+            });
+            card.addEventListener('mouseleave', () => {
+              video.pause();
+              try { video.currentTime = 0; } catch(e){}
+            });
+          }
+
           const mediaId = card.querySelector('.btn-delete-media')?.getAttribute('data-media-id');
           const mediaItem = state.mediaLibrary.find(m => m.id === mediaId);
           card.addEventListener('click', (e) => {
@@ -995,6 +1052,9 @@ class ProPresenterApp {
     if (!sidebarEl) return;
 
     const templates = store.templates || [];
+    const tplCacheKey = JSON.stringify(templates.map(t => t.id + t.name)) + '|' + store.activeTemplateId;
+    if (this.lastTemplatesCacheKey === tplCacheKey) return;
+    this.lastTemplatesCacheKey = tplCacheKey;
     sidebarEl.innerHTML = templates.map(tpl => {
       const isActive = tpl.id === store.activeTemplateId;
       return `
@@ -1239,6 +1299,9 @@ class ProPresenterApp {
     if (!listEl) return;
 
     const versions = getAllBibleVersions();
+    const verCacheKey = JSON.stringify(versions.map(v => v.id + v.name)) + '|' + this.selectedBibleVersion;
+    if (this.lastBibleSidebarCacheKey === verCacheKey) return;
+    this.lastBibleSidebarCacheKey = verCacheKey;
 
     if (versions.length === 0) {
       listEl.innerHTML = `
@@ -1307,6 +1370,10 @@ class ProPresenterApp {
     const autocompleteHintEl = document.getElementById('scripture-autocomplete-hint');
 
     if (!booksListEl || !chaptersListEl || !versesListEl) return;
+
+    const scriptureCacheKey = `${this.selectedBookId}|${this.selectedChapter}|${this.selectedBibleVersion}|${this.scriptureQuery}`;
+    if (this.lastScriptureCacheKey === scriptureCacheKey) return;
+    this.lastScriptureCacheKey = scriptureCacheKey;
 
     const normQuery = (this.scriptureQuery || "").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
@@ -1604,10 +1671,18 @@ class ProPresenterApp {
     const selSplit = document.getElementById('select-scripture-split');
     const chkShowRef = document.getElementById('check-scripture-show-ref');
 
-    if (selMaxLines) selMaxLines.value = String(store.state.scriptureMaxLines);
-    if (selFont) selFont.value = store.state.scriptureFont;
-    if (selSplit) selSplit.value = String(store.state.scriptureSplitLong);
-    if (chkShowRef) chkShowRef.checked = store.state.scriptureShowRef;
+    if (selMaxLines && document.activeElement !== selMaxLines && selMaxLines.value !== String(store.state.scriptureMaxLines)) {
+      selMaxLines.value = String(store.state.scriptureMaxLines);
+    }
+    if (selFont && document.activeElement !== selFont && selFont.value !== store.state.scriptureFont) {
+      selFont.value = store.state.scriptureFont;
+    }
+    if (selSplit && document.activeElement !== selSplit && selSplit.value !== String(store.state.scriptureSplitLong)) {
+      selSplit.value = String(store.state.scriptureSplitLong);
+    }
+    if (chkShowRef && document.activeElement !== chkShowRef && chkShowRef.checked !== store.state.scriptureShowRef) {
+      chkShowRef.checked = store.state.scriptureShowRef;
+    }
   }
 
   bindScriptureEvents() {
@@ -1801,6 +1876,8 @@ class ProPresenterApp {
         }
         bgA.style.opacity = '0';
         bgB.style.opacity = '0';
+        bgA.pause();
+        bgB.pause();
         this.operatorVideoUrl = "";
       } else if (this.operatorVideoUrl !== state.activeVideoUrl) {
         this.operatorVideoUrl = state.activeVideoUrl;
@@ -1812,13 +1889,21 @@ class ProPresenterApp {
         incoming.src = state.activeVideoUrl;
         incoming.currentTime = 0;
 
+        if (this.operatorMediaFadeTimeout) {
+          clearTimeout(this.operatorMediaFadeTimeout);
+        }
+
         const performOperatorFade = () => {
           if (mediaMode === 'cut') {
             incoming.style.transition = 'opacity 0s';
             outgoing.style.transition = 'opacity 0s';
+            outgoing.pause();
           } else {
             incoming.style.transition = `opacity ${dur}ms ease-in-out`;
             outgoing.style.transition = `opacity ${dur}ms ease-in-out`;
+            this.operatorMediaFadeTimeout = setTimeout(() => {
+              outgoing.pause();
+            }, dur + 50);
           }
           incoming.style.opacity = '1';
           outgoing.style.opacity = '0';
