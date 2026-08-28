@@ -109,6 +109,18 @@ class ProPresenterApp {
     this.inputNewFolderName = document.getElementById('input-new-folder-name');
     this.btnSaveMedia = document.getElementById('btn-save-media');
     this.selectedMediaFilename = document.getElementById('selected-media-filename');
+
+    this.modalCreateFolder = document.getElementById('modal-create-folder');
+    this.inputVirtualFolderName = document.getElementById('input-virtual-folder-name');
+    this.btnSaveVirtualFolderConfirm = document.getElementById('btn-save-virtual-folder-confirm');
+    this.btnCloseCreateFolderModal = document.getElementById('btn-close-create-folder-modal');
+    this.btnCancelCreateFolder = document.getElementById('btn-cancel-create-folder');
+
+    this.modalCreateTemplate = document.getElementById('modal-create-template');
+    this.inputTemplateName = document.getElementById('input-template-name');
+    this.btnSaveTemplateConfirm = document.getElementById('btn-save-template-confirm');
+    this.btnCloseCreateTemplateModal = document.getElementById('btn-close-create-template-modal');
+    this.btnCancelCreateTemplate = document.getElementById('btn-cancel-create-template');
   }
 
   bindEvents() {
@@ -522,11 +534,39 @@ class ProPresenterApp {
       });
     }
 
-    // Add Virtual Folder quick button (+)
-    document.getElementById('btn-add-virtual-folder')?.addEventListener('click', () => {
-      const folderName = prompt("Ingresa el nombre de la nueva carpeta virtual (ej: Anuncios, Rápidos, Estribos):");
+    // Add Virtual Folder quick button (+) & Modal Handlers
+    const openModalFolder = () => {
+      if (this.inputVirtualFolderName) this.inputVirtualFolderName.value = "";
+      if (this.modalCreateFolder) {
+        this.modalCreateFolder.classList.add('open');
+        this.inputVirtualFolderName?.focus();
+      }
+    };
+
+    const closeModalFolder = () => {
+      if (this.modalCreateFolder) {
+        this.modalCreateFolder.classList.remove('open');
+      }
+    };
+
+    const saveVirtualFolder = () => {
+      const folderName = this.inputVirtualFolderName ? this.inputVirtualFolderName.value.trim() : "";
       if (folderName) {
         store.addMediaFolder(folderName);
+        this.selectedMediaFolder = folderName;
+        closeModalFolder();
+      } else {
+        alert("Por favor ingresa un nombre para la carpeta virtual.");
+      }
+    };
+
+    document.getElementById('btn-add-virtual-folder')?.addEventListener('click', openModalFolder);
+    this.btnCloseCreateFolderModal?.addEventListener('click', closeModalFolder);
+    this.btnCancelCreateFolder?.addEventListener('click', closeModalFolder);
+    this.btnSaveVirtualFolderConfirm?.addEventListener('click', saveVirtualFolder);
+    this.inputVirtualFolderName?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        saveVirtualFolder();
       }
     });
 
@@ -913,19 +953,37 @@ class ProPresenterApp {
         ${folders.map(folder => {
           const count = state.mediaLibrary.filter(m => m.folder === folder).length;
           const isActive = this.selectedMediaFolder === folder;
+          const isGeneral = folder === 'General';
           return `
             <div class="folder-item ${isActive ? 'active' : ''}" data-folder-name="${folder}">
               <span>📁 ${folder}</span>
-              <span class="count">${count}</span>
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span class="count">${count}</span>
+                ${!isGeneral ? `<button class="btn-delete-folder" data-folder="${folder}" title="Eliminar carpeta" style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 0 4px; font-size: 0.8rem; opacity: 0.6; transition: opacity 0.2s;">🗑️</button>` : ''}
+              </div>
             </div>
           `;
         }).join('')}
       `;
 
       this.mediaFoldersListEl.querySelectorAll('.folder-item').forEach(item => {
-        item.addEventListener('click', () => {
+        item.addEventListener('click', (e) => {
+          if (e.target.closest('.btn-delete-folder')) return;
           this.selectedMediaFolder = item.getAttribute('data-folder-name');
           this.renderMediaDock(state);
+        });
+      });
+
+      this.mediaFoldersListEl.querySelectorAll('.btn-delete-folder').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const folderToDelete = btn.getAttribute('data-folder');
+          if (confirm(`¿Estás seguro de eliminar la carpeta virtual "${folderToDelete}"? Los medios asignados pasarán a la carpeta General.`)) {
+            if (this.selectedMediaFolder === folderToDelete) {
+              this.selectedMediaFolder = 'all';
+            }
+            store.deleteMediaFolder(folderToDelete);
+          }
         });
       });
     }
@@ -1268,8 +1326,23 @@ class ProPresenterApp {
 
     document.getElementById('btn-save-tpl')?.addEventListener('click', applyCurrentTemplate);
 
-    document.getElementById('btn-create-template')?.addEventListener('click', () => {
-      const tplName = prompt("Ingresa el nombre para la nueva plantilla:");
+    // Modal Create Template
+    const openModalTemplate = () => {
+      if (this.inputTemplateName) this.inputTemplateName.value = "";
+      if (this.modalCreateTemplate) {
+        this.modalCreateTemplate.classList.add('open');
+        this.inputTemplateName?.focus();
+      }
+    };
+
+    const closeModalTemplate = () => {
+      if (this.modalCreateTemplate) {
+        this.modalCreateTemplate.classList.remove('open');
+      }
+    };
+
+    const saveNewTemplate = () => {
+      const tplName = this.inputTemplateName ? this.inputTemplateName.value.trim() : "";
       if (tplName) {
         const newId = 'tpl-' + Date.now();
         const newTpl = {
@@ -1290,6 +1363,19 @@ class ProPresenterApp {
         };
         store.saveTemplate(newTpl);
         this.populateTemplateForm(newTpl);
+        closeModalTemplate();
+      } else {
+        alert("Por favor ingresa un nombre para la plantilla.");
+      }
+    };
+
+    document.getElementById('btn-create-template')?.addEventListener('click', openModalTemplate);
+    this.btnCloseCreateTemplateModal?.addEventListener('click', closeModalTemplate);
+    this.btnCancelCreateTemplate?.addEventListener('click', closeModalTemplate);
+    this.btnSaveTemplateConfirm?.addEventListener('click', saveNewTemplate);
+    this.inputTemplateName?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        saveNewTemplate();
       }
     });
   }

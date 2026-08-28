@@ -20,6 +20,7 @@
     "preview": "vite preview",
     "electron:dev": "vite",
     "electron:start": "electron .",
+    "electron:build": "npm run build && electron-builder",
     "package:exe": "npm run build && electron-packager . \"ProPresenter AI Studio\" --platform=win32 --arch=x64 --out=release-builds --overwrite"
   },
   "build": {

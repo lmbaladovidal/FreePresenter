@@ -789,6 +789,42 @@
       </div>
     </div>
 
+    <!-- Modal para Crear Nueva Carpeta Virtual -->
+    <div id="modal-create-folder" class="modal-overlay">
+      <div class="modal-card" style="max-width: 420px;">
+        <div class="modal-header">
+          <h3>📁 Crear Nueva Carpeta Virtual</h3>
+          <button id="btn-close-create-folder-modal" class="modal-close-btn">&times;</button>
+        </div>
+        <div class="modal-body">
+          <label>Nombre de la Carpeta:</label>
+          <input type="text" id="input-virtual-folder-name" placeholder="Ej: Anuncios, Rápidos, Estribos, Fondos..." />
+        </div>
+        <div class="modal-footer">
+          <button id="btn-cancel-create-folder" class="btn-modal-cancel">Cancelar</button>
+          <button id="btn-save-virtual-folder-confirm" class="btn-modal-save" style="background: linear-gradient(135deg, var(--accent-cyan), #0284c7);">📁 Crear Carpeta</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal para Crear Nueva Plantilla de Texto -->
+    <div id="modal-create-template" class="modal-overlay">
+      <div class="modal-card" style="max-width: 420px;">
+        <div class="modal-header">
+          <h3>🎨 Crear Nueva Plantilla de Texto</h3>
+          <button id="btn-close-create-template-modal" class="modal-close-btn">&times;</button>
+        </div>
+        <div class="modal-body">
+          <label>Nombre de la Plantilla:</label>
+          <input type="text" id="input-template-name" placeholder="Ej: Estilo Neon, Sermón Moderno..." />
+        </div>
+        <div class="modal-footer">
+          <button id="btn-cancel-create-template" class="btn-modal-cancel">Cancelar</button>
+          <button id="btn-save-template-confirm" class="btn-modal-save" style="background: linear-gradient(135deg, var(--accent-cyan), #0284c7);">🎨 Crear Plantilla</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Footer Status Bar -->
     <footer class="status-bar">
       <div class="status-item">
