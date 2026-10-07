@@ -1563,11 +1563,13 @@ input, select, textarea {
   display: none;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 10000;
+  pointer-events: none;
 }
 
 .modal-overlay.open {
   display: flex;
+  pointer-events: auto;
 }
 
 .modal-card {
@@ -1581,6 +1583,7 @@ input, select, textarea {
   flex-direction: column;
   overflow: hidden;
   animation: modalIn 0.2s ease-out;
+  pointer-events: auto;
 }
 
 @keyframes modalIn {
@@ -1873,12 +1876,31 @@ input, select, textarea {
   background: #131722;
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 8px;
-  padding: 5px;
+  padding: 6px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 12px rgba(0, 0, 0, 0.4);
-  min-width: 170px;
+  min-width: 190px;
   display: none;
   backdrop-filter: blur(12px);
   animation: ctxFadeIn 0.12s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.context-menu-header {
+  padding: 4px 8px 6px 8px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--accent-cyan);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 210px;
+}
+
+.context-menu-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: 4px 0;
 }
 
 @keyframes ctxFadeIn {

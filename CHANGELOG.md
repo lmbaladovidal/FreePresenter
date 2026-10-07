@@ -6,6 +6,19 @@ For detailed release notes in Spanish, please see [NOTAS_DE_VERSION.md](./NOTAS_
 
 ---
 
+## [1.2.0] - 2026-10-07
+
+### Added
+- **Dynamic Component Context Menu:** Contextual right-click menu with Project, Edit, Duplicate, Copy Text, and Delete actions for Shows, Media, Bibles, Slides, and Events.
+- **Modal Overlay System Fixes:** `closeAllModals()` mutual exclusion, backdrop click dismissal, `Escape` key integration, and `z-index: 10000` pointer-events safety.
+- **System Functional Requirements Spec:** Complete specification of 37 functional requirements in `REQUERIMIENTOS_FUNCIONALES.md`.
+- **Automated Smoke Test Suite:** Automated Node CLI runner (`npm test`) with 10/10 test coverage and QA protocol in `SMOKE_TEST.md`.
+
+### Fixed
+- **Electron Executable Build Fix:** Resolved `ReferenceError: require is not defined in ES module scope` in Windows `.exe` installer builds by removing `"type": "module"` from `package.json` while maintaining ESM for Vite and `.mjs` CLI tests.
+
+---
+
 ## [1.0.0] - 2026-08-24
 
 ### Added

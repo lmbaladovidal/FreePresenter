@@ -17,7 +17,7 @@ export class BroadcastSync {
     };
 
     // Electron native IPC listener
-    if (window.electronAPI && window.electronAPI.onBroadcastUpdate) {
+    if (typeof window !== "undefined" && window.electronAPI && window.electronAPI.onBroadcastUpdate) {
       window.electronAPI.onBroadcastUpdate((state) => {
         this.listeners.forEach(fn => fn(state));
       });
@@ -32,7 +32,7 @@ export class BroadcastSync {
       timestamp: Date.now()
     });
 
-    if (window.electronAPI && window.electronAPI.sendBroadcast) {
+    if (typeof window !== "undefined" && window.electronAPI && window.electronAPI.sendBroadcast) {
       window.electronAPI.sendBroadcast(state);
     }
   }

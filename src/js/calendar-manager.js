@@ -195,6 +195,7 @@ class CalendarManager {
         const dateStr = cell.getAttribute('data-date');
         const modal = document.getElementById('modal-create-event');
         const inputDate = document.getElementById('input-event-date');
+        if (typeof window.closeAllModals === 'function') window.closeAllModals();
         if (inputDate) inputDate.value = dateStr;
         if (modal) modal.classList.add('open');
       });

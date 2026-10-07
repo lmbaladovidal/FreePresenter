@@ -23,24 +23,17 @@ class ProPresenterApp {
     this.scriptureQuery = '';
     this.matchedBookSuggestion = null;
 
+    window.closeAllModals = () => this.closeAllModals();
     this.initDOM();
     this.bindEvents();
+    this.initModalBackdropListeners();
     this.initKeyboardShortcuts();
+    this.bindContextMenuEvents();
 
     // Subscribe to state changes and sync displays
     store.subscribe((state, decks) => {
       this.renderUI(state, decks);
       sync.sendUpdate(state);
-    });
-
-    // Dismiss custom context menu on outside click or scroll
-    document.addEventListener('click', () => this.hideContextMenu());
-    document.addEventListener('scroll', () => this.hideContextMenu(), true);
-    document.getElementById('ctx-item-delete')?.addEventListener('click', (e) => {
-      e.stopPropagation();
-      if (this.contextTarget) {
-        this.executeDeleteTarget(this.contextTarget);
-      }
     });
 
     // Initial view render
@@ -349,6 +342,7 @@ class ProPresenterApp {
     });
 
     const openModalShow = () => {
+      this.closeAllModals();
       if (this.modalCreateShow) {
         this.modalCreateShow.classList.add('open');
         switchModalMode('manual');
@@ -407,6 +401,7 @@ class ProPresenterApp {
 
     // 8. Upload Media Modal Handlers (Cargar Video asignando carpeta virtual)
     const openModalMedia = () => {
+      this.closeAllModals();
       this.pendingBatchFiles = [];
       if (this.inputMediaName) this.inputMediaName.value = "";
       if (this.inputMediaUrl) this.inputMediaUrl.value = "";
@@ -536,6 +531,7 @@ class ProPresenterApp {
 
     // Add Virtual Folder quick button (+) & Modal Handlers
     const openModalFolder = () => {
+      this.closeAllModals();
       if (this.inputVirtualFolderName) this.inputVirtualFolderName.value = "";
       if (this.modalCreateFolder) {
         this.modalCreateFolder.classList.add('open');
@@ -638,9 +634,43 @@ class ProPresenterApp {
     e.stopPropagation();
     this.contextTarget = target;
 
-    const labelEl = document.getElementById('ctx-item-label');
-    if (labelEl) {
-      labelEl.textContent = `Eliminar "${target.name}"`;
+    const titleEl = document.getElementById('ctx-header-title');
+    const primaryEl = document.getElementById('ctx-action-primary');
+    const primaryLabel = document.getElementById('ctx-action-primary-label');
+    const secondaryEl = document.getElementById('ctx-action-secondary');
+    const secondaryLabel = document.getElementById('ctx-action-secondary-label');
+    const duplicateEl = document.getElementById('ctx-action-duplicate');
+    const deleteLabel = document.getElementById('ctx-item-label');
+
+    if (titleEl) titleEl.textContent = target.name || 'Componente';
+    if (deleteLabel) deleteLabel.textContent = `Eliminar ${target.name || ''}`;
+
+    // Reset default visibility
+    if (primaryEl) primaryEl.style.display = 'flex';
+    if (secondaryEl) secondaryEl.style.display = 'flex';
+    if (duplicateEl) duplicateEl.style.display = 'flex';
+
+    if (target.type === 'deck') {
+      if (primaryLabel) primaryLabel.textContent = '▶️ Proyectar / Activar';
+      if (secondaryLabel) secondaryLabel.textContent = '✏️ Editar Contenido';
+      if (duplicateEl) duplicateEl.style.display = 'flex';
+    } else if (target.type === 'media') {
+      if (primaryLabel) primaryLabel.textContent = '🎬 Transmitir en Vivo';
+      if (secondaryLabel) secondaryLabel.textContent = '📁 Cambiar Carpeta';
+      if (duplicateEl) duplicateEl.style.display = 'none';
+    } else if (target.type === 'bible') {
+      if (primaryLabel) primaryLabel.textContent = '📖 Activar Biblia';
+      if (secondaryEl) secondaryEl.style.display = 'none';
+      if (duplicateEl) duplicateEl.style.display = 'none';
+    } else if (target.type === 'slide') {
+      if (primaryLabel) primaryLabel.textContent = '▶️ Proyectar Filmina';
+      if (secondaryLabel) secondaryLabel.textContent = '📋 Copiar Texto';
+      if (duplicateEl) duplicateEl.style.display = 'none';
+      if (deleteLabel) deleteLabel.textContent = '🧹 Limpiar Texto (F2)';
+    } else if (target.type === 'event') {
+      if (primaryLabel) primaryLabel.textContent = '📢 Proyectar Anuncio';
+      if (secondaryEl) secondaryEl.style.display = 'none';
+      if (duplicateEl) duplicateEl.style.display = 'none';
     }
 
     const menu = document.getElementById('custom-context-menu');
@@ -650,8 +680,8 @@ class ProPresenterApp {
 
     const winWidth = window.innerWidth;
     const winHeight = window.innerHeight;
-    const menuWidth = menu.offsetWidth || 180;
-    const menuHeight = menu.offsetHeight || 45;
+    const menuWidth = menu.offsetWidth || 190;
+    const menuHeight = menu.offsetHeight || 150;
 
     let posX = e.clientX;
     let posY = e.clientY;
@@ -661,6 +691,94 @@ class ProPresenterApp {
 
     menu.style.left = posX + 'px';
     menu.style.top = posY + 'px';
+  }
+
+  bindContextMenuEvents() {
+    document.addEventListener('click', () => this.hideContextMenu());
+    document.addEventListener('scroll', () => this.hideContextMenu(), true);
+
+    document.getElementById('ctx-action-primary')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const target = this.contextTarget;
+      this.hideContextMenu();
+      if (!target) return;
+
+      if (target.type === 'deck') {
+        store.setActiveDeck(target.id);
+      } else if (target.type === 'media') {
+        store.setActiveVideo(target.url, target.name);
+      } else if (target.type === 'bible') {
+        this.selectedBibleVersion = target.id;
+        this.renderScriptureSubSidebar();
+        this.renderScripture3ColView();
+      } else if (target.type === 'slide') {
+        store.setLiveSlide(target.groupIndex, target.slideIndex);
+      } else if (target.type === 'event' && target.eventObj) {
+        calendarManager.projectEventAnnouncement(target.eventObj);
+      }
+    });
+
+    document.getElementById('ctx-action-secondary')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const target = this.contextTarget;
+      this.hideContextMenu();
+      if (!target) return;
+
+      if (target.type === 'deck') {
+        const deck = store.decks.find(d => d.id === target.id);
+        if (deck) {
+          if (this.inputShowTitle) this.inputShowTitle.value = deck.title;
+          if (this.inputShowCategory) this.inputShowCategory.value = deck.category || 'Alabanza';
+          const fullText = deck.groups.map(g => `${g.name}:\n` + g.slides.map(s => s.text).join('\n')).join('\n\n');
+          if (this.inputShowText) this.inputShowText.value = fullText;
+          if (this.modalCreateShow) this.modalCreateShow.classList.add('open');
+        }
+      } else if (target.type === 'media') {
+        document.getElementById('btn-open-media-modal')?.click();
+      } else if (target.type === 'slide') {
+        if (target.text) {
+          const cleanText = target.text.replace(/<[^>]*>/g, '');
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(cleanText).then(() => {
+              alert('📋 Texto de la filmina copiado al portapapeles.');
+            }).catch(() => {});
+          }
+        }
+      }
+    });
+
+    document.getElementById('ctx-action-duplicate')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const target = this.contextTarget;
+      this.hideContextMenu();
+      if (target && target.type === 'deck') {
+        store.duplicateDeck(target.id);
+      }
+    });
+
+    document.getElementById('ctx-item-delete')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (this.contextTarget) {
+        this.executeDeleteTarget(this.contextTarget);
+      }
+    });
+  }
+
+  closeAllModals() {
+    this.hideContextMenu();
+    document.querySelectorAll('.modal-overlay').forEach(modal => {
+      modal.classList.remove('open');
+    });
+  }
+
+  initModalBackdropListeners() {
+    document.querySelectorAll('.modal-overlay').forEach(modal => {
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+          this.closeAllModals();
+        }
+      });
+    });
   }
 
   hideContextMenu() {
@@ -673,7 +791,9 @@ class ProPresenterApp {
     if (!target) return;
     this.hideContextMenu();
 
-    if (target.type === 'deck') {
+    if (target.type === 'slide') {
+      store.clearText();
+    } else if (target.type === 'deck') {
       if (confirm(`¿Estás seguro de que deseas eliminar la canción/lectura "${target.name}"?`)) {
         store.deleteDeck(target.id);
         this.contextTarget = null;
@@ -698,8 +818,14 @@ class ProPresenterApp {
 
   initKeyboardShortcuts() {
     window.addEventListener('keydown', (e) => {
-      // Ignore keybindings if user is typing in input or editor or modal
-      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) return;
+      // Ignore keybindings if user is typing in input or editor or modal, but allow Escape to close modal
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) {
+        if (e.code === 'Escape' || e.key === 'Escape') {
+          e.preventDefault();
+          this.closeAllModals();
+        }
+        return;
+      }
 
       if (e.key === 'Delete' || e.key === 'Supr' || e.code === 'Delete') {
         e.preventDefault();
@@ -729,9 +855,14 @@ class ProPresenterApp {
       } else if (e.code === 'ArrowLeft') {
         e.preventDefault();
         store.prevSlide();
-      } else if (e.code === 'Escape') {
+      } else if (e.code === 'Escape' || e.key === 'Escape') {
         e.preventDefault();
-        store.clearAll();
+        const openModal = document.querySelector('.modal-overlay.open');
+        if (openModal) {
+          this.closeAllModals();
+        } else {
+          store.clearAll();
+        }
       }
     });
   }
@@ -1328,6 +1459,7 @@ class ProPresenterApp {
 
     // Modal Create Template
     const openModalTemplate = () => {
+      this.closeAllModals();
       if (this.inputTemplateName) this.inputTemplateName.value = "";
       if (this.modalCreateTemplate) {
         this.modalCreateTemplate.classList.add('open');
@@ -1588,6 +1720,7 @@ class ProPresenterApp {
     const inputNotes = document.getElementById('input-event-notes');
 
     const openModalEvt = () => {
+      this.closeAllModals();
       if (modalEvt) {
         modalEvt.classList.add('open');
         const todayStr = new Date().toISOString().split('T')[0];
@@ -1655,6 +1788,7 @@ class ProPresenterApp {
     let loadedFileJSON = null;
 
     const openModal = () => {
+      this.closeAllModals();
       if (modal) modal.classList.add('open');
       if (statusEl) statusEl.style.display = 'none';
       loadedFileJSON = null;

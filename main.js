@@ -15,8 +15,8 @@ let mainWindow = null;
 let audienceWindow = null;
 let stageWindow = null;
 
-const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
-const DEV_PORT = process.env.PORT || 3001;
+const isDev = process.env.NODE_ENV === 'development' || (!app.isPackaged && process.env.NODE_ENV !== 'production');
+const DEV_PORT = process.env.PORT || 3000;
 const DEV_URL = `http://localhost:${DEV_PORT}`;
 
 function createMainWindow() {

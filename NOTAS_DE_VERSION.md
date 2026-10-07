@@ -4,7 +4,42 @@ Todas las novedades, mejoras y correcciones de errores importantes de **ProPrese
 
 ---
 
-## 🚀 Versión 1.0.0 (Release Inicial Estable) — *24 de Agosto, 2026*
+## 🚀 Versión 1.2.0 (Menú Contextual Dinámico, Gestión de Modales & QA Suite) — *7 de Octubre, 2026*
+
+Esta versión introduce un menú contextual inteligente para componentes, corrige la gestión e interacción de ventanas emergentes, agrega la suite automatizada de Smoke Test y resuelve la compatibilidad en ejecutables `.exe`.
+
+### ✨ Novedades y Funcionalidades
+
+#### 🖱️ Menú Contextual Dinámico para Componentes (Clic Derecho)
+- **Acciones Rápidas por Componente:** El menú contextual detecta automáticamente el elemento seleccionado al hacer clic derecho y adapta sus opciones:
+  - **Canciones / Shows:** Proyectar Ahora (`▶️`), Editar Contenido (`✏️`), Duplicar Show (`📋`) y Eliminar (`🗑️`).
+  - **Galería Multimedia:** Transmitir en Vivo (`🎬`), Cambiar Carpeta Virtual (`📁`) y Eliminar Recurso (`🗑️`).
+  - **Biblias Importadas:** Activar Biblia (`📖`) y Eliminar Biblia Personalizada (`🗑️`).
+  - **Filminas / Diapositivas:** Proyectar Filmina en Vivo (`▶️`), Copiar Texto al Portapapeles (`📋`) y Limpiar Capa (`F2`).
+  - **Eventos de Calendario:** Proyectar Anuncio en Vivo (`📢`) y Eliminar Evento (`🗑️`).
+- **Función Duplicar Show:** Nuevo método `duplicateDeck()` en el motor de estado para clonar canciones o guiones con 1 solo clic.
+
+#### 🪟 Gestión Robusta de Modales y Ventanas Emergentes
+- **Exclusión Mutua de Modales (`closeAllModals()`):** Al abrir una nueva ventana emergente se descartan e inhabilitan automáticamente modales y menús previos, evitando bloqueos de interfaz.
+- **Cierre por Clic en Backdrop:** Hacer clic fuera de la tarjeta modal (en el área oscura traslúcida) descarte el modal inmediatamente.
+- **Interacción Tecla `Escape`:** Si hay un modal abierto, presionar `Escape` cierra la ventana emergente limpiamente sin interferir en la señal proyectada en vivo.
+- **Z-Index y Pointer-Events Optimizados:** Configurado `pointer-events: none` cuando las capas están cerradas y `pointer-events: auto` al abrirse con `z-index: 10000`, evitando bloqueos fantasmas de clics.
+
+#### 📄 Documentación Técnica y Suite de Smoke Test Automatizado
+- **`REQUERIMIENTOS_FUNCIONALES.md`:** Especificación detallada de los 37 Requerimientos Funcionales (**RF-01 al RF-37**) estructurados por módulos operativos.
+- **`SMOKE_TEST.md`:** Protocolo completo de pruebas de humo para control de calidad manual en eventos.
+- **`tests/smoke-test.mjs`:** Suite de pruebas de humo automatizadas en Node.js ejecutable mediante `npm test` (**10/10 pruebas pasadas en 100%**).
+
+---
+
+### 🛠️ Correcciones de Errores y Compatibilidad
+
+- **Ejecutables `.exe` Nativos de Windows:** Resuelto el fallo `ReferenceError: require is not defined in ES module scope` ajustando la declaración en `package.json` para permitir la ejecución nativa de Electron (`main.js` y `preload.js`) conservando la arquitectura de ES Modules en Vite (`src/js/*.js`) y CLI (`tests/*.mjs`).
+- **Sincronización IPC de Electron:** Protegidas las invocaciones a `window.electronAPI` con `typeof window !== 'undefined'` para ejecuciones seguras en entornos de pruebas.
+
+---
+
+## 🚀 Versión 1.1.0 — *25 de Agosto, 2026*
 
 ¡Nos alegra presentar la primera versión pública oficial de **ProPresenter AI Studio**! Esta entrega inicial ofrece una suite completa para control de proyección multimedia en vivo, transmisiones y monitores de escenario.
 

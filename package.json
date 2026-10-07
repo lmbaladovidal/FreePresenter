@@ -1,6 +1,6 @@
 {
   "name": "propresenter-ai-studio",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Estación de control multimedia de escritorio para proyección multipantalla, transmisión en vivo, monitor de escenario, calendario de eventos y gestor de escrituras.",
   "main": "main.js",
   "author": "ProPresenter AI Studio Team",
@@ -17,6 +17,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "test": "node tests/smoke-test.mjs",
     "preview": "vite preview",
     "electron:dev": "vite",
     "electron:start": "electron .",
@@ -37,8 +38,16 @@
     ],
     "win": {
       "target": [
+        "nsis",
         "portable"
       ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "ProPresenter AI Studio"
     }
   },
   "devDependencies": {

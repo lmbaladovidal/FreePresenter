@@ -177,21 +177,24 @@ export const DEFAULT_TEMPLATES = [
   }
 ];
 
+const getStorageItem = (key) => (typeof localStorage !== 'undefined' ? localStorage.getItem(key) : null);
+const setStorageItem = (key, val) => (typeof localStorage !== 'undefined' ? localStorage.setItem(key, val) : null);
+
 export class Store {
   constructor() {
     // Persistent Decks
-    const savedDecks = localStorage.getItem("propresenter_decks");
+    const savedDecks = getStorageItem("propresenter_decks");
     this.decks = savedDecks ? JSON.parse(savedDecks) : DEFAULT_DECKS;
     this.activeDeckId = this.decks[0]?.id || "song-1";
 
     // Persistent Templates
-    const savedTemplates = localStorage.getItem("propresenter_templates");
+    const savedTemplates = getStorageItem("propresenter_templates");
     this.templates = savedTemplates ? JSON.parse(savedTemplates) : DEFAULT_TEMPLATES;
-    this.activeTemplateId = localStorage.getItem("propresenter_active_template") || "preset-modern";
+    this.activeTemplateId = getStorageItem("propresenter_active_template") || "preset-modern";
 
     // Persistent Media Library & Folders
-    const savedMedia = localStorage.getItem("propresenter_media_library");
-    const savedFolders = localStorage.getItem("propresenter_media_folders");
+    const savedMedia = getStorageItem("propresenter_media_library");
+    const savedFolders = getStorageItem("propresenter_media_folders");
 
     this.state = {
       // Proyección Live
@@ -236,15 +239,15 @@ export class Store {
       isLowerThirdActive: false,
       
       // Transitions Settings (cut | fade)
-      textTransition: localStorage.getItem("propresenter_text_trans") || "fade",
-      mediaTransition: localStorage.getItem("propresenter_media_trans") || "fade",
-      fadeDuration: parseInt(localStorage.getItem("propresenter_fade_duration") || "250"),
+      textTransition: getStorageItem("propresenter_text_trans") || "fade",
+      mediaTransition: getStorageItem("propresenter_media_trans") || "fade",
+      fadeDuration: parseInt(getStorageItem("propresenter_fade_duration") || "250"),
 
       // Scripture Settings
-      scriptureMaxLines: parseInt(localStorage.getItem("propresenter_scripture_maxlines") || "2"),
-      scriptureFont: localStorage.getItem("propresenter_scripture_font") || "Inter, sans-serif",
-      scriptureSplitLong: localStorage.getItem("propresenter_scripture_split") !== "false",
-      scriptureShowRef: localStorage.getItem("propresenter_scripture_show_ref") !== "false",
+      scriptureMaxLines: parseInt(getStorageItem("propresenter_scripture_maxlines") || "2"),
+      scriptureFont: getStorageItem("propresenter_scripture_font") || "Inter, sans-serif",
+      scriptureSplitLong: getStorageItem("propresenter_scripture_split") !== "false",
+      scriptureShowRef: getStorageItem("propresenter_scripture_show_ref") !== "false",
 
       // Stage & Timers
       stageMessage: "",
@@ -268,14 +271,14 @@ export class Store {
 
   notify() {
     this.listeners.forEach(fn => fn(this.state, this.decks));
-    localStorage.setItem("propresenter_decks", JSON.stringify(this.decks));
-    localStorage.setItem("propresenter_media_library", JSON.stringify(this.state.mediaLibrary));
-    localStorage.setItem("propresenter_media_folders", JSON.stringify(this.state.mediaFolders));
-    localStorage.setItem("propresenter_templates", JSON.stringify(this.templates));
-    localStorage.setItem("propresenter_active_template", this.activeTemplateId);
-    localStorage.setItem("propresenter_text_trans", this.state.textTransition);
-    localStorage.setItem("propresenter_media_trans", this.state.mediaTransition);
-    localStorage.setItem("propresenter_fade_duration", this.state.fadeDuration);
+    setStorageItem("propresenter_decks", JSON.stringify(this.decks));
+    setStorageItem("propresenter_media_library", JSON.stringify(this.state.mediaLibrary));
+    setStorageItem("propresenter_media_folders", JSON.stringify(this.state.mediaFolders));
+    setStorageItem("propresenter_templates", JSON.stringify(this.templates));
+    setStorageItem("propresenter_active_template", this.activeTemplateId);
+    setStorageItem("propresenter_text_trans", this.state.textTransition);
+    setStorageItem("propresenter_media_trans", this.state.mediaTransition);
+    setStorageItem("propresenter_fade_duration", this.state.fadeDuration);
 
     // Transmit updated state to Audience and Stage displays via Broadcast & IPC
     sync.sendUpdate(this.state);
@@ -302,10 +305,10 @@ export class Store {
     if (settings.splitLong !== undefined) this.state.scriptureSplitLong = settings.splitLong;
     if (settings.showRef !== undefined) this.state.scriptureShowRef = settings.showRef;
 
-    localStorage.setItem("propresenter_scripture_maxlines", this.state.scriptureMaxLines);
-    localStorage.setItem("propresenter_scripture_font", this.state.scriptureFont);
-    localStorage.setItem("propresenter_scripture_split", this.state.scriptureSplitLong);
-    localStorage.setItem("propresenter_scripture_show_ref", this.state.scriptureShowRef);
+    setStorageItem("propresenter_scripture_maxlines", this.state.scriptureMaxLines);
+    setStorageItem("propresenter_scripture_font", this.state.scriptureFont);
+    setStorageItem("propresenter_scripture_split", this.state.scriptureSplitLong);
+    setStorageItem("propresenter_scripture_show_ref", this.state.scriptureShowRef);
 
     this.notify();
   }
@@ -512,6 +515,26 @@ export class Store {
 
     this.addDeck(newDeck);
     return newDeck;
+  }
+
+  duplicateDeck(deckId) {
+    const source = this.decks.find(d => d.id === deckId);
+    if (!source) return;
+
+    const duplicated = JSON.parse(JSON.stringify(source));
+    duplicated.id = "deck-" + Date.now() + Math.random().toString(36).substr(2, 4);
+    duplicated.title = `${source.title} (Copia)`;
+    
+    duplicated.groups.forEach((group, gIdx) => {
+      group.slides.forEach((slide, sIdx) => {
+        slide.id = `slide-${Date.now()}-${gIdx}-${sIdx}`;
+      });
+    });
+
+    this.decks.unshift(duplicated);
+    this.activeDeckId = duplicated.id;
+    this.notify();
+    return duplicated;
   }
 
   deleteDeck(deckId) {

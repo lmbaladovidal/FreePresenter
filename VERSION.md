@@ -4,9 +4,25 @@ Este archivo registra el control de versiones, cambios granulares, mejoras y cor
 
 ---
 
-## 📌 Versión Actual: `v1.1.0` (Build 20260825.4)
+## 📌 Versión Actual: `v1.2.0` (Build 20261007.1)
 
 ### 🗓️ Registro de Cambios (Changelog Histórico)
+
+### [1.2.0] - 2026-10-07
+#### 🆕 Nuevas Funcionalidades & Correcciones
+- **🖱️ Menú Contextual Dinámico para Componentes:**
+  - Menú desplegable inteligente al hacer clic derecho sobre canciones, fondos multimedia, biblias, filminas y eventos.
+  - Opciones integradas: Proyectar Ahora (`▶️`), Editar (`✏️`), Duplicar (`📋`), Copiar Texto y Eliminar (`🗑️`).
+  - Nuevo método `duplicateDeck()` en `Store` para duplicar cualquier canción/show con un clic.
+- **🪟 Gestión de Modales y Cierre por Backdrop:**
+  - Implementado `closeAllModals()` para asegurar exclusión mutua de ventanas emergentes.
+  - Cierre automático al hacer clic en el backdrop oscuro o presionar `Escape`.
+  - Configurados `pointer-events` y `z-index: 10000` en CSS para evitar bloqueos de clics.
+- **📄 Documentación de Requerimientos y Smoke Test Suite:**
+  - Creado `REQUERIMIENTOS_FUNCIONALES.md` (37 RFs).
+  - Creados `SMOKE_TEST.md` y `tests/smoke-test.mjs` (10/10 pruebas pasadas en `npm test`).
+- **🛠️ Corrección de Ejecutables `.exe`:**
+  - Removido `"type": "module"` en `package.json` para corregir `require is not defined in ES module scope` en Electron.
 
 ### [1.1.0] - 2026-08-25
 #### 🆕 Nuevas Funcionalidades & Correcciones
