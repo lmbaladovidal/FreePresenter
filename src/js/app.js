@@ -8,6 +8,7 @@ import { stageManager } from './stage-manager.js';
 import { BIBLE_BOOKS, BIBLE_VERSIONS, getAllBibleVersions, getChapterVerses, splitVerseText, fetchAndLoadBibleFromUrl, parseAndAddCustomBible, deleteCustomBible } from './bible-data.js';
 import { searchSongsOnline } from './song-search.js';
 import { calendarManager } from './calendar-manager.js';
+import pkg from '../../package.json';
 
 class ProPresenterApp {
   constructor() {
@@ -65,6 +66,11 @@ class ProPresenterApp {
   }
 
   initDOM() {
+    this.brandBadgeEl = document.getElementById('app-brand-badge') || document.querySelector('.brand-badge');
+    if (this.brandBadgeEl && pkg && pkg.version) {
+      this.brandBadgeEl.textContent = `PRO v${pkg.version}`;
+    }
+
     this.deckListEl = document.getElementById('deck-list');
     this.slideGroupsWrapper = document.getElementById('slide-groups-wrapper');
     this.activeDeckTitle = document.getElementById('active-deck-title');
