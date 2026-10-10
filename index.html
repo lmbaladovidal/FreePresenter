@@ -24,7 +24,7 @@
             <polygon points="5 3 19 12 5 21 5 3"></polygon>
           </svg>
           <span class="brand-name">FreePresenter <span style="color: var(--accent-pink)">AI</span></span>
-          <span class="brand-badge">PRO v7.5</span>
+          <span class="brand-badge">PRO v1.3.0</span>
         </div>
       </div>
 
@@ -114,7 +114,13 @@
             <h2 id="active-deck-title">Cuan Grande Es Él</h2>
             <p id="active-deck-category">Alabanza • 3 Secciones</p>
           </div>
-          <div style="display: flex; gap: 8px;">
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <div class="slide-card-zoom-box" style="display: flex; align-items: center; gap: 6px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 6px; padding: 3px 8px;" title="Ajustar tamaño de las tarjetas de filminas">
+              <span style="font-size: 0.72rem; color: var(--text-muted);">🔍</span>
+              <input type="range" id="input-slide-card-size" min="140" max="380" step="10" value="220" style="width: 75px; accent-color: var(--accent-cyan); cursor: pointer;" title="Arrastra para aumentar o reducir el tamaño de las filminas" />
+              <span id="val-slide-card-size" style="font-size: 0.68rem; font-weight: 700; color: #cbd5e1; min-width: 34px;">220px</span>
+            </div>
+            <button id="btn-reflow-deck" class="btn-output" style="background: var(--bg-card); border: 1px solid var(--border-color); font-size: 0.73rem; padding: 4px 8px;" title="Re-dividir filminas por número de renglones o plantilla">✂️ Dividir Filminas</button>
             <button id="btn-prev-slide" class="btn-output">◀ Anterior</button>
             <button id="btn-next-slide" class="btn-output" style="background: var(--accent-blue); color: #fff; border: none; font-weight: 700;">Siguiente ▶</button>
           </div>
@@ -139,6 +145,8 @@
           <div class="monitor-screen" style="position: relative; overflow: hidden; aspect-ratio: 16/9; background: #000;">
             <video id="operator-video-preview-a" autoplay loop muted style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; z-index: 0; pointer-events: none;"></video>
             <video id="operator-video-preview-b" autoplay loop muted style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; z-index: 0; pointer-events: none;"></video>
+            <img id="operator-img-preview-a" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; z-index: 0; pointer-events: none; display: none;" />
+            <img id="operator-img-preview-b" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; z-index: 0; pointer-events: none; display: none;" />
             <div id="operator-live-text-wrapper" style="position: absolute; left: 5%; right: 5%; top: 50%; transform: translateY(-50%); text-align: center; pointer-events: none; z-index: 1;">
               <div id="operator-live-text" class="monitor-live-text" style="color: white; line-height: 1.25;"></div>
             </div>
@@ -200,7 +208,7 @@
               <div class="monitor-header">
                 <span>STAGE DISPLAY (MONITOR CONFIANZA)</span>
               </div>
-              <div class="monitor-screen" style="background: #05080e; flex-direction: column; justify-content: space-between; align-items: stretch; text-align: left; height: 100px;">
+              <div class="monitor-screen" style="background: #05080e; flex-direction: column; justify-content: space-between; align-items: stretch; text-align: left; height: 100px; padding: 10px;">
                 <div style="display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--accent-gold); font-weight: 700;">
                   <span>RELOJ: <span id="stage-clock">00:00:00</span></span>
                   <span>TIEMPO: <span id="stage-timer">10:00</span></span>
@@ -627,10 +635,13 @@
         </div>
         <div class="modal-body">
 
-          <!-- Selector de Modo: Crear de 0 vs Buscar Web -->
+          <!-- Selector de Modo: Crear de 0 vs Buscar Web vs Pegar Portapapeles -->
           <div class="modal-mode-tabs" style="display: flex; gap: 8px; margin-bottom: 14px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
             <button type="button" id="tab-create-manual" class="modal-mode-tab active" style="flex: 1; padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-card); color: #fff; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
-              <span>✍️ Crear desde Cero</span>
+              <span>✍️ Crear Manual</span>
+            </button>
+            <button type="button" id="tab-create-clipboard" class="modal-mode-tab" style="flex: 1; padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); background: transparent; color: var(--text-muted); font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+              <span>📋 Pegar Portapapeles</span>
             </button>
             <button type="button" id="tab-create-search" class="modal-mode-tab" style="flex: 1; padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); background: transparent; color: var(--text-muted); font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
               <span>🔍 Buscar en la Web</span>
@@ -651,7 +662,41 @@
               <option value="Anuncio">Anuncios / Avisos</option>
             </select>
 
-            <label style="margin-top: 10px;">Contenido de Diapositivas (separa estrofas dejando una línea en blanco):</label>
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+              <div style="flex: 1;">
+                <label>Plantilla de Estilo / Template:</label>
+                <select id="input-show-template" style="background: var(--bg-darkest); border: 1px solid var(--border-color); color: #fff; padding: 6px 10px; border-radius: 6px; width: 100%; outline: none;">
+                  <!-- Dynamically populated -->
+                </select>
+              </div>
+              <div style="flex: 1;">
+                <label>Modo de División de Filminas:</label>
+                <select id="input-show-split-mode" style="background: var(--bg-darkest); border: 1px solid var(--border-color); color: #fff; padding: 6px 10px; border-radius: 6px; width: 100%; outline: none;">
+                  <option value="paragraph">Por Párrafos / Estrofas</option>
+                  <option value="fixed">Por Número Fijo de Renglones</option>
+                  <option value="lines">Por Cada Línea (1 renglón por filmina)</option>
+                </select>
+              </div>
+            </div>
+
+            <div id="wrapper-show-max-lines" style="margin-top: 10px;">
+              <label>Máximo de Renglones por Filmina:</label>
+              <select id="input-show-max-lines" style="background: var(--bg-darkest); border: 1px solid var(--border-color); color: #fff; padding: 6px 10px; border-radius: 6px; width: 100%; outline: none;">
+                <option value="0">Según Plantilla seleccionada o Párrafo</option>
+                <option value="1">1 Renglón por filmina</option>
+                <option value="2" selected>2 Renglones por filmina</option>
+                <option value="3">3 Renglones por filmina</option>
+                <option value="4">4 Renglones por filmina</option>
+                <option value="6">6 Renglones por filmina</option>
+              </select>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; margin-bottom: 4px;">
+              <label style="margin: 0;">Contenido de Diapositivas (separa estrofas dejando una línea en blanco):</label>
+              <button type="button" id="btn-paste-clipboard" style="background: linear-gradient(135deg, var(--accent-cyan), #0284c7); color: #fff; border: none; padding: 4px 10px; border-radius: 4px; font-size: 0.73rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 4px;" title="Pegar automáticamente el texto copiado en el portapapeles">
+                📋 Pegar Portapapeles
+              </button>
+            </div>
             <textarea id="input-show-text" placeholder="Estrofa 1:&#10;Línea uno del canto&#10;Línea dos del canto&#10;&#10;Coro:&#10;Línea del coro 1&#10;Línea del coro 2"></textarea>
           </div>
 
@@ -825,6 +870,69 @@
       </div>
     </div>
 
+    <!-- Modal para Editar Diapositiva (Slide Card) -->
+    <div id="modal-edit-slide" class="modal-overlay">
+      <div class="modal-card" style="max-width: 500px;">
+        <div class="modal-header">
+          <h3>✏️ Editar Diapositiva</h3>
+          <button id="btn-close-edit-slide-modal" class="modal-close-btn">&times;</button>
+        </div>
+        <div class="modal-body">
+          <label id="lbl-edit-slide-target" style="font-weight: 700; color: var(--accent-cyan); font-size: 0.85rem; margin-bottom: 6px; display: block;">Sección / Filmina</label>
+          <label>Contenido del Texto:</label>
+          <textarea id="input-edit-slide-text" rows="5" placeholder="Escribe el texto de la diapositiva..." style="width: 100%; font-size: 0.95rem; line-height: 1.4; padding: 10px; background: var(--bg-darkest); border: 1px solid var(--border-color); color: #fff; border-radius: 6px; outline: none; resize: vertical; margin-bottom: 12px;"></textarea>
+          
+          <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; margin-top: 5px;">
+            <label style="font-weight: 700; font-size: 0.8rem; color: #cbd5e1; display: block; margin-bottom: 6px;">Alcance de la modificación:</label>
+            <div style="display: flex; gap: 15px; align-items: center;">
+              <label style="display: flex; align-items: center; gap: 6px; font-size: 0.82rem; cursor: pointer; color: #fff;">
+                <input type="radio" name="edit-slide-scope" value="base" checked style="accent-color: var(--accent-cyan);">
+                <span>💾 En Base (Guardar permanente)</span>
+              </label>
+              <label style="display: flex; align-items: center; gap: 6px; font-size: 0.82rem; cursor: pointer; color: #fff;">
+                <input type="radio" name="edit-slide-scope" value="temp" style="accent-color: var(--accent-cyan);">
+                <span>⚡ Temporal (Solo pantalla en vivo)</span>
+              </label>
+            </div>
+            <div style="font-size: 0.72rem; color: #94a3b8; margin-top: 6px;">
+              • <strong>En Base:</strong> Actualiza la diapositiva en la presentación y guarda el cambio permanentemente.<br/>
+              • <strong>Temporal:</strong> Proyecta el nuevo texto en vivo inmediatamente sin alterar la plantilla guardada.
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button id="btn-cancel-edit-slide" class="btn-modal-cancel">Cancelar</button>
+          <button id="btn-save-edit-slide-confirm" class="btn-modal-save" style="background: linear-gradient(135deg, var(--accent-cyan), #0284c7);">💾 Aplicar Cambios</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal para Re-dividir Filminas de Presentación -->
+    <div id="modal-reflow-deck" class="modal-overlay">
+      <div class="modal-card" style="max-width: 440px;">
+        <div class="modal-header">
+          <h3>✂️ Re-dividir Filminas de la Presentación</h3>
+          <button id="btn-close-reflow-modal" class="modal-close-btn">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;">
+            Ajusta el número máximo de renglones por filmina para la presentación activa. Si hay filminas con más renglones de los indicados, los renglones sobrantes se enviarán automáticamente a nuevas filminas.
+          </p>
+          <label>Renglones por Filmina:</label>
+          <select id="input-reflow-lines" style="background: var(--bg-darkest); border: 1px solid var(--border-color); color: #fff; padding: 8px 10px; border-radius: 6px; width: 100%; outline: none; margin-bottom: 10px;">
+            <option value="1">1 Renglón por filmina</option>
+            <option value="2" selected>2 Renglones por filmina (Recomendado)</option>
+            <option value="3">3 Renglones por filmina</option>
+            <option value="4">4 Renglones por filmina</option>
+          </select>
+        </div>
+        <div class="modal-footer">
+          <button id="btn-cancel-reflow" class="btn-modal-cancel">Cancelar</button>
+          <button id="btn-confirm-reflow" class="btn-modal-save" style="background: linear-gradient(135deg, var(--accent-cyan), #0284c7);">✂️ Aplicar División</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Footer Status Bar -->
     <footer class="status-bar">
       <div class="status-item">
@@ -836,46 +944,48 @@
         <span style="margin: 0 8px;">|</span>
         <span>Fondo de Video: <strong id="status-bg-layer" style="color: var(--accent-cyan)">VIDEO LOOP</strong></span>
       </div>
-    <!-- Menú Contextual Personalizado Dinámico (Clic Derecho) -->
-    <div id="custom-context-menu" class="custom-context-menu">
-      <div class="context-menu-header">
-        <span id="ctx-header-title">Opciones de Componente</span>
-      </div>
-      <div class="context-menu-divider"></div>
-      
-      <div id="ctx-action-primary" class="context-menu-item">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polygon points="5 3 19 12 5 21 5 3"></polygon>
-        </svg>
-        <span id="ctx-action-primary-label">Proyectar Ahora</span>
-      </div>
+    </footer>
+  </div>
 
-      <div id="ctx-action-secondary" class="context-menu-item">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-        </svg>
-        <span id="ctx-action-secondary-label">Editar / Configurar</span>
-      </div>
+  <!-- Menú Contextual Personalizado Dinámico (Clic Derecho) -->
+  <div id="custom-context-menu" class="custom-context-menu">
+    <div class="context-menu-header">
+      <span id="ctx-header-title">Opciones de Componente</span>
+    </div>
+    <div class="context-menu-divider"></div>
+    
+    <div id="ctx-action-primary" class="context-menu-item">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+      </svg>
+      <span id="ctx-action-primary-label">Proyectar Ahora</span>
+    </div>
 
-      <div id="ctx-action-duplicate" class="context-menu-item">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-        </svg>
-        <span>Duplicar Elemento</span>
-      </div>
+    <div id="ctx-action-secondary" class="context-menu-item">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+      </svg>
+      <span id="ctx-action-secondary-label">Editar / Configurar</span>
+    </div>
 
-      <div class="context-menu-divider"></div>
+    <div id="ctx-action-duplicate" class="context-menu-item">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+      </svg>
+      <span id="ctx-action-duplicate-label">Duplicar Elemento</span>
+    </div>
 
-      <div id="ctx-item-delete" class="context-menu-item item-danger">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-          <polyline points="3 6 5 6 21 6"></polyline>
-          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-        </svg>
-        <span id="ctx-item-label">Eliminar Elemento</span>
-        <span class="context-menu-shortcut">Supr</span>
-      </div>
+    <div class="context-menu-divider"></div>
+
+    <div id="ctx-item-delete" class="context-menu-item item-danger">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <polyline points="3 6 5 6 21 6"></polyline>
+        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+      </svg>
+      <span id="ctx-item-label">Eliminar Elemento</span>
+      <span class="context-menu-shortcut">Supr</span>
     </div>
   </div>
 </body>

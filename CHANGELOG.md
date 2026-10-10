@@ -6,6 +6,16 @@ For detailed release notes in Spanish, please see [NOTAS_DE_VERSION.md](./NOTAS_
 
 ---
 
+## [1.3.0] - 2026-10-10
+
+### Added
+- **Song Slide Splitting & Reflow Engine:** Support for splitting presentations by line count, line breaks, and paragraph rules. Built-in slide reflow modal (`btn-reflow-deck`) with line count selector.
+- **Automatic Overflow Splitting on Template Assignment:** Dynamically splits slides into multiple new slide cards when assigning/editing templates with `maxLines > 0`.
+- **Clipboard Import & Template Selection on Presentation Creation:** Option to choose active template and paste content directly from system clipboard when creating new shows.
+- **Virtual Folder Media Rendering:** Real-time thumbnail preview and audience screen output projection for video and image files dropped/uploaded to virtual folders.
+- **Dynamic Slide Cards Zoom Control:** Range slider in slide grid dock (`input-slide-card-size`) for dynamic sizing from 140px to 380px.
+- **100% Faithful 1:1 Operator Preview Monitor (`.monitor-screen`):** CSS Container Queries (`container-type: inline-size; container-name: monitorscreen; padding: 0;`) and responsive `cqw` scaling for font size, letter-spacing, padding, line wrapping, and Y position to match `audience.html` identically.
+
 ## [1.2.0] - 2026-10-07
 
 ### Added

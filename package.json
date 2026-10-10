@@ -1,6 +1,6 @@
 {
   "name": "propresenter-ai-studio",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Estación de control multimedia de escritorio para proyección multipantalla, transmisión en vivo, monitor de escenario, calendario de eventos y gestor de escrituras.",
   "main": "main.js",
   "author": "ProPresenter AI Studio Team",

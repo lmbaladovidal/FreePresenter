@@ -4,9 +4,26 @@ Este archivo registra el control de versiones, cambios granulares, mejoras y cor
 
 ---
 
-## 📌 Versión Actual: `v1.2.0` (Build 20261007.1)
+## 📌 Versión Actual: `v1.3.0` (Build 20261010.1)
 
 ### 🗓️ Registro de Cambios (Changelog Histórico)
+
+### [1.3.0] - 2026-10-10
+#### 🆕 Nuevas Funcionalidades & Correcciones
+- **✂️ División Inteligente de Canciones & Re-división por Plantillas:**
+  - División de canciones por saltos de línea, número de renglones (`maxLines`) o párrafos.
+  - Al cambiar/editar una plantilla con límite de líneas (`maxLines > 0`), el exceso de texto se distribuye automáticamente en nuevas tarjetas de filmina consecutivas.
+  - Modal de re-dividir filminas (`btn-reflow-deck`) con control numérico de líneas.
+- **📋 Carga desde Portapapeles & Selección de Plantilla al Crear Shows:**
+  - Modal de nueva presentación incluye desplegable de plantilla gráfica inicial.
+  - Botón de pegado directo desde el portapapeles (`btn-paste-clipboard`).
+- **🖼️ Proyección de Medios en Carpetas Virtuales:**
+  - Archivos multimedia (videos/imágenes) soltados o cargados en carpetas virtuales muestran miniaturas dinámicas y se proyectan correctamente a `audience.html`.
+- **🔍 Control Deslizante de Zoom en Tarjetas de Filmina (`.slide-card`):**
+  - Control de zoom interactivo (140px - 380px) en el dock de filminas.
+- **🖥️ Paridad Fiel 1:1 en Monitor de Audiencia (`.monitor-screen`):**
+  - CSS Container Queries (`container-type: inline-size; padding: 0;`) y unidades responsive `cqw` en `.monitor-screen` y `operator-live-text`.
+  - Garantiza alineación, saltos de línea, sombras, espaciado y tipografía 100% idénticos entre la vista del operador y `audience.html`.
 
 ### [1.2.0] - 2026-10-07
 #### 🆕 Nuevas Funcionalidades & Correcciones

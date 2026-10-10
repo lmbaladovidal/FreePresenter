@@ -92,6 +92,10 @@ class ProPresenterApp {
     this.modalCreateShow = document.getElementById('modal-create-show');
     this.inputShowTitle = document.getElementById('input-show-title');
     this.inputShowCategory = document.getElementById('input-show-category');
+    this.inputShowTemplate = document.getElementById('input-show-template');
+    this.inputShowSplitMode = document.getElementById('input-show-split-mode');
+    this.inputShowMaxLines = document.getElementById('input-show-max-lines');
+    this.wrapperShowMaxLines = document.getElementById('wrapper-show-max-lines');
     this.inputShowText = document.getElementById('input-show-text');
     this.btnSaveShow = document.getElementById('btn-save-show');
 
@@ -114,6 +118,15 @@ class ProPresenterApp {
     this.btnSaveTemplateConfirm = document.getElementById('btn-save-template-confirm');
     this.btnCloseCreateTemplateModal = document.getElementById('btn-close-create-template-modal');
     this.btnCancelCreateTemplate = document.getElementById('btn-cancel-create-template');
+
+    // Slide Edit Modal
+    this.modalEditSlide = document.getElementById('modal-edit-slide');
+    this.inputEditSlideText = document.getElementById('input-edit-slide-text');
+    this.lblEditSlideTarget = document.getElementById('lbl-edit-slide-target');
+    this.btnSaveEditSlideConfirm = document.getElementById('btn-save-edit-slide-confirm');
+    this.btnCloseEditSlideModal = document.getElementById('btn-close-edit-slide-modal');
+    this.btnCancelEditSlide = document.getElementById('btn-cancel-edit-slide');
+    this.pendingEditSlideTarget = null;
   }
 
   bindEvents() {
@@ -223,30 +236,37 @@ class ProPresenterApp {
 
     // 7. New Show Modal Handlers
     const tabManual = document.getElementById('tab-create-manual');
+    const tabClipboard = document.getElementById('tab-create-clipboard');
     const tabSearch = document.getElementById('tab-create-search');
     const viewManual = document.getElementById('view-create-manual');
     const viewSearch = document.getElementById('view-create-search');
+    const btnPasteClipboard = document.getElementById('btn-paste-clipboard');
 
     const switchModalMode = (mode) => {
-      if (mode === 'manual') {
-        tabManual?.classList.add('active');
-        if (tabManual) tabManual.style.background = 'var(--bg-card)';
-        if (tabManual) tabManual.style.color = '#fff';
+      const setTabStyle = (tab, isActive) => {
+        if (!tab) return;
+        if (isActive) {
+          tab.classList.add('active');
+          tab.style.background = 'var(--bg-card)';
+          tab.style.color = '#fff';
+        } else {
+          tab.classList.remove('active');
+          tab.style.background = 'transparent';
+          tab.style.color = 'var(--text-muted)';
+        }
+      };
 
-        tabSearch?.classList.remove('active');
-        if (tabSearch) tabSearch.style.background = 'transparent';
-        if (tabSearch) tabSearch.style.color = 'var(--text-muted)';
+      if (mode === 'manual') {
+        setTabStyle(tabManual, true);
+        setTabStyle(tabClipboard, false);
+        setTabStyle(tabSearch, false);
 
         if (viewManual) viewManual.style.display = 'block';
         if (viewSearch) viewSearch.style.display = 'none';
-      } else {
-        tabSearch?.classList.add('active');
-        if (tabSearch) tabSearch.style.background = 'var(--bg-card)';
-        if (tabSearch) tabSearch.style.color = '#fff';
-
-        tabManual?.classList.remove('active');
-        if (tabManual) tabManual.style.background = 'transparent';
-        if (tabManual) tabManual.style.color = 'var(--text-muted)';
+      } else if (mode === 'search') {
+        setTabStyle(tabSearch, true);
+        setTabStyle(tabManual, false);
+        setTabStyle(tabClipboard, false);
 
         if (viewSearch) viewSearch.style.display = 'block';
         if (viewManual) viewManual.style.display = 'none';
@@ -254,8 +274,48 @@ class ProPresenterApp {
       }
     };
 
+    const pasteFromClipboard = async () => {
+      try {
+        let clipboardText = "";
+        if (navigator.clipboard && navigator.clipboard.readText) {
+          clipboardText = await navigator.clipboard.readText();
+        }
+
+        if (!clipboardText || !clipboardText.trim()) {
+          alert("El portapapeles está vacío o no contiene texto legible.");
+          return;
+        }
+
+        const trimmed = clipboardText.trim();
+        if (this.inputShowText) {
+          this.inputShowText.value = trimmed;
+        }
+
+        // Sugerir título desde la primera línea si el título está vacío
+        if (this.inputShowTitle && !this.inputShowTitle.value.trim()) {
+          const lines = trimmed.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+          if (lines.length > 0) {
+            let candidate = lines[0];
+            candidate = candidate.replace(/^(título|canción|song|title)\s*:\s*/i, '');
+            if (candidate.length > 60) {
+              candidate = candidate.substring(0, 57) + '...';
+            }
+            this.inputShowTitle.value = candidate;
+          }
+        }
+      } catch (err) {
+        console.warn("No se pudo acceder directamente al portapapeles:", err);
+        alert("No se pudo leer automáticamente el portapapeles. Puedes usar Ctrl+V directamente en el área de texto.");
+      }
+    };
+
     tabManual?.addEventListener('click', () => switchModalMode('manual'));
     tabSearch?.addEventListener('click', () => switchModalMode('search'));
+    tabClipboard?.addEventListener('click', async () => {
+      switchModalMode('manual');
+      await pasteFromClipboard();
+    });
+    btnPasteClipboard?.addEventListener('click', pasteFromClipboard);
 
     // Web Song Search Logic
     const btnSongSearch = document.getElementById('btn-song-search-submit');
@@ -347,6 +407,24 @@ class ProPresenterApp {
         this.modalCreateShow.classList.add('open');
         switchModalMode('manual');
 
+        // Poblar plantillas de estilo dinámicamente
+        if (this.inputShowTemplate) {
+          const templates = store.templates || [];
+          this.inputShowTemplate.innerHTML = templates.map(t => 
+            `<option value="${t.id}" ${t.id === store.activeTemplateId ? 'selected' : ''}>${t.name}${t.maxLines > 0 ? ` (Máx. ${t.maxLines} renglones)` : ''}</option>`
+          ).join('');
+
+          // Cuando cambia el template, actualizar visualmente maxLines por defecto si aplica
+          const updateDefaultMaxLines = () => {
+            const selectedTplId = this.inputShowTemplate.value;
+            const tpl = templates.find(t => t.id === selectedTplId);
+            if (tpl && tpl.maxLines > 0 && this.inputShowMaxLines) {
+              this.inputShowMaxLines.value = String(tpl.maxLines);
+            }
+          };
+          this.inputShowTemplate.onchange = updateDefaultMaxLines;
+        }
+
         // Auto-seleccionar la categoría activa actual
         if (this.activeFilter && this.activeFilter !== 'all' && this.inputShowCategory) {
           const filterCategory = this.activeFilter;
@@ -358,7 +436,6 @@ class ProPresenterApp {
           if (matchedOption) {
             this.inputShowCategory.value = matchedOption.value;
           } else {
-            // Añadir dinámicamente la opción si es una categoría personalizada
             const newOpt = document.createElement('option');
             newOpt.value = filterCategory;
             newOpt.textContent = filterCategory;
@@ -389,15 +466,74 @@ class ProPresenterApp {
       const title = this.inputShowTitle.value.trim();
       const category = this.inputShowCategory.value;
       const text = this.inputShowText.value.trim();
+      const templateId = this.inputShowTemplate?.value || store.activeTemplateId;
+      const splitMode = this.inputShowSplitMode?.value || 'paragraph';
+      const maxLines = parseInt(this.inputShowMaxLines?.value || 0);
 
       if (!title || !text) {
         alert("Por favor ingresa un título y el texto del show/canción.");
         return;
       }
 
-      store.createNewShow(title, category, text);
+      store.createNewShow(title, category, text, {
+        templateId,
+        splitMode,
+        maxLines
+      });
       closeModalShow();
     });
+
+    // Handlers para el Modal de Re-división de Filminas (Reflow Deck)
+    const openModalReflow = () => {
+      this.closeAllModals();
+      const modalReflow = document.getElementById('modal-reflow-deck');
+      if (modalReflow) modalReflow.classList.add('open');
+    };
+
+    const closeModalReflow = () => {
+      const modalReflow = document.getElementById('modal-reflow-deck');
+      if (modalReflow) modalReflow.classList.remove('open');
+    };
+
+    document.getElementById('btn-reflow-deck')?.addEventListener('click', openModalReflow);
+    document.getElementById('btn-close-reflow-modal')?.addEventListener('click', closeModalReflow);
+    document.getElementById('btn-cancel-reflow')?.addEventListener('click', closeModalReflow);
+    document.getElementById('btn-confirm-reflow')?.addEventListener('click', () => {
+      const inputReflow = document.getElementById('input-reflow-lines');
+      const lines = parseInt(inputReflow?.value || 2);
+      if (store.activeDeckId) {
+        store.reflowDeckSlides(store.activeDeckId, lines);
+      }
+      closeModalReflow();
+    });
+
+    // Control de Tamaño / Zoom de Slide-Cards en el Banner del Grid
+    const inputCardSize = document.getElementById('input-slide-card-size');
+    const valCardSize = document.getElementById('val-slide-card-size');
+
+    const applySlideCardSize = (sizeVal) => {
+      const size = parseInt(sizeVal);
+      if (isNaN(size)) return;
+      if (valCardSize) valCardSize.textContent = `${size}px`;
+      
+      const gridContainer = document.querySelector('.slide-grid-container');
+      const gridWrapper = document.querySelector('.slide-cards-grid');
+      if (gridContainer) gridContainer.style.setProperty('--slide-card-min-width', `${size}px`);
+      if (gridWrapper) gridWrapper.style.setProperty('--slide-card-min-width', `${size}px`);
+      
+      try {
+        localStorage.setItem('propresenter_slide_card_size', String(size));
+      } catch(e) {}
+    };
+
+    if (inputCardSize) {
+      inputCardSize.addEventListener('input', (e) => applySlideCardSize(e.target.value));
+      inputCardSize.addEventListener('change', (e) => applySlideCardSize(e.target.value));
+
+      const savedCardSize = (typeof localStorage !== 'undefined' && localStorage.getItem('propresenter_slide_card_size')) || '220';
+      inputCardSize.value = savedCardSize;
+      applySlideCardSize(savedCardSize);
+    }
 
     // 8. Upload Media Modal Handlers (Cargar Video asignando carpeta virtual)
     const openModalMedia = () => {
@@ -504,30 +640,57 @@ class ProPresenterApp {
       alert("Por favor selecciona uno o más archivos de video/imagen o ingresa una URL.");
     });
 
-    // Drag & Drop Directo sobre la pestaña de Medios para carga por lotes
-    const mediaTab = document.getElementById('res-tab-media');
-    if (mediaTab) {
+    // Drag & Drop Directo sobre la biblioteca de Medios para carga por lotes (imágenes y videos)
+    const mediaDropTargets = [
+      document.getElementById('res-tab-media'),
+      document.getElementById('media-grid'),
+      document.querySelector('.resource-body'),
+      document.querySelector('.bottom-resource-dock')
+    ].filter(Boolean);
+
+    mediaDropTargets.forEach(targetEl => {
       ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-        mediaTab.addEventListener(eventName, (e) => {
+        targetEl.addEventListener(eventName, (e) => {
           e.preventDefault();
           e.stopPropagation();
         });
       });
 
-      mediaTab.addEventListener('drop', (e) => {
-        const files = Array.from(e.dataTransfer.files || []).filter(f => f.type.startsWith('video/') || f.type.startsWith('image/'));
+      targetEl.addEventListener('drop', (e) => {
+        const rawFiles = Array.from(e.dataTransfer.files || []);
+        const files = rawFiles.filter(f => 
+          f.type.startsWith('video/') || 
+          f.type.startsWith('image/') || 
+          f.name.match(/\.(jpeg|jpg|png|gif|webp|svg|mp4|webm|mov|mkv|avi)$/i)
+        );
+
         if (files.length > 0) {
           const targetFolder = this.selectedMediaFolder && this.selectedMediaFolder !== 'all' ? this.selectedMediaFolder : 'General';
-          const batchItems = files.map(f => ({
-            name: f.name,
-            url: URL.createObjectURL(f),
-            type: f.type,
-            folder: targetFolder
-          }));
+          const batchItems = files.map(f => {
+            const isImg = f.type.startsWith('image/') || f.name.match(/\.(jpeg|jpg|png|gif|webp|svg)$/i);
+            return {
+              name: f.name,
+              url: URL.createObjectURL(f),
+              type: f.type || (isImg ? 'image/png' : 'video/mp4'),
+              folder: targetFolder
+            };
+          });
+
           store.addMediaBatch(batchItems);
+
+          // Cambiar a la pestaña de Medios en el dock si no está activa
+          const mediaTabBtn = document.querySelector('.res-tab[data-res="media"]');
+          if (mediaTabBtn && !mediaTabBtn.classList.contains('active')) {
+            mediaTabBtn.click();
+          }
+
+          // Si se soltó 1 solo archivo, proyectarlo automáticamente
+          if (batchItems.length === 1) {
+            store.setActiveVideo(batchItems[0].url, batchItems[0].name, batchItems[0].type);
+          }
         }
       });
-    }
+    });
 
     // Add Virtual Folder quick button (+) & Modal Handlers
     const openModalFolder = () => {
@@ -565,6 +728,26 @@ class ProPresenterApp {
         saveVirtualFolder();
       }
     });
+
+    // 8.b. Slide Edit Modal Listeners
+    const closeModalEditSlide = () => {
+      if (this.modalEditSlide) this.modalEditSlide.classList.remove('open');
+      this.pendingEditSlideTarget = null;
+    };
+
+    const saveEditSlide = () => {
+      const text = this.inputEditSlideText?.value;
+      const isTemp = document.querySelector('input[name="edit-slide-scope"]:checked')?.value === 'temp';
+      if (this.pendingEditSlideTarget && text !== undefined) {
+        const { deckId, groupIndex, slideIndex } = this.pendingEditSlideTarget;
+        store.updateSlideText(deckId, groupIndex, slideIndex, text, isTemp);
+      }
+      closeModalEditSlide();
+    };
+
+    this.btnCloseEditSlideModal?.addEventListener('click', closeModalEditSlide);
+    this.btnCancelEditSlide?.addEventListener('click', closeModalEditSlide);
+    this.btnSaveEditSlideConfirm?.addEventListener('click', saveEditSlide);
 
     // 9. Panel Tabs Switching
     document.querySelectorAll('.panel-tab').forEach(tab => {
@@ -640,6 +823,7 @@ class ProPresenterApp {
     const secondaryEl = document.getElementById('ctx-action-secondary');
     const secondaryLabel = document.getElementById('ctx-action-secondary-label');
     const duplicateEl = document.getElementById('ctx-action-duplicate');
+    const duplicateLabel = document.getElementById('ctx-action-duplicate-label');
     const deleteLabel = document.getElementById('ctx-item-label');
 
     if (titleEl) titleEl.textContent = target.name || 'Componente';
@@ -649,24 +833,35 @@ class ProPresenterApp {
     if (primaryEl) primaryEl.style.display = 'flex';
     if (secondaryEl) secondaryEl.style.display = 'flex';
     if (duplicateEl) duplicateEl.style.display = 'flex';
+    if (duplicateLabel) duplicateLabel.textContent = '📋 Duplicar Elemento';
 
-    if (target.type === 'deck') {
+    if (target.type === 'project-item') {
       if (primaryLabel) primaryLabel.textContent = '▶️ Proyectar / Activar';
       if (secondaryLabel) secondaryLabel.textContent = '✏️ Editar Contenido';
+      if (duplicateLabel) duplicateLabel.textContent = '➖ Quitar del Proyecto';
       if (duplicateEl) duplicateEl.style.display = 'flex';
+      if (deleteLabel) deleteLabel.textContent = `Eliminar de Biblioteca (${target.name || ''})`;
+    } else if (target.type === 'deck') {
+      const isInProject = store.projectDeckIds.includes(target.id);
+      if (primaryLabel) primaryLabel.textContent = '▶️ Proyectar / Activar';
+      if (secondaryLabel) secondaryLabel.textContent = '✏️ Editar Contenido';
+      if (duplicateLabel) duplicateLabel.textContent = isInProject ? '➖ Quitar del Proyecto' : '➕ Agregar al Proyecto';
+      if (duplicateEl) duplicateEl.style.display = 'flex';
+      if (deleteLabel) deleteLabel.textContent = `Eliminar de Biblioteca (${target.name || ''})`;
     } else if (target.type === 'media') {
       if (primaryLabel) primaryLabel.textContent = '🎬 Transmitir en Vivo';
       if (secondaryLabel) secondaryLabel.textContent = '📁 Cambiar Carpeta';
       if (duplicateEl) duplicateEl.style.display = 'none';
     } else if (target.type === 'bible') {
       if (primaryLabel) primaryLabel.textContent = '📖 Activar Biblia';
-      if (secondaryEl) secondaryEl.style.display = 'none';
+      if (secondaryLabel) secondaryLabel.style.display = 'none';
       if (duplicateEl) duplicateEl.style.display = 'none';
     } else if (target.type === 'slide') {
       if (primaryLabel) primaryLabel.textContent = '▶️ Proyectar Filmina';
-      if (secondaryLabel) secondaryLabel.textContent = '📋 Copiar Texto';
-      if (duplicateEl) duplicateEl.style.display = 'none';
-      if (deleteLabel) deleteLabel.textContent = '🧹 Limpiar Texto (F2)';
+      if (secondaryLabel) secondaryLabel.textContent = '✏️ Editar Diapositiva';
+      if (duplicateLabel) duplicateLabel.textContent = '📋 Duplicar Diapositiva';
+      if (duplicateEl) duplicateEl.style.display = 'flex';
+      if (deleteLabel) deleteLabel.textContent = `Eliminar ${target.name || 'Diapositiva'}`;
     } else if (target.type === 'event') {
       if (primaryLabel) primaryLabel.textContent = '📢 Proyectar Anuncio';
       if (secondaryEl) secondaryEl.style.display = 'none';
@@ -703,7 +898,7 @@ class ProPresenterApp {
       this.hideContextMenu();
       if (!target) return;
 
-      if (target.type === 'deck') {
+      if (target.type === 'deck' || target.type === 'project-item') {
         store.setActiveDeck(target.id);
       } else if (target.type === 'media') {
         store.setActiveVideo(target.url, target.name);
@@ -724,7 +919,7 @@ class ProPresenterApp {
       this.hideContextMenu();
       if (!target) return;
 
-      if (target.type === 'deck') {
+      if (target.type === 'deck' || target.type === 'project-item') {
         const deck = store.decks.find(d => d.id === target.id);
         if (deck) {
           if (this.inputShowTitle) this.inputShowTitle.value = deck.title;
@@ -736,14 +931,7 @@ class ProPresenterApp {
       } else if (target.type === 'media') {
         document.getElementById('btn-open-media-modal')?.click();
       } else if (target.type === 'slide') {
-        if (target.text) {
-          const cleanText = target.text.replace(/<[^>]*>/g, '');
-          if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(cleanText).then(() => {
-              alert('📋 Texto de la filmina copiado al portapapeles.');
-            }).catch(() => {});
-          }
-        }
+        this.openEditSlideModal(target);
       }
     });
 
@@ -751,8 +939,17 @@ class ProPresenterApp {
       e.stopPropagation();
       const target = this.contextTarget;
       this.hideContextMenu();
-      if (target && target.type === 'deck') {
-        store.duplicateDeck(target.id);
+      if (!target) return;
+      if (target.type === 'project-item') {
+        store.removeFromProject(target.id);
+      } else if (target.type === 'deck') {
+        if (store.projectDeckIds.includes(target.id)) {
+          store.removeFromProject(target.id);
+        } else {
+          store.addToProject(target.id);
+        }
+      } else if (target.type === 'slide') {
+        store.duplicateSlide(target.deckId, target.groupIndex, target.slideIndex);
       }
     });
 
@@ -762,6 +959,22 @@ class ProPresenterApp {
         this.executeDeleteTarget(this.contextTarget);
       }
     });
+  }
+
+  openEditSlideModal(target) {
+    if (!target) return;
+    this.pendingEditSlideTarget = target;
+    const modal = document.getElementById('modal-edit-slide');
+    const lblTarget = document.getElementById('lbl-edit-slide-target');
+    const inputArea = document.getElementById('input-edit-slide-text');
+
+    if (lblTarget) lblTarget.textContent = target.name || 'Diapositiva';
+    if (inputArea) inputArea.value = (target.text || '').replace(/<br\s*\/?>/gi, '\n');
+
+    const radioBase = document.querySelector('input[name="edit-slide-scope"][value="base"]');
+    if (radioBase) radioBase.checked = true;
+
+    if (modal) modal.classList.add('open');
   }
 
   closeAllModals() {
@@ -792,9 +1005,12 @@ class ProPresenterApp {
     this.hideContextMenu();
 
     if (target.type === 'slide') {
-      store.clearText();
-    } else if (target.type === 'deck') {
-      if (confirm(`¿Estás seguro de que deseas eliminar la canción/lectura "${target.name}"?`)) {
+      if (confirm(`¿Estás seguro de que deseas eliminar la diapositiva "${target.name}"?`)) {
+        store.deleteSlide(target.deckId, target.groupIndex, target.slideIndex);
+        this.contextTarget = null;
+      }
+    } else if (target.type === 'deck' || target.type === 'project-item') {
+      if (confirm(`¿Estás seguro de que deseas eliminar la canción/lectura "${target.name}" permanentemente de la biblioteca base?`)) {
         store.deleteDeck(target.id);
         this.contextTarget = null;
       }
@@ -1017,6 +1233,7 @@ class ProPresenterApp {
       } else {
         this.showsGridEl.innerHTML = filteredDecks.map(deck => {
           const isActive = deck.id === store.activeDeckId;
+          const isInProject = store.projectDeckIds.includes(deck.id);
           const slideCount = deck.groups.reduce((acc, g) => acc + g.slides.length, 0);
           const snippetText = deck.groups[0]?.slides[0]?.text || "Sin texto";
 
@@ -1029,7 +1246,12 @@ class ProPresenterApp {
               <div class="show-card-snippet">${snippetText}</div>
               <div class="show-card-footer">
                 <span>${slideCount} Diapositivas</span>
-                <button class="btn-delete-show" data-delete-id="${deck.id}" title="Eliminar este show">&times;</button>
+                <div style="display: flex; gap: 4px; align-items: center;">
+                  <button class="btn-toggle-project-show ${isInProject ? 'in-project' : ''}" data-project-id="${deck.id}" title="${isInProject ? 'Quitar del proyecto' : 'Agregar al proyecto'}">
+                    ${isInProject ? '✓ Proyecto' : '+ Proyecto'}
+                  </button>
+                  <button class="btn-delete-show" data-delete-id="${deck.id}" title="Eliminar de la biblioteca base">&times;</button>
+                </div>
               </div>
             </div>
           `;
@@ -1039,11 +1261,23 @@ class ProPresenterApp {
           const id = card.getAttribute('data-deck-id');
           const deckObj = decks.find(d => d.id === id);
           card.addEventListener('click', (e) => {
-            if (e.target.classList.contains('btn-delete-show')) return;
+            if (e.target.classList.contains('btn-delete-show') || e.target.classList.contains('btn-toggle-project-show')) return;
             store.setActiveDeck(id);
           });
           card.addEventListener('contextmenu', (e) => {
             if (deckObj) this.showContextMenu(e, { type: 'deck', id: deckObj.id, name: deckObj.title });
+          });
+        });
+
+        this.showsGridEl.querySelectorAll('.btn-toggle-project-show').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const id = btn.getAttribute('data-project-id');
+            if (store.projectDeckIds.includes(id)) {
+              store.removeFromProject(id);
+            } else {
+              store.addToProject(id);
+            }
           });
         });
 
@@ -1152,13 +1386,19 @@ class ProPresenterApp {
       } else {
         this.mediaGridEl.innerHTML = filteredMedia.map(item => {
           const isActive = state.activeVideoUrl === item.url && !state.isMediaCleared;
+          const isImg = (item.type && item.type.startsWith('image/')) || (item.url && item.url.match(/\.(jpeg|jpg|gif|png|webp|svg|bmp)($|\?)/i));
+          
+          const mediaTag = isImg 
+            ? `<img data-src="${item.url}" alt="${item.name}" style="width: 100%; height: 100%; object-fit: cover;" />`
+            : `<video data-src="${item.url}" muted preload="none" playsinline></video>`;
+
           return `
-            <div class="video-card ${isActive ? 'active-video' : ''}" data-video-url="${item.url}" data-video-name="${item.name}">
+            <div class="video-card ${isActive ? 'active-video' : ''}" data-video-url="${item.url}" data-video-name="${item.name}" data-video-type="${item.type || ''}">
               <div class="video-card-top-bar">
                 <span class="video-folder-tag">${item.folder || 'General'}</span>
-                <button class="btn-delete-media" data-media-id="${item.id}" title="Eliminar este video">&times;</button>
+                <button class="btn-delete-media" data-media-id="${item.id}" title="Eliminar este elemento">&times;</button>
               </div>
-              <video data-src="${item.url}" muted preload="none" playsinline></video>
+              ${mediaTag}
               <div class="video-card-overlay">
                 <div class="video-card-title">${item.name}</div>
               </div>
@@ -1166,30 +1406,33 @@ class ProPresenterApp {
           `;
         }).join('');
 
-        // Setup IntersectionObserver for Lazy Video Loading in Grid
+        // Setup IntersectionObserver for Lazy Media Loading in Grid
         this.mediaIntersectionObserver = new IntersectionObserver((entries) => {
           entries.forEach(entry => {
             const video = entry.target.querySelector('video');
-            if (!video) return;
+            const img = entry.target.querySelector('img');
             if (entry.isIntersecting) {
-              if (!video.src && video.dataset.src) {
+              if (video && !video.src && video.dataset.src) {
                 video.src = video.dataset.src;
                 video.preload = "metadata";
               }
+              if (img && !img.src && img.dataset.src) {
+                img.src = img.dataset.src;
+              }
             } else {
-              if (!video.paused) {
+              if (video && !video.paused) {
                 video.pause();
               }
             }
           });
         }, { root: this.mediaGridEl.parentElement, rootMargin: '150px' });
 
-        // Bind video click, delete click, mouseenter/mouseleave hover play
+        // Bind media click, delete click, mouseenter/mouseleave hover play
         this.mediaGridEl.querySelectorAll('.video-card').forEach(card => {
           const video = card.querySelector('video');
-          if (video) {
-            this.mediaIntersectionObserver.observe(card);
+          this.mediaIntersectionObserver.observe(card);
 
+          if (video) {
             card.addEventListener('mouseenter', () => {
               if (video.src) {
                 video.play().catch(() => {});
@@ -1207,7 +1450,8 @@ class ProPresenterApp {
             if (e.target.classList.contains('btn-delete-media')) return;
             const url = card.getAttribute('data-video-url');
             const name = card.getAttribute('data-video-name');
-            store.setActiveVideo(url, name);
+            const type = card.getAttribute('data-video-type') || (mediaItem ? mediaItem.type : '');
+            store.setActiveVideo(url, name, type);
           });
           card.addEventListener('contextmenu', (e) => {
             if (mediaItem) {
@@ -2001,22 +2245,38 @@ class ProPresenterApp {
   }
 
   renderUI(state, decks) {
-    // 1. Sidebar Library Decks
-    this.deckListEl.innerHTML = decks.map(deck => `
+    // 1. Sidebar Project Decks
+    const projectDecks = store.projectDecks;
+    const projectBadge = document.querySelector('.project-count-badge');
+    if (projectBadge) projectBadge.textContent = projectDecks.length;
+
+    this.deckListEl.innerHTML = projectDecks.map(deck => `
       <div class="deck-item ${deck.id === store.activeDeckId ? 'active' : ''}" data-deck-id="${deck.id}">
-        <span>${deck.title}</span>
-        <span class="deck-item-tag">${deck.category || deck.type}</span>
+        <span class="deck-item-title" style="flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${deck.title}</span>
+        <div style="display: flex; align-items: center; gap: 4px;">
+          <span class="deck-item-tag">${deck.category || deck.type}</span>
+          <button class="btn-remove-project-item" data-remove-id="${deck.id}" title="Quitar del proyecto (mantener en biblioteca)">&times;</button>
+        </div>
       </div>
     `).join('');
 
     this.deckListEl.querySelectorAll('.deck-item').forEach(el => {
       const id = el.getAttribute('data-deck-id');
       const deckObj = decks.find(d => d.id === id);
-      el.addEventListener('click', () => {
+      el.addEventListener('click', (e) => {
+        if (e.target.classList.contains('btn-remove-project-item')) return;
         store.setActiveDeck(id);
       });
       el.addEventListener('contextmenu', (e) => {
-        if (deckObj) this.showContextMenu(e, { type: 'deck', id: deckObj.id, name: deckObj.title });
+        if (deckObj) this.showContextMenu(e, { type: 'project-item', id: deckObj.id, name: deckObj.title });
+      });
+    });
+
+    this.deckListEl.querySelectorAll('.btn-remove-project-item').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = btn.getAttribute('data-remove-id');
+        store.removeFromProject(id);
       });
     });
 
@@ -2040,14 +2300,57 @@ class ProPresenterApp {
         return group.slides.map((slide, sIdx) => {
           const isLive = state.liveSlideId === slide.id && !state.isTextCleared;
           const cardIdx = globalIndex++;
-          const tpl = state.activeTemplate;
-          const tplStyles = tpl ? `font-family:${tpl.fontFamily}; letter-spacing:${tpl.letterSpacing}px; line-height:${tpl.lineHeight}; color:${tpl.color}; background-color:${tpl.bgColor || 'transparent'}; border-radius:${tpl.borderRadius || 4}px; padding: 4px 6px;` : '';
+          const tpl = state.activeTemplate || {};
+
+          const posY = tpl.posY !== undefined ? tpl.posY : 50;
+          const textAlign = tpl.textAlign || 'center';
+          const baseFontSize = tpl.fontSize || 52;
+          const baseLetterSpacing = tpl.letterSpacing || 0;
+          const basePadding = tpl.padding || 16;
+          const baseRadius = tpl.borderRadius || 6;
+          const maxLines = tpl.maxLines || 0;
+
+          const tplStyles = [
+            `font-family: ${tpl.fontFamily || 'Inter, sans-serif'}`,
+            `font-size: calc(${baseFontSize} * 0.0521cqw)`,
+            `font-weight: 700`,
+            `letter-spacing: calc(${baseLetterSpacing} * 0.0521cqw)`,
+            `line-height: ${tpl.lineHeight || 1.25}`,
+            `color: ${tpl.color || '#ffffff'}`,
+            `text-align: ${textAlign}`,
+            `text-shadow: ${tpl.textShadow || '0 0.3cqw 1cqw rgba(0,0,0,0.9)'}`,
+            `background-color: ${tpl.bgColor || 'transparent'}`,
+            `padding: calc(${basePadding} * 0.025cqw) calc(${basePadding} * 0.045cqw)`,
+            `border-radius: calc(${baseRadius} * 0.04cqw)`,
+            `box-sizing: border-box`,
+            `white-space: pre-wrap`,
+            `word-break: normal`,
+            `overflow-wrap: normal`,
+            maxLines > 0 ? `display: -webkit-box; -webkit-line-clamp: ${maxLines}; -webkit-box-orient: vertical; overflow: hidden;` : 'display: inline-block;'
+          ].join('; ');
+
+          const activeMediaUrl = (!state.isMediaCleared && state.activeVideoUrl) ? state.activeVideoUrl : '';
+          const isImg = state.activeVideoIsImage || (state.activeVideoType && state.activeVideoType.startsWith('image/')) || (activeMediaUrl && activeMediaUrl.match(/\.(jpeg|jpg|gif|png|webp|svg)($|\?)/i));
+          
+          let cardBgHTML = '';
+          if (activeMediaUrl) {
+            if (isImg) {
+              cardBgHTML = `<img src="${activeMediaUrl}" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.55; z-index: 0; pointer-events: none;" />`;
+            } else {
+              cardBgHTML = `<video src="${activeMediaUrl}" muted preload="metadata" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.55; z-index: 0; pointer-events: none;"></video>`;
+            }
+          } else {
+            cardBgHTML = `<div style="position: absolute; inset: 0; background: radial-gradient(circle at center, #1e293b 0%, #090d16 100%); z-index: 0; pointer-events: none;"></div>`;
+          }
 
           return `
             <div class="slide-card ${isLive ? 'active-live' : ''}" data-gidx="${gIdx}" data-sidx="${sIdx}">
+              ${cardBgHTML}
               <span class="slide-card-index">${cardIdx}</span>
               <span class="slide-card-live-badge">EN VIVO</span>
-              <div class="slide-card-text" style="${tplStyles}">${slide.text.replace(/\n/g, '<br/>')}</div>
+              <div class="slide-card-text-wrapper" style="position: absolute; left: 5%; right: 5%; top: ${posY}%; transform: translateY(-50%); text-align: ${textAlign}; pointer-events: none; z-index: 2;">
+                <div class="slide-card-text" style="${tplStyles}">${slide.text.replace(/\n/g, '<br/>')}</div>
+              </div>
               <div class="slide-card-footer-line">
                 <span class="badge ${group.badge}">${group.name}</span>
               </div>
@@ -2056,17 +2359,48 @@ class ProPresenterApp {
         });
       }).join('');
 
+      const savedCardSize = (typeof localStorage !== 'undefined' && localStorage.getItem('propresenter_slide_card_size')) || '220';
       this.slideGroupsWrapper.innerHTML = `
-        <div class="slide-cards-grid">
+        <div class="slide-cards-grid" style="--slide-card-min-width: ${savedCardSize}px;">
           ${allCardsHTML}
         </div>
       `;
 
       this.slideGroupsWrapper.querySelectorAll('.slide-card').forEach(card => {
+        const gIdx = parseInt(card.getAttribute('data-gidx'));
+        const sIdx = parseInt(card.getAttribute('data-sidx'));
+        const groupObj = activeDeck.groups[gIdx];
+        const slideObj = groupObj?.slides[sIdx];
+
         card.addEventListener('click', () => {
-          const gIdx = parseInt(card.getAttribute('data-gidx'));
-          const sIdx = parseInt(card.getAttribute('data-sidx'));
           store.setLiveSlide(gIdx, sIdx);
+        });
+
+        card.addEventListener('dblclick', (e) => {
+          e.stopPropagation();
+          if (slideObj) {
+            this.openEditSlideModal({
+              type: 'slide',
+              deckId: activeDeck.id,
+              groupIndex: gIdx,
+              slideIndex: sIdx,
+              text: slideObj.text,
+              name: `${groupObj.name || 'Filmina'} #${sIdx + 1}`
+            });
+          }
+        });
+
+        card.addEventListener('contextmenu', (e) => {
+          if (slideObj) {
+            this.showContextMenu(e, {
+              type: 'slide',
+              deckId: activeDeck.id,
+              groupIndex: gIdx,
+              slideIndex: sIdx,
+              text: slideObj.text,
+              name: `${groupObj.name || 'Filmina'} #${sIdx + 1}`
+            });
+          }
         });
       });
     }
@@ -2084,30 +2418,58 @@ class ProPresenterApp {
     const mediaMode = state.mediaTransition || 'fade';
     const bgA = document.getElementById('operator-video-preview-a');
     const bgB = document.getElementById('operator-video-preview-b');
+    const imgA = document.getElementById('operator-img-preview-a');
+    const imgB = document.getElementById('operator-img-preview-b');
+
+    function isMediaImage(url) {
+      if (!url) return false;
+      return url.match(/\.(jpeg|jpg|gif|png|webp|svg|bmp)($|\?)/i) || url.startsWith('data:image/') || url.startsWith('blob:');
+    }
 
     if (bgA && bgB) {
       if (state.isMediaCleared || !state.activeVideoUrl) {
         if (mediaMode === 'cut') {
           bgA.style.transition = 'opacity 0s';
           bgB.style.transition = 'opacity 0s';
+          if (imgA) imgA.style.transition = 'opacity 0s';
+          if (imgB) imgB.style.transition = 'opacity 0s';
         } else {
           bgA.style.transition = `opacity ${dur}ms ease-in-out`;
           bgB.style.transition = `opacity ${dur}ms ease-in-out`;
+          if (imgA) imgA.style.transition = `opacity ${dur}ms ease-in-out`;
+          if (imgB) imgB.style.transition = `opacity ${dur}ms ease-in-out`;
         }
         bgA.style.opacity = '0';
         bgB.style.opacity = '0';
+        if (imgA) imgA.style.opacity = '0';
+        if (imgB) imgB.style.opacity = '0';
         bgA.pause();
         bgB.pause();
         this.operatorVideoUrl = "";
       } else if (this.operatorVideoUrl !== state.activeVideoUrl) {
         this.operatorVideoUrl = state.activeVideoUrl;
 
-        const incoming = this.operatorActiveMediaLayer === 'A' ? bgB : bgA;
-        const outgoing = this.operatorActiveMediaLayer === 'A' ? bgA : bgB;
+        const isImage = state.activeVideoIsImage || (state.activeVideoType && state.activeVideoType.startsWith('image/')) || isMediaImage(state.activeVideoUrl);
+        const incomingMedia = this.operatorActiveMediaLayer === 'A' ? { video: bgB, img: imgB } : { video: bgA, img: imgA };
+        const outgoingMedia = this.operatorActiveMediaLayer === 'A' ? { video: bgA, img: imgA } : { video: bgB, img: imgB };
         this.operatorActiveMediaLayer = this.operatorActiveMediaLayer === 'A' ? 'B' : 'A';
 
-        incoming.src = state.activeVideoUrl;
-        incoming.currentTime = 0;
+        const incomingEl = (isImage && incomingMedia.img) ? incomingMedia.img : incomingMedia.video;
+        const outgoingEl = (outgoingMedia.video && outgoingMedia.video.style.opacity > 0) ? outgoingMedia.video : outgoingMedia.img;
+
+        if (isImage && incomingMedia.img) {
+          incomingMedia.img.src = state.activeVideoUrl;
+          incomingMedia.img.style.display = 'block';
+          if (incomingMedia.video) {
+            incomingMedia.video.style.display = 'none';
+            incomingMedia.video.pause();
+          }
+        } else if (incomingMedia.video) {
+          incomingMedia.video.src = state.activeVideoUrl;
+          incomingMedia.video.currentTime = 0;
+          incomingMedia.video.style.display = 'block';
+          if (incomingMedia.img) incomingMedia.img.style.display = 'none';
+        }
 
         if (this.operatorMediaFadeTimeout) {
           clearTimeout(this.operatorMediaFadeTimeout);
@@ -2115,23 +2477,27 @@ class ProPresenterApp {
 
         const performOperatorFade = () => {
           if (mediaMode === 'cut') {
-            incoming.style.transition = 'opacity 0s';
-            outgoing.style.transition = 'opacity 0s';
-            outgoing.pause();
+            if (incomingEl) incomingEl.style.transition = 'opacity 0s';
+            if (outgoingEl) outgoingEl.style.transition = 'opacity 0s';
+            if (outgoingMedia.video) outgoingMedia.video.pause();
           } else {
-            incoming.style.transition = `opacity ${dur}ms ease-in-out`;
-            outgoing.style.transition = `opacity ${dur}ms ease-in-out`;
+            if (incomingEl) incomingEl.style.transition = `opacity ${dur}ms ease-in-out`;
+            if (outgoingEl) outgoingEl.style.transition = `opacity ${dur}ms ease-in-out`;
             this.operatorMediaFadeTimeout = setTimeout(() => {
-              outgoing.pause();
+              if (outgoingMedia.video) outgoingMedia.video.pause();
             }, dur + 50);
           }
-          incoming.style.opacity = '1';
-          outgoing.style.opacity = '0';
+          if (incomingEl) incomingEl.style.opacity = '1';
+          if (outgoingEl) outgoingEl.style.opacity = '0';
         };
 
-        incoming.play()
-          .then(() => performOperatorFade())
-          .catch(e => performOperatorFade());
+        if (isImage) {
+          performOperatorFade();
+        } else if (incomingMedia.video) {
+          incomingMedia.video.play()
+            .then(() => performOperatorFade())
+            .catch(() => performOperatorFade());
+        }
       }
     }
 
@@ -2176,16 +2542,25 @@ class ProPresenterApp {
         operatorTextWrapper.style.transform = 'translateY(-50%)';
       }
 
+      const baseFontSize = tpl.fontSize || 52;
+      const baseLetterSpacing = tpl.letterSpacing || 0;
+      const basePadding = tpl.padding || 0;
+      const baseRadius = tpl.borderRadius || 0;
+
       this.liveTextEl.style.fontFamily = tpl.fontFamily || 'Inter, sans-serif';
-      this.liveTextEl.style.fontSize = Math.max(9, Math.round((tpl.fontSize || 52) * 0.28)) + 'px';
-      this.liveTextEl.style.letterSpacing = Math.round((tpl.letterSpacing || 0) * 0.3) + 'px';
+      this.liveTextEl.style.fontSize = `calc(${baseFontSize} * 0.0521cqw)`;
+      this.liveTextEl.style.fontWeight = '700';
+      this.liveTextEl.style.letterSpacing = `calc(${baseLetterSpacing} * 0.0521cqw)`;
       this.liveTextEl.style.lineHeight = tpl.lineHeight || 1.25;
       this.liveTextEl.style.color = tpl.color || '#ffffff';
-      this.liveTextEl.style.textShadow = tpl.textShadow || '0 2px 6px rgba(0,0,0,0.8)';
+      this.liveTextEl.style.textShadow = tpl.textShadow || '0 0.3cqw 1cqw rgba(0,0,0,0.9)';
       this.liveTextEl.style.textAlign = tpl.textAlign || 'center';
       this.liveTextEl.style.backgroundColor = tpl.bgColor || 'transparent';
-      this.liveTextEl.style.padding = Math.round((tpl.padding || 0) * 0.3) + 'px';
-      this.liveTextEl.style.borderRadius = Math.round((tpl.borderRadius || 0) * 0.3) + 'px';
+      this.liveTextEl.style.padding = `calc(${basePadding} * 0.025cqw) calc(${basePadding} * 0.045cqw)`;
+      this.liveTextEl.style.borderRadius = `calc(${baseRadius} * 0.04cqw)`;
+      this.liveTextEl.style.whiteSpace = 'pre-wrap';
+      this.liveTextEl.style.wordBreak = 'normal';
+      this.liveTextEl.style.overflowWrap = 'normal';
 
       if (tpl.maxLines && tpl.maxLines > 0) {
         this.liveTextEl.style.display = '-webkit-box';

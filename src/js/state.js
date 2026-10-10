@@ -1,5 +1,72 @@
 import { sync } from './broadcast.js';
 
+export function parseAndSplitText(rawText, splitMode = 'paragraph', maxLines = 0) {
+  if (!rawText || !rawText.trim()) return [];
+
+  const paragraphs = rawText.split(/\n\s*\n/).filter(p => p.trim());
+
+  const groups = paragraphs.map((p, idx) => {
+    const textBlock = p.trim();
+    let badge = "badge-verse";
+    let name = `Estrofa ${idx + 1}`;
+
+    const lower = textBlock.toLowerCase();
+    if (lower.startsWith("coro") || lower.includes("chorus")) {
+      badge = "badge-chorus";
+      name = "Coro";
+    } else if (lower.startsWith("puente") || lower.includes("bridge")) {
+      badge = "badge-bridge";
+      name = "Puente";
+    } else if (lower.startsWith("sermon") || lower.includes("puntos")) {
+      badge = "badge-sermon";
+      name = "Sermón";
+    } else if (lower.startsWith("intro")) {
+      badge = "badge-intro";
+      name = "Intro";
+    } else if (lower.startsWith("outro") || lower.includes("final")) {
+      badge = "badge-outro";
+      name = "Final";
+    }
+
+    const rawLines = textBlock.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+    let slides = [];
+
+    if (splitMode === 'lines') {
+      // 1 renglón por filmina
+      slides = rawLines.map((lineText, sIdx) => ({
+        id: `slide-${Date.now()}-${idx}-${sIdx}-${Math.random().toString(36).substr(2, 4)}`,
+        text: lineText
+      }));
+    } else if ((splitMode === 'fixed' || maxLines > 0) && maxLines > 0) {
+      // Bloques de N renglones por filmina
+      let slideCount = 0;
+      for (let i = 0; i < rawLines.length; i += maxLines) {
+        const chunk = rawLines.slice(i, i + maxLines).join('\n');
+        if (chunk) {
+          slides.push({
+            id: `slide-${Date.now()}-${idx}-${slideCount++}-${Math.random().toString(36).substr(2, 4)}`,
+            text: chunk
+          });
+        }
+      }
+    } else {
+      // Párrafo completo por filmina
+      slides = [{
+        id: `slide-${Date.now()}-${idx}-0`,
+        text: textBlock
+      }];
+    }
+
+    return {
+      name,
+      badge,
+      slides: slides.length > 0 ? slides : [{ id: `slide-${Date.now()}-${idx}-0`, text: textBlock }]
+    };
+  });
+
+  return groups;
+}
+
 export const DEFAULT_DECKS = [
   {
     id: "song-1",
@@ -182,10 +249,13 @@ const setStorageItem = (key, val) => (typeof localStorage !== 'undefined' ? loca
 
 export class Store {
   constructor() {
-    // Persistent Decks
+    // Persistent Decks & Project Items
     const savedDecks = getStorageItem("propresenter_decks");
     this.decks = savedDecks ? JSON.parse(savedDecks) : DEFAULT_DECKS;
-    this.activeDeckId = this.decks[0]?.id || "song-1";
+
+    const savedProjectIds = getStorageItem("propresenter_project_deck_ids");
+    this.projectDeckIds = savedProjectIds ? JSON.parse(savedProjectIds) : this.decks.map(d => d.id);
+    this.activeDeckId = this.projectDeckIds[0] || this.decks[0]?.id || "song-1";
 
     // Persistent Templates
     const savedTemplates = getStorageItem("propresenter_templates");
@@ -326,23 +396,39 @@ export class Store {
     this.notify();
   }
 
-  setActiveTemplate(templateId) {
+  setActiveTemplate(templateId, autoReflow = true) {
     const template = this.templates.find(t => t.id === templateId);
     if (template) {
       this.activeTemplateId = templateId;
       this.state.activeTemplate = { ...template };
-      this.notify();
+      setStorageItem("propresenter_active_template", templateId);
+      
+      // Si la plantilla especifica un máximo de renglones (> 0) y autoReflow es activo,
+      // re-dividimos automáticamente las filminas excedentes de la presentación activa.
+      if (autoReflow && template.maxLines && template.maxLines > 0 && this.activeDeckId) {
+        this.reflowDeckSlides(this.activeDeckId, template.maxLines);
+      } else {
+        this.notify();
+      }
     }
   }
 
   updateActiveTemplateProperties(props) {
     if (!this.state.activeTemplate) return;
+    const oldMaxLines = this.state.activeTemplate.maxLines;
     this.state.activeTemplate = { ...this.state.activeTemplate, ...props };
     const idx = this.templates.findIndex(t => t.id === (props.id || this.activeTemplateId));
     if (idx !== -1) {
       this.templates[idx] = { ...this.state.activeTemplate };
     }
-    this.notify();
+    setStorageItem("propresenter_templates", JSON.stringify(this.templates));
+
+    // Si cambió maxLines a un valor > 0, re-dividir filminas excedentes del deck activo
+    if (props.maxLines !== undefined && props.maxLines > 0 && props.maxLines !== oldMaxLines && this.activeDeckId) {
+      this.reflowDeckSlides(this.activeDeckId, props.maxLines);
+    } else {
+      this.notify();
+    }
   }
 
   saveTemplate(templateData) {
@@ -462,48 +548,102 @@ export class Store {
     }
   }
 
+  get projectDecks() {
+    const list = [];
+    if (Array.isArray(this.projectDeckIds)) {
+      this.projectDeckIds.forEach(id => {
+        const d = this.decks.find(deck => deck.id === id);
+        if (d) list.push(d);
+      });
+    }
+    return list.length > 0 ? list : this.decks;
+  }
+
+  addToProject(deckId) {
+    if (!this.projectDeckIds.includes(deckId)) {
+      this.projectDeckIds.push(deckId);
+      setStorageItem("propresenter_project_deck_ids", JSON.stringify(this.projectDeckIds));
+      this.notify();
+    }
+  }
+
+  removeFromProject(deckId) {
+    if (this.projectDeckIds.length <= 1) {
+      alert("El proyecto debe conservar al menos un elemento.");
+      return;
+    }
+    this.projectDeckIds = this.projectDeckIds.filter(id => id !== deckId);
+    setStorageItem("propresenter_project_deck_ids", JSON.stringify(this.projectDeckIds));
+    if (this.activeDeckId === deckId) {
+      this.activeDeckId = this.projectDeckIds[0] || this.decks[0]?.id;
+    }
+    this.notify();
+  }
+
   addDeck(deck) {
     this.decks.push(deck);
+    if (!this.projectDeckIds.includes(deck.id)) {
+      this.projectDeckIds.push(deck.id);
+      setStorageItem("propresenter_project_deck_ids", JSON.stringify(this.projectDeckIds));
+    }
+    setStorageItem("propresenter_decks", JSON.stringify(this.decks));
     this.activeDeckId = deck.id;
     this.notify();
   }
 
-  createNewShow(title, category, rawText) {
-    const paragraphs = rawText.split(/\n\s*\n/).filter(p => p.trim());
-    const groups = paragraphs.map((p, idx) => {
-      const textBlock = p.trim();
-      let badge = "badge-verse";
-      let name = `Estrofa ${idx + 1}`;
-      
-      const lower = textBlock.toLowerCase();
-      if (lower.includes("coro") || lower.includes("chorus")) {
-        badge = "badge-chorus";
-        name = "Coro";
-      } else if (lower.includes("puente") || lower.includes("bridge")) {
-        badge = "badge-bridge";
-        name = "Puente";
-      } else if (lower.includes("sermon") || lower.includes("puntos")) {
-        badge = "badge-sermon";
-        name = "Sermón";
-      }
+  reflowDeckSlides(deckId, maxLines) {
+    const targetMax = parseInt(maxLines);
+    if (!targetMax || targetMax <= 0) return;
+    const deck = this.decks.find(d => d.id === deckId);
+    if (!deck) return;
 
-      return {
-        name,
-        badge,
-        slides: [
-          {
-            id: `slide-${Date.now()}-${idx}`,
-            text: textBlock
+    let modified = false;
+    deck.groups.forEach((group, gIdx) => {
+      const newSlides = [];
+      group.slides.forEach((slide, sIdx) => {
+        const lines = slide.text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+        if (lines.length > targetMax) {
+          modified = true;
+          for (let i = 0; i < lines.length; i += targetMax) {
+            const chunkLines = lines.slice(i, i + targetMax);
+            newSlides.push({
+              id: `slide-${Date.now()}-${gIdx}-${sIdx}-${i / targetMax}`,
+              text: chunkLines.join('\n'),
+              isLowerThird: slide.isLowerThird || false
+            });
           }
-        ]
-      };
+        } else {
+          newSlides.push(slide);
+        }
+      });
+      group.slides = newSlides;
     });
+
+    if (modified) {
+      setStorageItem("propresenter_decks", JSON.stringify(this.decks));
+      this.notify();
+    }
+  }
+
+  createNewShow(title, category, rawText, options = {}) {
+    const opts = typeof options === 'object' && options !== null ? options : {};
+    const splitMode = opts.splitMode || 'paragraph';
+    let maxLines = parseInt(opts.maxLines) || 0;
+    const targetTemplateId = opts.templateId || this.activeTemplateId;
+    const targetTemplate = this.templates.find(t => t.id === targetTemplateId);
+
+    if (maxLines <= 0 && targetTemplate && targetTemplate.maxLines > 0) {
+      maxLines = targetTemplate.maxLines;
+    }
+
+    const groups = parseAndSplitText(rawText, splitMode, maxLines);
 
     const newDeck = {
       id: "deck-" + Date.now(),
       title: title || "Nuevo Texto de Proyección",
       type: "song",
       category: category || "Alabanza",
+      templateId: targetTemplateId,
       groups: groups.length > 0 ? groups : [
         {
           name: "Diapositiva 1",
@@ -514,6 +654,9 @@ export class Store {
     };
 
     this.addDeck(newDeck);
+    if (targetTemplateId) {
+      this.setActiveTemplate(targetTemplateId, false);
+    }
     return newDeck;
   }
 
@@ -532,16 +675,84 @@ export class Store {
     });
 
     this.decks.unshift(duplicated);
+    this.projectDeckIds.unshift(duplicated.id);
+    setStorageItem("propresenter_decks", JSON.stringify(this.decks));
+    setStorageItem("propresenter_project_deck_ids", JSON.stringify(this.projectDeckIds));
     this.activeDeckId = duplicated.id;
     this.notify();
     return duplicated;
   }
 
+  updateSlideText(deckId, groupIndex, slideIndex, newText, isTemporary = false) {
+    const deck = this.decks.find(d => d.id === deckId);
+    if (!deck || !deck.groups[groupIndex] || !deck.groups[groupIndex].slides[slideIndex]) return;
+
+    const slide = deck.groups[groupIndex].slides[slideIndex];
+
+    if (isTemporary) {
+      this.state.liveText = newText;
+      this.state.liveSlideId = slide.id;
+      this.state.liveGroupIndex = groupIndex;
+      this.state.liveSlideIndex = slideIndex;
+      this.state.isTextCleared = false;
+    } else {
+      slide.text = newText;
+      if (this.state.liveSlideId === slide.id) {
+        this.state.liveText = newText;
+      }
+    }
+    this.notify();
+  }
+
+  duplicateSlide(deckId, groupIndex, slideIndex) {
+    const deck = this.decks.find(d => d.id === deckId);
+    if (!deck || !deck.groups[groupIndex] || !deck.groups[groupIndex].slides[slideIndex]) return;
+
+    const group = deck.groups[groupIndex];
+    const sourceSlide = group.slides[slideIndex];
+    const duplicatedSlide = {
+      id: `slide-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      text: sourceSlide.text,
+      isLowerThird: sourceSlide.isLowerThird || false
+    };
+
+    group.slides.splice(slideIndex + 1, 0, duplicatedSlide);
+    this.notify();
+    return duplicatedSlide;
+  }
+
+  deleteSlide(deckId, groupIndex, slideIndex) {
+    const deck = this.decks.find(d => d.id === deckId);
+    if (!deck || !deck.groups[groupIndex] || !deck.groups[groupIndex].slides[slideIndex]) return;
+
+    const totalSlides = deck.groups.reduce((acc, g) => acc + g.slides.length, 0);
+    if (totalSlides <= 1) {
+      alert("Debes conservar al menos una diapositiva en la presentación.");
+      return;
+    }
+
+    const group = deck.groups[groupIndex];
+    const deletedSlide = group.slides[slideIndex];
+    group.slides.splice(slideIndex, 1);
+
+    if (group.slides.length === 0 && deck.groups.length > 1) {
+      deck.groups.splice(groupIndex, 1);
+    }
+
+    if (this.state.liveSlideId === deletedSlide.id) {
+      this.clearText();
+    }
+    this.notify();
+  }
+
   deleteDeck(deckId) {
     if (this.decks.length <= 1) return;
     this.decks = this.decks.filter(d => d.id !== deckId);
+    this.projectDeckIds = this.projectDeckIds.filter(id => id !== deckId);
+    setStorageItem("propresenter_decks", JSON.stringify(this.decks));
+    setStorageItem("propresenter_project_deck_ids", JSON.stringify(this.projectDeckIds));
     if (this.activeDeckId === deckId) {
-      this.activeDeckId = this.decks[0].id;
+      this.activeDeckId = this.projectDeckIds[0] || this.decks[0]?.id;
     }
     this.notify();
   }
@@ -619,10 +830,13 @@ export class Store {
     this.notify();
   }
 
-  setActiveVideo(url, name = "") {
+  setActiveVideo(url, name = "", type = "") {
     this.state.activeVideoUrl = url;
     this.state.activeVideoName = name;
-    this.state.backgroundType = "video";
+    this.state.activeVideoType = type;
+    const isImage = (type && type.startsWith('image/')) || (url && url.match(/\.(jpeg|jpg|gif|png|webp|svg|bmp)($|\?)/i));
+    this.state.activeVideoIsImage = !!isImage;
+    this.state.backgroundType = isImage ? "image" : "video";
     this.state.isMediaCleared = false;
     this.notify();
   }

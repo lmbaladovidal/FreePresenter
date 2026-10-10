@@ -121,9 +121,11 @@
 <body>
   <div id="bg-fallback"></div>
   
-  <!-- Dual Layer Video for Smooth Crossfade Transitions -->
+  <!-- Dual Layer Media for Smooth Crossfade Transitions (Video & Image Support) -->
   <video id="bg-video-a" class="bg-media-layer" autoplay loop muted playsinline></video>
   <video id="bg-video-b" class="bg-media-layer" autoplay loop muted playsinline></video>
+  <img id="bg-img-a" class="bg-media-layer" style="display:none;" />
+  <img id="bg-img-b" class="bg-media-layer" style="display:none;" />
   
   <div id="slide-text-container"></div>
 
@@ -138,6 +140,8 @@
     const sync = new BroadcastSync(false);
     const bgVideoA = document.getElementById('bg-video-a');
     const bgVideoB = document.getElementById('bg-video-b');
+    const bgImgA = document.getElementById('bg-img-a');
+    const bgImgB = document.getElementById('bg-img-b');
     const textEl = document.getElementById('slide-text-container');
     const ltBanner = document.getElementById('lower-third-banner');
     const ltTitle = document.getElementById('lower-third-title');
@@ -221,31 +225,56 @@
         currentLiveText = targetText;
       }
 
-      // 2. Video / Media Background Layer (Dual Layer Crossfade)
+      // 2. Video / Media Background Layer (Dual Layer Crossfade for Videos & Images)
       const mediaMode = state.mediaTransition || 'fade';
+
+      function isMediaImage(url) {
+        if (!url) return false;
+        return url.match(/\.(jpeg|jpg|gif|png|webp|svg|bmp)($|\?)/i) || url.startsWith('data:image/') || url.startsWith('blob:');
+      }
 
       if (state.isMediaCleared || !state.activeVideoUrl) {
         if (mediaMode === 'cut') {
           bgVideoA.style.transition = 'opacity 0s';
           bgVideoB.style.transition = 'opacity 0s';
+          bgImgA.style.transition = 'opacity 0s';
+          bgImgB.style.transition = 'opacity 0s';
         } else {
           bgVideoA.style.transition = `opacity ${dur}ms ease-in-out`;
           bgVideoB.style.transition = `opacity ${dur}ms ease-in-out`;
+          bgImgA.style.transition = `opacity ${dur}ms ease-in-out`;
+          bgImgB.style.transition = `opacity ${dur}ms ease-in-out`;
         }
         bgVideoA.style.opacity = '0';
         bgVideoB.style.opacity = '0';
+        bgImgA.style.opacity = '0';
+        bgImgB.style.opacity = '0';
         bgVideoA.pause();
         bgVideoB.pause();
         currentVideoUrl = "";
       } else if (currentVideoUrl !== state.activeVideoUrl) {
         currentVideoUrl = state.activeVideoUrl;
 
-        const incoming = activeMediaLayer === 'A' ? bgVideoB : bgVideoA;
-        const outgoing = activeMediaLayer === 'A' ? bgVideoA : bgVideoB;
+        const isImage = state.activeVideoIsImage || (state.activeVideoType && state.activeVideoType.startsWith('image/')) || isMediaImage(currentVideoUrl);
+
+        const incomingMedia = activeMediaLayer === 'A' ? { video: bgVideoB, img: bgImgB } : { video: bgVideoA, img: bgImgA };
+        const outgoingMedia = activeMediaLayer === 'A' ? { video: bgVideoA, img: bgImgA } : { video: bgVideoB, img: bgImgB };
         activeMediaLayer = activeMediaLayer === 'A' ? 'B' : 'A';
 
-        incoming.src = currentVideoUrl;
-        incoming.currentTime = 0;
+        const incomingEl = isImage ? incomingMedia.img : incomingMedia.video;
+        const outgoingEl = outgoingMedia.video.style.opacity > 0 ? outgoingMedia.video : outgoingMedia.img;
+
+        if (isImage) {
+          incomingMedia.img.src = currentVideoUrl;
+          incomingMedia.img.style.display = 'block';
+          incomingMedia.video.style.display = 'none';
+          incomingMedia.video.pause();
+        } else {
+          incomingMedia.video.src = currentVideoUrl;
+          incomingMedia.video.currentTime = 0;
+          incomingMedia.video.style.display = 'block';
+          incomingMedia.img.style.display = 'none';
+        }
 
         if (window.audienceMediaFadeTimeout) {
           clearTimeout(window.audienceMediaFadeTimeout);
@@ -253,26 +282,27 @@
 
         const performCrossfade = () => {
           if (mediaMode === 'cut') {
-            incoming.style.transition = 'opacity 0s';
-            outgoing.style.transition = 'opacity 0s';
-            outgoing.pause();
+            incomingEl.style.transition = 'opacity 0s';
+            outgoingEl.style.transition = 'opacity 0s';
+            outgoingMedia.video.pause();
           } else {
-            incoming.style.transition = `opacity ${dur}ms ease-in-out`;
-            outgoing.style.transition = `opacity ${dur}ms ease-in-out`;
+            incomingEl.style.transition = `opacity ${dur}ms ease-in-out`;
+            outgoingEl.style.transition = `opacity ${dur}ms ease-in-out`;
             window.audienceMediaFadeTimeout = setTimeout(() => {
-              outgoing.pause();
+              outgoingMedia.video.pause();
             }, dur + 50);
           }
-          incoming.style.opacity = '1';
-          outgoing.style.opacity = '0';
+          incomingEl.style.opacity = '1';
+          outgoingEl.style.opacity = '0';
         };
 
-        incoming.play()
-          .then(() => performCrossfade())
-          .catch(e => {
-            console.log("Media play auto", e);
-            performCrossfade();
-          });
+        if (isImage) {
+          performCrossfade();
+        } else {
+          incomingMedia.video.play()
+            .then(() => performCrossfade())
+            .catch(() => performCrossfade());
+        }
       }
 
       // 3. Lower Third Overlay Layer

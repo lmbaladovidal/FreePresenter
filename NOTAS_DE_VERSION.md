@@ -4,6 +4,33 @@ Todas las novedades, mejoras y correcciones de errores importantes de **ProPrese
 
 ---
 
+## 🚀 Versión 1.3.0 (División Automática de Filminas, Importación desde Portapapeles, Zoom Grid y Paridad 1:1 en Monitor de Audiencia) — *10 de Octubre, 2026*
+
+Esta versión introduce la división inteligente de canciones por reglas de renglones y plantillas, división automática del texto excedente en nuevas tarjetas de filmina, importación directa desde el portapapeles en la creación de shows, proyección fluida de medios en carpetas virtuales, control deslizante de zoom para tarjetas de filmina y paridad 100% fiel 1:1 entre el monitor del operador y la pantalla de audiencia (`audience.html`).
+
+### ✨ Novedades y Funcionalidades
+
+#### ✂️ División Inteligente de Canciones y Re-división por Plantillas
+- **Reglas de División Flexible:** Soporte para dividir letras de canciones por saltos de línea, número límite de renglones (`maxLines`) o párrafos.
+- **Botón de Re-dividir Filminas (`btn-reflow-deck`):** Permite re-organizar dinámicamente cualquier canción activa especificando el número máximo de líneas por filmina.
+- **División Automática por Excedente:** Al asignar o editar una plantilla con restricción `maxLines > 0`, el sistema corta automáticamente el texto excedente y genera nuevas filminas consecutivas preservando el orden.
+
+#### 📋 Carga de Canciones desde Portapapeles & Selección de Plantilla
+- **Creación Asistida de Presentaciones:** El modal de creación de canciones permite seleccionar la plantilla gráfica inicial antes de guardar.
+- **Pegado Rápido (`btn-paste-clipboard`):** Permite pegar contenido directamente desde el portapapeles del sistema operativo con un solo clic.
+
+#### 🖼️ Proyección de Medios en Carpetas Virtuales
+- **Carga y Arrastre (Drag & Drop):** Las imágenes y videos agregados a las carpetas virtuales generan miniaturas en tiempo real y se proyectan limpiamente tanto a la pantalla de audiencia (`audience.html`) como al monitor del operador.
+
+#### 🔍 Zoom Dinámico de Tarjetas de Filmina (`.slide-card`)
+- **Control Deslizante de Zoom:** Ubicado en la barra superior de las filminas (`input-slide-card-size`), permite ajustar dinámicamente el tamaño de las tarjetas entre `140px` y `380px`.
+
+#### 🖥️ Paridad Fiel 1:1 en Monitor de Audiencia (`.monitor-screen`)
+- **Container Queries CSS (`cqw`):** Se actualizó el monitor del programa en vivo (`.monitor-screen`) con `container-type: inline-size; padding: 0;`.
+- **Escalado idéntico a `audience.html`:** Las letras en el monitor del operador escalan sus fuentes, espaciados, saltos de línea, distribución y posiciones verticales de forma 100% proporcional e idéntica a la señal proyectada en vivo.
+
+---
+
 ## 🚀 Versión 1.2.0 (Menú Contextual Dinámico, Gestión de Modales & QA Suite) — *7 de Octubre, 2026*
 
 Esta versión introduce un menú contextual inteligente para componentes, corrige la gestión e interacción de ventanas emergentes, agrega la suite automatizada de Smoke Test y resuelve la compatibilidad en ejecutables `.exe`.
