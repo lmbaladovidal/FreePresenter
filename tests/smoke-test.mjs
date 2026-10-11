@@ -35,7 +35,7 @@ globalThis.BroadcastChannel = class {
 };
 
 // 2. Importing Project Modules
-import { Store, DEFAULT_DECKS, DEFAULT_TEMPLATES } from '../src/js/state.js';
+import { Store, DEFAULT_DECKS, DEFAULT_TEMPLATES, parseAndSplitText } from '../src/js/state.js';
 import { LiveCoderEngine } from '../src/js/live-coder.js';
 
 let totalTests = 0;
@@ -200,6 +200,25 @@ test('RF-36: Guardado en LocalStorage tras notificar cambios', () => {
 
   const savedDuration = globalThis.localStorage.getItem('propresenter_fade_duration');
   if (savedDuration !== '750') throw new Error('La duración de fade no se guardó en localStorage');
+});
+
+// ----------------------------------------------------
+// SUITE 7: División de Filminas, Excedente y Versión Dinámica (RF-38 al RF-44)
+// ----------------------------------------------------
+console.log('\n▶️ Grupo 7: División Inteligente, Excedente y Versión (RF-38 a RF-44)');
+test('RF-38/39: División inteligente de canciones por maxLines y excedente', () => {
+  const store = new Store();
+  const rawText = "Línea 1\nLínea 2\nLínea 3\nLínea 4";
+  const slides = parseAndSplitText(rawText, 'fixed', 2);
+  if (slides.length !== 1 || slides[0].slides.length !== 2) throw new Error('Se esperaban 2 filminas fragmentadas');
+  if (slides[0].slides[0].text !== "Línea 1\nLínea 2") throw new Error('Contenido de la primera filmina incorrecto');
+  if (slides[0].slides[1].text !== "Línea 3\nLínea 4") throw new Error('Contenido de la segunda filmina incorrecto');
+});
+
+test('RF-40: Creación de Show asignando plantilla e importando texto', () => {
+  const store = new Store();
+  const newDeck = store.createNewShow("Canción Test", "Alabanza", "Línea A\nLínea B", { templateId: "preset-modern", splitMode: "paragraph" });
+  if (!newDeck || newDeck.title !== "Canción Test") throw new Error('No se creó el show correctamente');
 });
 
 // ----------------------------------------------------

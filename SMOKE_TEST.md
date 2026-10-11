@@ -1,6 +1,6 @@
 # 🧪 Protocolo y Plan de Smoke Test - ProPresenter AI Studio
 
-Este documento define el **Plan de Smoke Test** (Prueba de Humo) para verificar de forma rápida la estabilidad y funcionamiento de los 37 Requerimientos Funcionales (**RF-01 al RF-37**) de **ProPresenter AI Studio**.
+Este documento define el **Plan de Smoke Test** (Prueba de Humo) para verificar de forma rápida la estabilidad y funcionamiento de los 44 Requerimientos Funcionales (**RF-01 al RF-44**) de **ProPresenter AI Studio**.
 
 ---
 
@@ -94,6 +94,25 @@ npm test
 | **ST-29** | Asistente IA | Solicitar asistencia en el panel de Copiloto. | Proporciona respuestas o bosquejos para el operador. | RF-35 |
 | **ST-30** | Prueba 100% Offline | Desconectar Wi-Fi / Red y operar la aplicación. | Todas las canciones, biblias guardadas, plantillas y videos locales proyectan perfectamente. | RF-36 |
 | **ST-31** | Resizer Dock Inferior | Arrastrar verticalmente la barra superior del panel inferior. | El dock inferior se redimensiona en altura fluidamente. | RF-37 |
+
+---
+
+### ✂️ Módulo 10: División Inteligente de Filminas y Control de Plantillas
+| ID | Caso de Prueba | Pasos de Verificación | Resultado Esperado | Cobertura RF |
+| :--- | :--- | :--- | :--- | :--- |
+| **ST-32** | Reflow de Filminas | Clic en `✂️ Dividir Filminas` y seleccionar límite de líneas. | Re-organiza dinámicamente las tarjetas de filmina de la canción activa. | RF-38 |
+| **ST-33** | Excedente por Plantilla | Asignar plantilla con `maxLines > 0` a un show con filminas largas. | El texto excedente genera automáticamente filminas consecutivas preservando el orden. | RF-39 |
+| **ST-34** | Pegado Portapapeles | Abrir modal de nueva canción y presionar `📋 Pegar Portapapeles`. | Inserta el texto copiado desde el SO y aplica la plantilla seleccionada. | RF-40 |
+
+---
+
+### 🎛️ Módulo 11: Ergonomía, Zoom y Paridad Multipantalla
+| ID | Caso de Prueba | Pasos de Verificación | Resultado Esperado | Cobertura RF |
+| :--- | :--- | :--- | :--- | :--- |
+| **ST-35** | Zoom Dinámico Grid | Deslizar la barra de zoom de filminas de `140px` a `380px`. | Las tarjetas de filmina redimensionan su tamaño en vivo. | RF-41 |
+| **ST-36** | Paridad 1:1 Monitor | Proyectar canción y comparar `.monitor-screen` con `audience.html`. | Fuentes, espaciados, saltos de línea y posición vertical coinciden 100% idénticos. | RF-42 |
+| **ST-37** | Menú Contextual | Hacer clic derecho en una canción, medio, biblia o filmina. | Muestra menú dinámico con opciones Proyectar, Editar, Duplicar, Copiar, Eliminar. | RF-43 |
+| **ST-38** | Badge de Versión | Inspeccionar la insignia del encabezado superior. | Muestra dinámicamente la versión leída desde `package.json` (`PRO v1.3.0`). | RF-44 |
 
 ---
 

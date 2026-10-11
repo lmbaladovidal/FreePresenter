@@ -87,3 +87,21 @@ Este documento especifica todos los **Requerimientos Funcionales (RF)** de **Pro
 
 * **RF-36 | Funcionamiento 100% Offline:** Todas las funciones de proyección, bibliotecas, plantillas y Biblias deben funcionar sin conexión a internet a través de almacenamiento local (`localStorage`).
 * **RF-37 | Interfaz Pro con Panel Inferior Redimensionable:** El dock inferior (*Shows, Media, Templates, Scripture, Calendar*) debe permitir ajustar su altura mediante arrastre de barra vertical (*resizer*).
+
+---
+
+## ✂️ 10. División Inteligente de Filminas y Control de Plantillas
+
+* **RF-38 | División Inteligente de Canciones y Reflow:** La aplicación debe permitir dividir letras de presentaciones por saltos de línea, número de renglones (`maxLines`) o párrafos, ofreciendo una herramienta de re-división interactiva (*Reflow Deck*) para la canción activa.
+* **RF-39 | División Automática por Excedente de Plantilla:** Al asignar o modificar una plantilla gráfica con restricción de líneas (`maxLines > 0`), la aplicación debe dividir automáticamente las filminas cuyo texto supere ese límite en nuevas tarjetas consecutivas sin cortar palabras.
+* **RF-40 | Carga desde Portapapeles y Asignación de Plantilla:** Al crear una nueva presentación, la aplicación debe permitir seleccionar la plantilla gráfica inicial y pegar directamente el texto almacenado en el portapapeles con un solo clic.
+
+---
+
+## 🎛️ 11. Ergonomía del Operador, Zoom y Paridad Multipantalla
+
+* **RF-41 | Control Deslizante de Zoom en Tarjetas de Filmina (Slide Grid Zoom):** La aplicación debe ofrecer un control deslizante continuo (rango `140px` a `380px`) en el dock de filminas para personalizar el tamaño visual de las tarjetas.
+* **RF-42 | Vista Previa 100% Fiel 1:1 en Monitor de Programa (`.monitor-screen`):** La vista previa del programa en vivo en la consola del operador debe escalar su tipografía, tamaño de fuente, interlineado, sombras, distribución de saltos de línea y posición vertical (`posY`) mediante CSS Container Queries (`cqw`), garantizando paridad 1:1 idéntica a la señal emitida en la ventana de Audiencia (`audience.html`).
+* **RF-43 | Menú Contextual Dinámico para Componentes:** La aplicación debe mostrar un menú desplegable contextual inteligente al hacer clic derecho sobre canciones, archivos multimedia, biblias, filminas y eventos, permitiendo acciones de Proyectar, Editar, Duplicar, Copiar y Eliminar.
+* **RF-44 | Inyección Dinámica de Versión del Sistema:** La aplicación debe leer automáticamente la versión declarada en `package.json` e inyectarla dinámicamente en la insignia del encabezado principal (`PRO vX.Y.Z`).
+
