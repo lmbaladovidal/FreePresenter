@@ -1,6 +1,6 @@
 # 🧪 Protocolo y Plan de Smoke Test - ProPresenter AI Studio
 
-Este documento define el **Plan de Smoke Test** (Prueba de Humo) para verificar de forma rápida la estabilidad y funcionamiento de los 44 Requerimientos Funcionales (**RF-01 al RF-44**) de **ProPresenter AI Studio**.
+Este documento define el **Plan de Smoke Test** (Prueba de Humo) para verificar de forma rápida la estabilidad y funcionamiento de los 46 Requerimientos Funcionales (**RF-01 al RF-46**) de **ProPresenter AI Studio**.
 
 ---
 
@@ -12,7 +12,7 @@ El proyecto cuenta con un suite de pruebas automatizado que valida la integridad
 npm test
 ```
 
-> **Resultado Esperado:** `📊 RESULTADOS SMOKE TEST: 10/10 PRUEBAS EXITOSAS`
+> **Resultado Esperado:** `📊 RESULTADOS SMOKE TEST: 12/12 PRUEBAS EXITOSAS`
 
 ---
 
@@ -112,7 +112,14 @@ npm test
 | **ST-35** | Zoom Dinámico Grid | Deslizar la barra de zoom de filminas de `140px` a `380px`. | Las tarjetas de filmina redimensionan su tamaño en vivo. | RF-41 |
 | **ST-36** | Paridad 1:1 Monitor | Proyectar canción y comparar `.monitor-screen` con `audience.html`. | Fuentes, espaciados, saltos de línea y posición vertical coinciden 100% idénticos. | RF-42 |
 | **ST-37** | Menú Contextual | Hacer clic derecho en una canción, medio, biblia o filmina. | Muestra menú dinámico con opciones Proyectar, Editar, Duplicar, Copiar, Eliminar. | RF-43 |
-| **ST-38** | Badge de Versión | Inspeccionar la insignia del encabezado superior. | Muestra dinámicamente la versión leída desde `package.json` (`PRO v1.3.0`). | RF-44 |
+| **ST-38** | Badge de Versión | Inspeccionar la insignia del encabezado superior. | Muestra dinámicamente la versión leída desde `package.json` (`PRO v1.3.1`). | RF-44 |
+
+---
+
+### 💾 Módulo 12: Persistencia Multimedia y Caché de Miniaturas
+| ID | Caso de Prueba | Pasos de Verificación | Resultado Esperado | Cobertura RF |
+| :--- | :--- | :--- | :--- | :--- |
+| **ST-39** | Caché de Medios e IndexedDB | Cargar video o imagen a carpeta virtual, reiniciar la aplicación. | Las miniaturas e identificadores se restauran automáticamente desde `FreePresenterMediaDB` y la cuadrícula de medios se visualiza sin enlaces rotos. | RF-45, RF-46 |
 
 ---
 

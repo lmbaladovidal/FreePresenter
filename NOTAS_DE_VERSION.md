@@ -4,6 +4,31 @@ Todas las novedades, mejoras y correcciones de errores importantes de **ProPrese
 
 ---
 
+## 🚀 Versión 1.3.1 (Persistencia de Medios, Caché de Miniaturas vía IndexedDB y Corrección de Visualización) — *11 de Octubre, 2026*
+
+Esta versión introduce el nuevo motor de persistencia y caché multimedia (`media-cache.js`), resolviendo la pérdida de miniaturas tras reiniciar la aplicación y corrigiendo la visualización de videos locales en la consola del operador y la ventana de audiencia.
+
+### ✨ Novedades y Funcionalidades
+
+#### 🖼️ Motor de Persistencia y Caché de Miniaturas vía IndexedDB (`media-cache.js`)
+- **Base de Datos IndexedDB Dedicada (`FreePresenterMediaDB`):** Permite almacenar miniaturas y archivos binarios sin restricciones de tamaño y sin saturar la cuota de 5MB de `localStorage`.
+- **Extracción Automática de Fotogramas (Canvas 320x180):** Al cargar o arrastrar cualquier video o imagen, un proceso en segundo plano captura un fotograma representativo y genera una miniatura ultraligera JPEG (~10-15 KB).
+- **Rendimiento Ultrarrápido (< 1ms):** La cuadrícula de medios del dock (`media-grid`) ahora renderiza miniaturas estáticas cacheadas (`.video-card-thumb`), eliminando el consumo excesivo de memoria GPU y decodificadores de hardware.
+- **Auto-hidratación al Iniciar:** Al abrir la aplicación, las miniaturas e identificadores de medios se restauran instantáneamente desde IndexedDB, garantizando que los medios nunca desaparezcan al cerrar y volver a abrir la sesión.
+
+#### 📁 Rutas Permanentes en Entornos de Escritorio Electron
+- **Integración con `webUtils.getPathForFile`:** Se incorporó el método nativo en `preload.js` para capturar la ruta absoluta en disco (`file:///...`) al soltar o cargar medios locales en Windows.
+- **Rutas no caducables:** Se erradicó la dependencia exclusiva de URLs `blob:` efímeras que morían al cerrar el proceso de Electron.
+
+#### 🩹 Corrección Crítica en Clasificación de Medios (Solución de Imagen Rota)
+- **Eliminación de Falso Positivo `url.startsWith('blob:')`:** Se corrigió la función `isMediaImage` en `app.js` y `audience.html` para evitar que los videos en formato blob fueran tratados erróneamente como imágenes e insertados en etiquetas `<img>`.
+- **Reproducción Fluida de Video:** Los videos locales se proyectan de forma correcta y limpia en reproductores `<video>` tanto en el monitor en vivo (`.monitor-screen`) como en la pantalla de audiencia (`audience.html`).
+
+#### 🏷️ Insignias Visuales de Tipo de Medio
+- **Etiquetas de Identificación (`.video-card-type-badge`):** Cada tarjeta en la biblioteca de medios incluye ahora un distintivo visible en su cabecera (`🎬 VIDEO` o `🖼️ IMG`) junto a su carpeta virtual.
+
+---
+
 ## 🚀 Versión 1.3.0 (División Automática de Filminas, Importación desde Portapapeles, Zoom Grid y Paridad 1:1 en Monitor de Audiencia) — *10 de Octubre, 2026*
 
 Esta versión introduce la división inteligente de canciones por reglas de renglones y plantillas, división automática del texto excedente en nuevas tarjetas de filmina, importación directa desde el portapapeles en la creación de shows, proyección fluida de medios en carpetas virtuales, control deslizante de zoom para tarjetas de filmina y paridad 100% fiel 1:1 entre el monitor del operador y la pantalla de audiencia (`audience.html`).

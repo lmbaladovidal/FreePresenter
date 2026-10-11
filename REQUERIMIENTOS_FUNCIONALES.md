@@ -105,3 +105,11 @@ Este documento especifica todos los **Requerimientos Funcionales (RF)** de **Pro
 * **RF-43 | Menú Contextual Dinámico para Componentes:** La aplicación debe mostrar un menú desplegable contextual inteligente al hacer clic derecho sobre canciones, archivos multimedia, biblias, filminas y eventos, permitiendo acciones de Proyectar, Editar, Duplicar, Copiar y Eliminar.
 * **RF-44 | Inyección Dinámica de Versión del Sistema:** La aplicación debe leer automáticamente la versión declarada en `package.json` e inyectarla dinámicamente en la insignia del encabezado principal (`PRO vX.Y.Z`).
 
+---
+
+## 💾 12. Motor de Persistencia Multimedia y Caché de Miniaturas
+
+* **RF-45 | Persistencia de Medios vía IndexedDB (`media-cache.js`):** La aplicación debe almacenar archivos multimedia y miniaturas binarias en una base de datos local IndexedDB (`FreePresenterMediaDB`), superando el límite de 5MB de `localStorage` y restaurando automáticamente los recursos tras reiniciar la aplicación.
+* **RF-46 | Generación y Caché de Miniaturas Visuales para Medios:** La aplicación debe capturar fotogramas estáticos ligeros JPEG (320x180 px) mediante Canvas al importar videos o imágenes, renderizando miniaturas estáticas optimizadas en la cuadrícula de medios con etiquetas identificadoras (`🎬 VIDEO` / `🖼️ IMG`).
+
+

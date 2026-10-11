@@ -6,6 +6,18 @@ For detailed release notes in Spanish, please see [NOTAS_DE_VERSION.md](./NOTAS_
 
 ---
 
+## [1.3.1] - 2026-10-11
+
+### Added
+- **IndexedDB Persistent Media Cache Engine (`media-cache.js`):** Unlimited and unthrottled storage for media thumbnails and blobs in IndexedDB (`FreePresenterMediaDB`), preventing `localStorage` 5MB quota overflow.
+- **Automated Video & Image Snapshot Extraction:** Real-time generation of lightweight 320x180 JPEG thumbnails (~10-15KB) via Canvas for instant (< 1ms) rendering in the media dock.
+- **Electron Permanent Media Paths:** Integrated `webUtils.getPathForFile` in `preload.js` to capture permanent `file:///` URLs on dragged/loaded local files.
+- **Media Type Badges on Dock Cards:** Visual tags (`🎬 VIDEO` / `🖼️ IMG`) and folder indicators on cards in the media library.
+
+### Fixed
+- **Broken Image Error on Projected Video Blobs:** Resolved issue where `url.startsWith('blob:')` incorrectly caused video blobs to be handled as images in `app.js` and `audience.html`.
+- **Vanishing Media & Thumbnails on Restart:** Fixed missing media and broken links after closing/reopening the app by hydrating permanent file paths and IndexedDB blobs and thumbnails on startup.
+
 ## [1.3.0] - 2026-10-10
 
 ### Added

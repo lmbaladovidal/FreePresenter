@@ -4,9 +4,24 @@ Este archivo registra el control de versiones, cambios granulares, mejoras y cor
 
 ---
 
-## 📌 Versión Actual: `v1.3.0` (Build 20261010.1)
+## 📌 Versión Actual: `v1.3.1` (Build 20261011.1)
 
 ### 🗓️ Registro de Cambios (Changelog Histórico)
+
+### [1.3.1] - 2026-10-11
+#### 🆕 Nuevas Funcionalidades & Correcciones
+- **🖼️ Motor de Persistencia y Caché de Miniaturas vía IndexedDB (`media-cache.js`):**
+  - Almacenamiento persistente de miniaturas y blobs de medios en la base de datos `FreePresenterMediaDB`, eliminando la restricción de 5MB de `localStorage`.
+  - Generación automática en Canvas de miniaturas estáticas JPEG (320x180 px, ~10-15 KB) para videos e imágenes al arrastrar o cargar archivos.
+  - Renderizado ultrarrápido (< 1ms) en la cuadrícula de medios (`.video-card-thumb`), liberando memoria de la GPU al no instanciar múltiples decodificadores de video en segundo plano.
+  - Hidratación automática de miniaturas y rutas al reiniciar la aplicación, garantizando que ningún medio desaparezca entre sesiones.
+- **📁 Rutas Permanentes en Entornos Electron Nativo:**
+  - Integración de `webUtils.getPathForFile` en `preload.js` para capturar rutas absolutas `file:///...` al importar o arrastrar archivos locales desde el explorador de Windows.
+- **🩹 Corrección Crítica en Clasificación de Medios (Proyección de Videos Locales):**
+  - Removido `url.startsWith('blob:')` de la función `isMediaImage` en `app.js` y `audience.html`, evitando que videos en blob se envíen erróneamente a elementos `<img>`.
+  - Proyección fluida y limpia de videos en el monitor del operador (`.monitor-screen`) y en la salida de audiencia (`audience.html`).
+- **🏷️ Distintivos Visuales de Tipo de Medio:**
+  - Etiquetas distintivas (`🎬 VIDEO` / `🖼️ IMG`) en las tarjetas de la biblioteca de medios junto a la carpeta virtual asignada.
 
 ### [1.3.0] - 2026-10-10
 #### 🆕 Nuevas Funcionalidades & Correcciones
