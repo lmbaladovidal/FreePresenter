@@ -1,10 +1,18 @@
 /**
  * ProPresenter AI Studio - Electron Preload Script
  */
-const { contextBridge, ipcRenderer } = require('electron');
+const { contextBridge, ipcRenderer, webUtils } = require('electron');
 
 contextBridge.exposeInMainWorld('electronAPI', {
   isElectron: true,
+  getPathForFile: (file) => {
+    try {
+      if (webUtils && typeof webUtils.getPathForFile === 'function') {
+        return webUtils.getPathForFile(file);
+      }
+    } catch (e) {}
+    return file?.path || '';
+  },
   openAudienceWindow: () => ipcRenderer.send('open-audience-window'),
   openStageWindow: () => ipcRenderer.send('open-stage-window'),
   selectMediaFiles: () => ipcRenderer.invoke('select-media-files'),

@@ -228,9 +228,11 @@
       // 2. Video / Media Background Layer (Dual Layer Crossfade for Videos & Images)
       const mediaMode = state.mediaTransition || 'fade';
 
-      function isMediaImage(url) {
+      function isMediaImage(url, type = "") {
+        if (type && type.startsWith('image/')) return true;
+        if (type && type.startsWith('video/')) return false;
         if (!url) return false;
-        return url.match(/\.(jpeg|jpg|gif|png|webp|svg|bmp)($|\?)/i) || url.startsWith('data:image/') || url.startsWith('blob:');
+        return !!url.match(/\.(jpeg|jpg|gif|png|webp|svg|bmp)($|\?)/i) || url.startsWith('data:image/');
       }
 
       if (state.isMediaCleared || !state.activeVideoUrl) {
@@ -255,7 +257,7 @@
       } else if (currentVideoUrl !== state.activeVideoUrl) {
         currentVideoUrl = state.activeVideoUrl;
 
-        const isImage = state.activeVideoIsImage || (state.activeVideoType && state.activeVideoType.startsWith('image/')) || isMediaImage(currentVideoUrl);
+        const isImage = (state.activeVideoType && state.activeVideoType.startsWith('image/')) || (state.activeVideoIsImage && !state.activeVideoType?.startsWith('video/')) || isMediaImage(currentVideoUrl, state.activeVideoType);
 
         const incomingMedia = activeMediaLayer === 'A' ? { video: bgVideoB, img: bgImgB } : { video: bgVideoA, img: bgImgA };
         const outgoingMedia = activeMediaLayer === 'A' ? { video: bgVideoA, img: bgImgA } : { video: bgVideoB, img: bgImgB };

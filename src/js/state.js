@@ -1,4 +1,5 @@
 import { sync } from './broadcast.js';
+import { MediaCache } from './media-cache.js';
 
 export function parseAndSplitText(rawText, splitMode = 'paragraph', maxLines = 0) {
   if (!rawText || !rawText.trim()) return [];
@@ -326,6 +327,32 @@ export class Store {
     };
 
     this.listeners = [];
+
+    // Auto-hidratar miniaturas y restaurar blobs persistentes desde IndexedDB
+    if (typeof window !== 'undefined' && Array.isArray(this.state.mediaLibrary)) {
+      this.state.mediaLibrary.forEach(item => {
+        if (!item.thumbnail && item.id) {
+          MediaCache.getThumbnail(item.id).then(t => {
+            if (t) {
+              item.thumbnail = t;
+              this.notify();
+            }
+          }).catch(() => {});
+        }
+        if (item.url && item.url.startsWith('blob:')) {
+          if (item.filePath) {
+            item.url = 'file:///' + item.filePath.replace(/\\/g, '/');
+          } else {
+            MediaCache.getBlob(item.id).then(blob => {
+              if (blob) {
+                item.url = URL.createObjectURL(blob);
+                this.notify();
+              }
+            }).catch(() => {});
+          }
+        }
+      });
+    }
   }
 
   get activeDeck() {
@@ -774,7 +801,7 @@ export class Store {
     this.notify();
   }
 
-  addMediaItem(name, url, type = "video/mp4", folder = "General") {
+  addMediaItem(name, url, type = "video/mp4", folder = "General", thumbnail = "", filePath = "") {
     const targetFolder = folder ? folder.trim() : "General";
     if (targetFolder && !this.state.mediaFolders.includes(targetFolder)) {
       this.state.mediaFolders.push(targetFolder);
@@ -783,32 +810,49 @@ export class Store {
       id: "media-" + Date.now() + Math.random().toString(36).substr(2, 4),
       name,
       url,
+      filePath: filePath || "",
       type,
-      folder: targetFolder || "General"
+      folder: targetFolder || "General",
+      thumbnail: thumbnail || ""
     };
     this.state.mediaLibrary.unshift(newItem);
     this.notify();
+    return newItem;
   }
 
   addMediaBatch(items) {
-    if (!Array.isArray(items) || items.length === 0) return;
+    if (!Array.isArray(items) || items.length === 0) return [];
     
+    const added = [];
     items.forEach((item, index) => {
       const targetFolder = item.folder ? item.folder.trim() : "General";
       if (targetFolder && !this.state.mediaFolders.includes(targetFolder)) {
         this.state.mediaFolders.push(targetFolder);
       }
       const newItem = {
-        id: "media-" + Date.now() + "-" + index + "-" + Math.random().toString(36).substr(2, 4),
-        name: item.name || "Video sin nombre",
+        id: item.id || ("media-" + Date.now() + "-" + index + "-" + Math.random().toString(36).substr(2, 4)),
+        name: item.name || "Medio sin nombre",
         url: item.url,
+        filePath: item.filePath || "",
         type: item.type || "video/mp4",
-        folder: targetFolder || "General"
+        folder: targetFolder || "General",
+        thumbnail: item.thumbnail || ""
       };
       this.state.mediaLibrary.unshift(newItem);
+      added.push(newItem);
     });
 
     this.notify();
+    return added;
+  }
+
+  updateMediaItemThumbnail(itemId, thumbnail) {
+    const target = this.state.mediaLibrary.find(m => m.id === itemId);
+    if (target && thumbnail) {
+      target.thumbnail = thumbnail;
+      setStorageItem("propresenter_media_library", JSON.stringify(this.state.mediaLibrary));
+      this.notify();
+    }
   }
 
   deleteMediaItem(itemId) {
@@ -822,6 +866,10 @@ export class Store {
         console.warn("Failed to revoke Blob URL:", e);
       }
     }
+
+    try {
+      MediaCache.deleteMedia(itemId);
+    } catch (e) {}
 
     this.state.mediaLibrary = this.state.mediaLibrary.filter(m => m.id !== itemId);
     if (this.state.activeVideoUrl === target.url) {

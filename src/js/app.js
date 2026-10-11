@@ -8,6 +8,7 @@ import { stageManager } from './stage-manager.js';
 import { BIBLE_BOOKS, BIBLE_VERSIONS, getAllBibleVersions, getChapterVerses, splitVerseText, fetchAndLoadBibleFromUrl, parseAndAddCustomBible, deleteCustomBible } from './bible-data.js';
 import { searchSongsOnline } from './song-search.js';
 import { calendarManager } from './calendar-manager.js';
+import { MediaCache } from './media-cache.js';
 import pkg from '../../package.json';
 
 class ProPresenterApp {
@@ -580,11 +581,29 @@ class ProPresenterApp {
       if (window.electronAPI && window.electronAPI.selectMediaFiles) {
         const files = await window.electronAPI.selectMediaFiles();
         if (files && files.length > 0) {
-          this.pendingBatchFiles = files.map(f => {
-            const fileName = typeof f === 'string' ? f.split(/[\\/]/).pop() : (f.name || 'Video');
+          this.pendingBatchFiles = await Promise.all(files.map(async f => {
+            const fileName = typeof f === 'string' ? f.split(/[\\/]/).pop() : (f.name || 'Medio');
             const fileUrl = typeof f === 'string' ? f : f.url;
-            return { name: fileName, url: fileUrl, type: 'video/mp4' };
-          });
+            const filePath = f.filePath || (typeof f === 'string' ? f : '');
+            const isImg = !!fileName.match(/\.(jpeg|jpg|png|gif|webp|svg|bmp)$/i);
+            const mediaType = isImg ? 'image/png' : 'video/mp4';
+            const id = "media-" + Date.now() + "-" + Math.random().toString(36).substr(2, 4);
+
+            let thumb = null;
+            try {
+              thumb = await MediaCache.generateThumbnail(fileUrl, mediaType);
+              if (thumb) await MediaCache.saveThumbnail(id, thumb);
+            } catch (err) {}
+
+            return {
+              id,
+              name: fileName,
+              url: fileUrl,
+              filePath,
+              type: mediaType,
+              thumbnail: thumb || ''
+            };
+          }));
 
           if (this.selectedMediaFilename) {
             this.selectedMediaFilename.textContent = `${this.pendingBatchFiles.length} archivo(s) seleccionado(s)`;
@@ -598,14 +617,10 @@ class ProPresenterApp {
       }
     });
 
-    this.videoFileInput?.addEventListener('change', (e) => {
+    this.videoFileInput?.addEventListener('change', async (e) => {
       const selectedFiles = Array.from(e.target.files || []);
       if (selectedFiles.length > 0) {
-        this.pendingBatchFiles = selectedFiles.map(file => ({
-          name: file.name,
-          url: URL.createObjectURL(file),
-          type: file.type || 'video/mp4'
-        }));
+        this.pendingBatchFiles = await this.processMediaFiles(selectedFiles, this.selectMediaFolder?.value || "General");
 
         if (this.selectedMediaFilename) {
           const namesSnippet = selectedFiles.map(f => f.name).slice(0, 2).join(', ');
@@ -614,7 +629,7 @@ class ProPresenterApp {
         }
 
         if (this.inputMediaName) {
-          this.inputMediaName.value = selectedFiles.length === 1 ? selectedFiles[0].name : `Lote de ${selectedFiles.length} videos`;
+          this.inputMediaName.value = selectedFiles.length === 1 ? selectedFiles[0].name : `Lote de ${selectedFiles.length} medios`;
         }
       }
     });
@@ -626,19 +641,28 @@ class ProPresenterApp {
       let folder = newFolder || this.selectMediaFolder.value || "General";
 
       if (this.pendingBatchFiles && this.pendingBatchFiles.length > 0) {
-        const batchToSave = this.pendingBatchFiles.map((item, idx) => ({
+        const batchToSave = this.pendingBatchFiles.map((item) => ({
+          ...item,
           name: this.pendingBatchFiles.length === 1 && customName ? customName : item.name,
-          url: item.url,
-          type: item.type,
           folder: folder
         }));
         store.addMediaBatch(batchToSave);
+        this.pendingBatchFiles = null;
         closeModalMedia();
         return;
       }
 
       if (customUrl) {
-        store.addMediaItem(customName || "Video sin nombre", customUrl, "video/mp4", folder);
+        const isImg = !!customUrl.match(/\.(jpeg|jpg|png|gif|webp|svg|bmp)($|\?)/i);
+        const mediaType = isImg ? "image/png" : "video/mp4";
+        const id = "media-" + Date.now();
+        const newItem = store.addMediaItem(customName || "Medio sin nombre", customUrl, mediaType, folder);
+        MediaCache.generateThumbnail(customUrl, mediaType).then(thumb => {
+          if (thumb) {
+            MediaCache.saveThumbnail(newItem.id, thumb);
+            store.updateMediaItemThumbnail(newItem.id, thumb);
+          }
+        }).catch(() => {});
         closeModalMedia();
         return;
       }
@@ -662,7 +686,7 @@ class ProPresenterApp {
         });
       });
 
-      targetEl.addEventListener('drop', (e) => {
+      targetEl.addEventListener('drop', async (e) => {
         const rawFiles = Array.from(e.dataTransfer.files || []);
         const files = rawFiles.filter(f => 
           f.type.startsWith('video/') || 
@@ -672,15 +696,7 @@ class ProPresenterApp {
 
         if (files.length > 0) {
           const targetFolder = this.selectedMediaFolder && this.selectedMediaFolder !== 'all' ? this.selectedMediaFolder : 'General';
-          const batchItems = files.map(f => {
-            const isImg = f.type.startsWith('image/') || f.name.match(/\.(jpeg|jpg|png|gif|webp|svg)$/i);
-            return {
-              name: f.name,
-              url: URL.createObjectURL(f),
-              type: f.type || (isImg ? 'image/png' : 'video/mp4'),
-              folder: targetFolder
-            };
-          });
+          const batchItems = await this.processMediaFiles(files, targetFolder);
 
           store.addMediaBatch(batchItems);
 
@@ -805,16 +821,60 @@ class ProPresenterApp {
     });
   }
 
-  handleLoadedVideoFiles(files) {
+  async processMediaFiles(files, folder = 'General') {
+    if (!files || files.length === 0) return [];
+    const targetFolder = folder && folder !== 'all' ? folder : 'General';
+
+    const processedItems = await Promise.all(files.map(async (f) => {
+      const isImg = f.type ? f.type.startsWith('image/') : !!f.name.match(/\.(jpeg|jpg|png|gif|webp|svg)$/i);
+      const mediaType = f.type || (isImg ? 'image/png' : 'video/mp4');
+
+      let filePath = '';
+      if (window.electronAPI && typeof window.electronAPI.getPathForFile === 'function') {
+        try { filePath = window.electronAPI.getPathForFile(f); } catch (e) {}
+      }
+      if (!filePath && f.path) {
+        filePath = f.path;
+      }
+
+      const id = "media-" + Date.now() + "-" + Math.random().toString(36).substr(2, 4);
+      let mediaUrl = filePath ? ('file:///' + filePath.replace(/\\/g, '/')) : URL.createObjectURL(f);
+
+      // Si estamos en modo navegador web puro (sin filePath), persistir en IndexedDB
+      if (!filePath && (f instanceof Blob || f instanceof File)) {
+        await MediaCache.saveBlob(id, f, f.name, mediaType);
+      }
+
+      // Generar miniatura inmediatamente en segundo plano
+      let thumb = null;
+      try {
+        thumb = await MediaCache.generateThumbnail(f, mediaType);
+        if (thumb) {
+          await MediaCache.saveThumbnail(id, thumb);
+        }
+      } catch (err) {
+        console.warn('Error generando miniatura:', err);
+      }
+
+      return {
+        id,
+        name: f.name,
+        url: mediaUrl,
+        filePath,
+        type: mediaType,
+        folder: targetFolder,
+        thumbnail: thumb || ''
+      };
+    }));
+
+    return processedItems;
+  }
+
+  async handleLoadedVideoFiles(files) {
     const fileList = Array.from(files || []);
     if (fileList.length === 0) return;
     const targetFolder = this.selectedMediaFolder && this.selectedMediaFolder !== 'all' ? this.selectedMediaFolder : 'General';
-    const batchItems = fileList.map(file => ({
-      name: file.name,
-      url: URL.createObjectURL(file),
-      type: file.type || 'video/mp4',
-      folder: targetFolder
-    }));
+    const batchItems = await this.processMediaFiles(fileList, targetFolder);
     store.addMediaBatch(batchItems);
   }
 
@@ -1374,7 +1434,7 @@ class ProPresenterApp {
       return matchesFolder && matchesSearch;
     });
 
-    const mediaGridCacheKey = JSON.stringify(filteredMedia.map(m => m.id + m.name + m.url + m.folder)) + '|' + this.selectedMediaFolder + '|' + this.searchQuery;
+    const mediaGridCacheKey = JSON.stringify(filteredMedia.map(m => m.id + m.name + m.url + m.folder + (m.thumbnail ? 'thumb' : 'none'))) + '|' + this.selectedMediaFolder + '|' + this.searchQuery;
 
     if (this.lastMediaGridCacheKey !== mediaGridCacheKey) {
       this.lastMediaGridCacheKey = mediaGridCacheKey;
@@ -1394,23 +1454,49 @@ class ProPresenterApp {
           const isActive = state.activeVideoUrl === item.url && !state.isMediaCleared;
           const isImg = (item.type && item.type.startsWith('image/')) || (item.url && item.url.match(/\.(jpeg|jpg|gif|png|webp|svg|bmp)($|\?)/i));
           
-          const mediaTag = isImg 
-            ? `<img data-src="${item.url}" alt="${item.name}" style="width: 100%; height: 100%; object-fit: cover;" />`
-            : `<video data-src="${item.url}" muted preload="none" playsinline></video>`;
+          const thumbSrc = item.thumbnail || (isImg ? item.url : '');
+          const mediaTag = thumbSrc
+            ? `<img class="video-card-thumb" src="${thumbSrc}" alt="${item.name}" loading="lazy" />`
+            : (isImg 
+                ? `<img class="video-card-thumb" data-src="${item.url}" alt="${item.name}" />`
+                : `<video data-src="${item.url}" muted preload="metadata" playsinline></video>`);
+
+          const typeBadge = isImg 
+            ? `<span class="video-card-type-badge img-badge">🖼️ IMG</span>`
+            : `<span class="video-card-type-badge vid-badge">🎬 VIDEO</span>`;
 
           return `
             <div class="video-card ${isActive ? 'active-video' : ''}" data-video-url="${item.url}" data-video-name="${item.name}" data-video-type="${item.type || ''}">
               <div class="video-card-top-bar">
                 <span class="video-folder-tag">${item.folder || 'General'}</span>
+                ${typeBadge}
                 <button class="btn-delete-media" data-media-id="${item.id}" title="Eliminar este elemento">&times;</button>
               </div>
               ${mediaTag}
               <div class="video-card-overlay">
-                <div class="video-card-title">${item.name}</div>
+                <div class="video-card-title" title="${item.name}">${item.name}</div>
               </div>
             </div>
           `;
         }).join('');
+
+        // Disparar generación o recuperación de miniaturas en segundo plano para items sin miniatura
+        filteredMedia.forEach(item => {
+          if (!item.thumbnail && item.url) {
+            MediaCache.getThumbnail(item.id).then(cached => {
+              if (cached) {
+                store.updateMediaItemThumbnail(item.id, cached);
+              } else {
+                MediaCache.generateThumbnail(item.url, item.type).then(newThumb => {
+                  if (newThumb) {
+                    MediaCache.saveThumbnail(item.id, newThumb);
+                    store.updateMediaItemThumbnail(item.id, newThumb);
+                  }
+                }).catch(() => {});
+              }
+            }).catch(() => {});
+          }
+        });
 
         // Setup IntersectionObserver for Lazy Media Loading in Grid
         this.mediaIntersectionObserver = new IntersectionObserver((entries) => {
@@ -2336,7 +2422,7 @@ class ProPresenterApp {
           ].join('; ');
 
           const activeMediaUrl = (!state.isMediaCleared && state.activeVideoUrl) ? state.activeVideoUrl : '';
-          const isImg = state.activeVideoIsImage || (state.activeVideoType && state.activeVideoType.startsWith('image/')) || (activeMediaUrl && activeMediaUrl.match(/\.(jpeg|jpg|gif|png|webp|svg)($|\?)/i));
+          const isImg = (state.activeVideoType && state.activeVideoType.startsWith('image/')) || (state.activeVideoIsImage && !state.activeVideoType?.startsWith('video/')) || (activeMediaUrl && !activeMediaUrl.startsWith('blob:') && !!activeMediaUrl.match(/\.(jpeg|jpg|gif|png|webp|svg)($|\?)/i));
           
           let cardBgHTML = '';
           if (activeMediaUrl) {
@@ -2427,9 +2513,11 @@ class ProPresenterApp {
     const imgA = document.getElementById('operator-img-preview-a');
     const imgB = document.getElementById('operator-img-preview-b');
 
-    function isMediaImage(url) {
+    function isMediaImage(url, type = "") {
+      if (type && type.startsWith('image/')) return true;
+      if (type && type.startsWith('video/')) return false;
       if (!url) return false;
-      return url.match(/\.(jpeg|jpg|gif|png|webp|svg|bmp)($|\?)/i) || url.startsWith('data:image/') || url.startsWith('blob:');
+      return !!url.match(/\.(jpeg|jpg|gif|png|webp|svg|bmp)($|\?)/i) || url.startsWith('data:image/');
     }
 
     if (bgA && bgB) {
@@ -2455,7 +2543,7 @@ class ProPresenterApp {
       } else if (this.operatorVideoUrl !== state.activeVideoUrl) {
         this.operatorVideoUrl = state.activeVideoUrl;
 
-        const isImage = state.activeVideoIsImage || (state.activeVideoType && state.activeVideoType.startsWith('image/')) || isMediaImage(state.activeVideoUrl);
+        const isImage = (state.activeVideoType && state.activeVideoType.startsWith('image/')) || (state.activeVideoIsImage && !state.activeVideoType?.startsWith('video/')) || isMediaImage(state.activeVideoUrl, state.activeVideoType);
         const incomingMedia = this.operatorActiveMediaLayer === 'A' ? { video: bgB, img: imgB } : { video: bgA, img: imgA };
         const outgoingMedia = this.operatorActiveMediaLayer === 'A' ? { video: bgA, img: imgA } : { video: bgB, img: imgB };
         this.operatorActiveMediaLayer = this.operatorActiveMediaLayer === 'A' ? 'B' : 'A';
