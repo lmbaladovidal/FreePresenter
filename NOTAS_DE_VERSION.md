@@ -4,7 +4,31 @@ Todas las novedades, mejoras y correcciones de errores importantes de **ProPrese
 
 ---
 
+## 🚀 Versión 1.3.2 (Reproducción de Audio en Videos, Conmutador Mute/Unmute y Control de Volumen) — *12 de Octubre, 2026*
+
+Esta versión habilita la salida sonora completa en la reproducción de videos, incorporando botones de control interactivo para silenciar o habilitar el sonido (`Mute/Unmute`), un control deslizante de volumen master, atajo de teclado dedicado (`M`) y un sistema inteligente de prevención de eco acústico multipantalla.
+
+### ✨ Novedades y Funcionalidades
+
+#### 🔊 Reproducción de Audio en Videos en Vivo
+- **Salida Sonora Activa:** Se eliminó la propiedad `muted` forzada en las capas de video de la ventana de Audiencia (`audience.html`), permitiendo que el audio de los videos de fondo o presentaciones multimedia se proyecte con fidelidad sonora a los sistemas de sonido y transmisión (OBS / NDI).
+- **Compatibilidad Autoplay en Electron:** Incorporado el flag `--autoplay-policy=no-user-gesture-required` en el proceso principal de Electron, garantizando que los videos arranquen con sonido de inmediato sin ser bloqueados por políticas de Chromium.
+
+#### 🎛️ Botón Maestro de Sonido (Mute / Unmute) y Control de Volumen
+- **Botón en Cabecera de Live Program:** Ubicado junto al indicador de audiencia, muestra el estado en vivo (`🔊 Sonido ON` en verde vs `🔇 Silenciado` en rojo) para conmutar el sonido con 1 clic.
+- **Control en Panel de Transiciones:** Añadida fila de `AUDIO:` con botón toggle y deslizador interactivo de volumen (`0% - 100%`).
+- **Control en Biblioteca Multimedia:** Botón sincronizado en la barra de herramientas del dock de medios (`res-tab-media`).
+- **Atajo de Teclado Rápido (`M`):** Permite silenciar o reactivar el sonido instantáneamente sin necesidad de usar el mouse.
+- **Persistencia en LocalStorage:** La preferencia sonora y el nivel de volumen se guardan automáticamente entre reinicios.
+
+#### 🎧 Prevención Inteligente de Eco Acústico Dual
+- **Detección Automática de Pantalla de Audiencia:** Al proyectar en una pantalla secundaria (`audience.html`), el monitor del operador se silencia automáticamente para evitar doble reproducción o eco por retraso de fase en los altavoces de la computadora.
+- **Modo Ensayo Autónomo:** Si la ventana de audiencia no está abierta, el monitor del operador reproduce el audio para permitir previsualizar y ensayar videos directamente.
+
+---
+
 ## 🚀 Versión 1.3.1 (Persistencia de Medios, Caché de Miniaturas vía IndexedDB y Corrección de Visualización) — *11 de Octubre, 2026*
+
 
 Esta versión introduce el nuevo motor de persistencia y caché multimedia (`media-cache.js`), resolviendo la pérdida de miniaturas tras reiniciar la aplicación y corrigiendo la visualización de videos locales en la consola del operador y la ventana de audiencia.
 

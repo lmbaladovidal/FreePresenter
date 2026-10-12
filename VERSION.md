@@ -4,9 +4,25 @@ Este archivo registra el control de versiones, cambios granulares, mejoras y cor
 
 ---
 
-## 📌 Versión Actual: `v1.3.1` (Build 20261011.1)
+## 📌 Versión Actual: `v1.3.2` (Build 20261012.1)
 
 ### 🗓️ Registro de Cambios (Changelog Histórico)
+
+### [1.3.2] - 2026-10-12
+#### 🆕 Nuevas Funcionalidades & Correcciones
+- **🔊 Reproducción Activa de Audio en Videos Proyectados:**
+  - Removido el atributo `muted` hardcodeado en las capas de video de la ventana de Audiencia (`audience.html`) y monitor del operador.
+  - Habilitada la política Chromium `autoplay-policy: no-user-gesture-required` en Electron para reproducción instantánea con sonido sin bloqueos.
+  - Sincronización en tiempo real del volumen y estado sonoro mediante `BroadcastChannel` e IPC nativo.
+- **🎛️ Conmutador Maestro de Audio (Mute / Unmute Toggle) & Deslizador de Volumen:**
+  - Botón de alternancia de sonido (`🔊 Sonido ON` / `🔇 Silenciado`) en la cabecera de `LIVE PROGRAM`.
+  - Control de volumen interactivo (0% - 100%) y botón de audio en el panel de transiciones en vivo.
+  - Botón de audio sincronizado en la cabecera de la biblioteca multimedia (`media-dock-header`).
+  - Atajo de teclado rápido `M` para silenciar/activar el audio con una sola tecla.
+  - Persistencia de configuración sonora en `localStorage`.
+- **🎧 Prevención Inteligente de Eco Acústico Dual:**
+  - Detección automática de la ventana de Audiencia (`audience.html`): cuando la salida secundaria está activa, el monitor del operador se silencia para evitar eco o retrasos de fase en los altavoces principales.
+  - Al ensayar o utilizar la consola sin la pantalla de Audiencia abierta, el audio se reproduce fielmente en el monitor del operador.
 
 ### [1.3.1] - 2026-10-11
 #### 🆕 Nuevas Funcionalidades & Correcciones

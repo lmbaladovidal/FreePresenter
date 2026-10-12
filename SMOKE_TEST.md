@@ -1,18 +1,18 @@
 # 🧪 Protocolo y Plan de Smoke Test - ProPresenter AI Studio
 
-Este documento define el **Plan de Smoke Test** (Prueba de Humo) para verificar de forma rápida la estabilidad y funcionamiento de los 46 Requerimientos Funcionales (**RF-01 al RF-46**) de **ProPresenter AI Studio**.
+Este documento define el **Plan de Smoke Test** (Prueba de Humo) para verificar de forma rápida la estabilidad y funcionamiento de los 48 Requerimientos Funcionales (**RF-01 al RF-48**) de **ProPresenter AI Studio**.
 
 ---
 
 ## ⚡ 1. Ejecución de Pruebas Automatizadas
 
-El proyecto cuenta con un suite de pruebas automatizado que valida la integridad del estado, motor de transiciones, escrituras, live coder 2d y plantillas.
+El proyecto cuenta con un suite de pruebas automatizado que valida la integridad del estado, motor de transiciones, escrituras, live coder 2d, plantillas y motor de audio.
 
 ```bash
 npm test
 ```
 
-> **Resultado Esperado:** `📊 RESULTADOS SMOKE TEST: 12/12 PRUEBAS EXITOSAS`
+> **Resultado Esperado:** `📊 RESULTADOS SMOKE TEST: 13/13 PRUEBAS EXITOSAS`
 
 ---
 
@@ -120,6 +120,13 @@ npm test
 | ID | Caso de Prueba | Pasos de Verificación | Resultado Esperado | Cobertura RF |
 | :--- | :--- | :--- | :--- | :--- |
 | **ST-39** | Caché de Medios e IndexedDB | Cargar video o imagen a carpeta virtual, reiniciar la aplicación. | Las miniaturas e identificadores se restauran automáticamente desde `FreePresenterMediaDB` y la cuadrícula de medios se visualiza sin enlaces rotos. | RF-45, RF-46 |
+
+---
+
+### 🔊 Módulo 13: Reproducción y Control de Audio en Medios
+| ID | Caso de Prueba | Pasos de Verificación | Resultado Esperado | Cobertura RF |
+| :--- | :--- | :--- | :--- | :--- |
+| **ST-40** | Reproducción y Mute de Audio de Videos | Proyectar un video con audio, conmutar botón `Sonido ON` / `Silenciado` (o presionar tecla `M`), ajustar slider de volumen. | El audio del video se reproduce con fidelidad en la salida; al silenciar se enmudece inmediatamente; el volumen escala fluidamente de 0% a 100% y el estado persiste. | RF-47, RF-48 |
 
 ---
 

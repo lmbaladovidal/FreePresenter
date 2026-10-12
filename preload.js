@@ -21,5 +21,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   maximizeWindow: () => ipcRenderer.send('window-maximize'),
   closeWindow: () => ipcRenderer.send('window-close'),
   sendBroadcast: (state) => ipcRenderer.send('broadcast-update', state),
-  onBroadcastUpdate: (callback) => ipcRenderer.on('broadcast-update', (event, state) => callback(state))
+  onBroadcastUpdate: (callback) => ipcRenderer.on('broadcast-update', (event, state) => callback(state)),
+  isAudienceOpen: () => ipcRenderer.invoke('is-audience-open'),
+  onAudienceStatusChanged: (callback) => ipcRenderer.on('audience-status-changed', (event, isOpen) => callback(isOpen))
 });
+

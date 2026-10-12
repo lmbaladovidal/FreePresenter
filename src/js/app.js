@@ -24,6 +24,28 @@ class ProPresenterApp {
     this.selectedChapter = 3;
     this.scriptureQuery = '';
     this.matchedBookSuggestion = null;
+    this.isAudienceOpen = false;
+
+    // Track Audience window status for operator audio echo prevention
+    sync.onAudiencePresence((isOpen) => {
+      this.isAudienceOpen = isOpen;
+      this.updateOperatorAudioMute();
+    });
+
+    if (window.electronAPI) {
+      if (typeof window.electronAPI.onAudienceStatusChanged === 'function') {
+        window.electronAPI.onAudienceStatusChanged((isOpen) => {
+          this.isAudienceOpen = isOpen;
+          this.updateOperatorAudioMute();
+        });
+      }
+      if (typeof window.electronAPI.isAudienceOpen === 'function') {
+        window.electronAPI.isAudienceOpen().then(isOpen => {
+          this.isAudienceOpen = !!isOpen;
+          this.updateOperatorAudioMute();
+        }).catch(() => {});
+      }
+    }
 
     window.closeAllModals = () => this.closeAllModals();
     this.initDOM();
@@ -40,6 +62,7 @@ class ProPresenterApp {
 
     // Initial view render
     store.notify();
+
 
     // Start real-time clock for operator stage preview & FreeShow bottom dock
     setInterval(() => {
@@ -819,7 +842,47 @@ class ProPresenterApp {
       if (badge) badge.textContent = val + 'ms';
       store.setFadeDuration(val);
     });
+
+    // 14. Audio Controls (Toggle Mute and Volume Adjustment)
+    document.getElementById('btn-toggle-video-sound')?.addEventListener('click', () => {
+      store.toggleMediaAudio();
+      this.updateOperatorAudioMute();
+    });
+    document.getElementById('btn-audio-mute-toggle')?.addEventListener('click', () => {
+      store.toggleMediaAudio();
+      this.updateOperatorAudioMute();
+    });
+    document.getElementById('btn-dock-audio-toggle')?.addEventListener('click', () => {
+      store.toggleMediaAudio();
+      this.updateOperatorAudioMute();
+    });
+
+    const videoVolInput = document.getElementById('input-video-volume');
+    videoVolInput?.addEventListener('input', () => {
+      const val = parseInt(videoVolInput.value);
+      const badge = document.getElementById('val-video-volume');
+      if (badge) badge.textContent = val + '%';
+      store.setMediaAudioVolume(val / 100);
+      this.updateOperatorAudioMute();
+    });
   }
+
+  updateOperatorAudioMute() {
+    const bgA = document.getElementById('operator-video-preview-a');
+    const bgB = document.getElementById('operator-video-preview-b');
+    const shouldMute = this.isAudienceOpen || !!store.state.isMediaAudioMuted;
+    const vol = typeof store.state.mediaAudioVolume === 'number' ? store.state.mediaAudioVolume : 1.0;
+
+    if (bgA) {
+      bgA.muted = shouldMute;
+      bgA.volume = vol;
+    }
+    if (bgB) {
+      bgB.muted = shouldMute;
+      bgB.volume = vol;
+    }
+  }
+
 
   async processMediaFiles(files, folder = 'General') {
     if (!files || files.length === 0) return [];
@@ -1137,6 +1200,10 @@ class ProPresenterApp {
       } else if (e.code === 'ArrowLeft') {
         e.preventDefault();
         store.prevSlide();
+      } else if (e.code === 'KeyM' || e.key === 'm' || e.key === 'M') {
+        e.preventDefault();
+        store.toggleMediaAudio();
+        this.updateOperatorAudioMute();
       } else if (e.code === 'Escape' || e.key === 'Escape') {
         e.preventDefault();
         const openModal = document.querySelector('.modal-overlay.open');
@@ -1146,6 +1213,7 @@ class ProPresenterApp {
           store.clearAll();
         }
       }
+
     });
   }
 
@@ -2521,6 +2589,14 @@ class ProPresenterApp {
     }
 
     if (bgA && bgB) {
+      const shouldOperatorMute = this.isAudienceOpen || !!state.isMediaAudioMuted;
+      const operatorVolume = typeof state.mediaAudioVolume === 'number' ? state.mediaAudioVolume : 1.0;
+
+      bgA.muted = shouldOperatorMute;
+      bgB.muted = shouldOperatorMute;
+      bgA.volume = operatorVolume;
+      bgB.volume = operatorVolume;
+
       if (state.isMediaCleared || !state.activeVideoUrl) {
         if (mediaMode === 'cut') {
           bgA.style.transition = 'opacity 0s';
@@ -2561,6 +2637,8 @@ class ProPresenterApp {
         } else if (incomingMedia.video) {
           incomingMedia.video.src = state.activeVideoUrl;
           incomingMedia.video.currentTime = 0;
+          incomingMedia.video.muted = shouldOperatorMute;
+          incomingMedia.video.volume = operatorVolume;
           incomingMedia.video.style.display = 'block';
           if (incomingMedia.img) incomingMedia.img.style.display = 'none';
         }
@@ -2588,12 +2666,23 @@ class ProPresenterApp {
         if (isImage) {
           performOperatorFade();
         } else if (incomingMedia.video) {
-          incomingMedia.video.play()
-            .then(() => performOperatorFade())
-            .catch(() => performOperatorFade());
+          const playPromise = incomingMedia.video.play();
+          if (playPromise !== undefined) {
+            playPromise
+              .then(() => performOperatorFade())
+              .catch(() => {
+                incomingMedia.video.muted = true;
+                incomingMedia.video.play()
+                  .then(() => performOperatorFade())
+                  .catch(() => performOperatorFade());
+              });
+          } else {
+            performOperatorFade();
+          }
         }
       }
     }
+
 
     // 5. Text & Stage Previews (Escalado equivalente e idéntico a la pantalla de Audiencia)
     const targetText = (state.isTextCleared || !state.liveText) ? "" : state.liveText;
@@ -2689,6 +2778,47 @@ class ProPresenterApp {
     }
     if (fadeDurBadge) {
       fadeDurBadge.textContent = (state.fadeDuration || 250) + 'ms';
+    }
+
+    // Video audio UI synchronization
+    const isAudioMuted = !!state.isMediaAudioMuted;
+    const audioVol = Math.round((typeof state.mediaAudioVolume === 'number' ? state.mediaAudioVolume : 1.0) * 100);
+
+    const btnToggleSound = document.getElementById('btn-toggle-video-sound');
+    const soundIcon = document.getElementById('monitor-sound-icon');
+    const soundText = document.getElementById('monitor-sound-text');
+    if (btnToggleSound) {
+      btnToggleSound.classList.toggle('muted', isAudioMuted);
+      btnToggleSound.classList.toggle('active', !isAudioMuted);
+      if (soundIcon) soundIcon.textContent = isAudioMuted ? '🔇' : '🔊';
+      if (soundText) soundText.textContent = isAudioMuted ? 'Silenciado' : 'Sonido ON';
+    }
+
+    const btnAudioPill = document.getElementById('btn-audio-mute-toggle');
+    const audioPillIcon = document.getElementById('audio-pill-icon');
+    const audioPillText = document.getElementById('audio-pill-text');
+    if (btnAudioPill) {
+      btnAudioPill.classList.toggle('muted', isAudioMuted);
+      if (audioPillIcon) audioPillIcon.textContent = isAudioMuted ? '🔇' : '🔊';
+      if (audioPillText) audioPillText.textContent = isAudioMuted ? 'MUTE' : 'ON';
+    }
+
+    const btnDockAudio = document.getElementById('btn-dock-audio-toggle');
+    const dockAudioIcon = document.getElementById('dock-audio-icon');
+    const dockAudioText = document.getElementById('dock-audio-text');
+    if (btnDockAudio) {
+      btnDockAudio.classList.toggle('muted', isAudioMuted);
+      if (dockAudioIcon) dockAudioIcon.textContent = isAudioMuted ? '🔇' : '🔊';
+      if (dockAudioText) dockAudioText.textContent = isAudioMuted ? 'Audio: Mute' : 'Audio: ON';
+    }
+
+    const videoVolInput = document.getElementById('input-video-volume');
+    const videoVolBadge = document.getElementById('val-video-volume');
+    if (videoVolInput && document.activeElement !== videoVolInput) {
+      videoVolInput.value = audioVol;
+    }
+    if (videoVolBadge) {
+      videoVolBadge.textContent = `${audioVol}%`;
     }
 
     // Apply live transition timing CSS to operator live preview

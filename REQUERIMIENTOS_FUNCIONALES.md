@@ -112,4 +112,12 @@ Este documento especifica todos los **Requerimientos Funcionales (RF)** de **Pro
 * **RF-45 | Persistencia de Medios vía IndexedDB (`media-cache.js`):** La aplicación debe almacenar archivos multimedia y miniaturas binarias en una base de datos local IndexedDB (`FreePresenterMediaDB`), superando el límite de 5MB de `localStorage` y restaurando automáticamente los recursos tras reiniciar la aplicación.
 * **RF-46 | Generación y Caché de Miniaturas Visuales para Medios:** La aplicación debe capturar fotogramas estáticos ligeros JPEG (320x180 px) mediante Canvas al importar videos o imágenes, renderizando miniaturas estáticas optimizadas en la cuadrícula de medios con etiquetas identificadoras (`🎬 VIDEO` / `🖼️ IMG`).
 
+---
+
+## 🔊 13. Motor de Audio de Medios en Vivo y Control de Salida Sonora
+
+* **RF-47 | Reproducción Sonora de Videos:** La aplicación debe reproducir el audio de los videos proyectados a través de la pantalla de Audiencia (`audience.html`) y a través de la consola del operador (cuando la ventana de audiencia no esté abierta para evitar eco acústico), garantizando salida sonora sincronizada sin bloqueos por políticas de autoplay.
+* **RF-48 | Conmutador de Sonido y Control de Volumen (Mute / Unmute & Volume):** La aplicación debe proporcionar botones accesibles en la cabecera del monitor en vivo (`LIVE PROGRAM`), en el panel de transiciones y en el dock de medios para habilitar o silenciar el sonido de los videos en tiempo real, con soporte para atajo de teclado (`M`) y deslizador de volumen master (0% - 100%).
+
+
 

@@ -122,8 +122,8 @@
   <div id="bg-fallback"></div>
   
   <!-- Dual Layer Media for Smooth Crossfade Transitions (Video & Image Support) -->
-  <video id="bg-video-a" class="bg-media-layer" autoplay loop muted playsinline></video>
-  <video id="bg-video-b" class="bg-media-layer" autoplay loop muted playsinline></video>
+  <video id="bg-video-a" class="bg-media-layer" autoplay loop playsinline></video>
+  <video id="bg-video-b" class="bg-media-layer" autoplay loop playsinline></video>
   <img id="bg-img-a" class="bg-media-layer" style="display:none;" />
   <img id="bg-img-b" class="bg-media-layer" style="display:none;" />
   
@@ -227,6 +227,14 @@
 
       // 2. Video / Media Background Layer (Dual Layer Crossfade for Videos & Images)
       const mediaMode = state.mediaTransition || 'fade';
+      const isAudioMuted = !!state.isMediaAudioMuted;
+      const audioVolume = typeof state.mediaAudioVolume === 'number' ? state.mediaAudioVolume : 1.0;
+
+      // Real-time synchronization of audio mute state and volume on currently active video
+      bgVideoA.muted = isAudioMuted;
+      bgVideoB.muted = isAudioMuted;
+      bgVideoA.volume = audioVolume;
+      bgVideoB.volume = audioVolume;
 
       function isMediaImage(url, type = "") {
         if (type && type.startsWith('image/')) return true;
@@ -274,6 +282,8 @@
         } else {
           incomingMedia.video.src = currentVideoUrl;
           incomingMedia.video.currentTime = 0;
+          incomingMedia.video.muted = isAudioMuted;
+          incomingMedia.video.volume = audioVolume;
           incomingMedia.video.style.display = 'block';
           incomingMedia.img.style.display = 'none';
         }
@@ -301,9 +311,20 @@
         if (isImage) {
           performCrossfade();
         } else {
-          incomingMedia.video.play()
-            .then(() => performCrossfade())
-            .catch(() => performCrossfade());
+          const playPromise = incomingMedia.video.play();
+          if (playPromise !== undefined) {
+            playPromise
+              .then(() => performCrossfade())
+              .catch((err) => {
+                console.warn("[Audience] Autoplay with audio restricted, trying muted first:", err);
+                incomingMedia.video.muted = true;
+                incomingMedia.video.play()
+                  .then(() => performCrossfade())
+                  .catch(() => performCrossfade());
+              });
+          } else {
+            performCrossfade();
+          }
         }
       }
 
@@ -316,6 +337,28 @@
         ltBanner.classList.remove('active');
       }
     });
+
+    // Unmute on first user gesture if restricted by browser autoplay policy
+    ['click', 'keydown', 'touchstart'].forEach(evt => {
+      window.addEventListener(evt, () => {
+        if (!bgVideoA.dataset.manuallyMuted) {
+          bgVideoA.muted = false;
+        }
+        if (!bgVideoB.dataset.manuallyMuted) {
+          bgVideoB.muted = false;
+        }
+      }, { once: true });
+    });
+
+    // Announce Audience display presence
+    const sendAudiencePresence = (active) => {
+      try {
+        sync.channel.postMessage({ type: "AUDIENCE_PRESENCE", active });
+      } catch (e) {}
+    };
+    sendAudiencePresence(true);
+    window.addEventListener('beforeunload', () => sendAudiencePresence(false));
+    setInterval(() => sendAudiencePresence(true), 3000);
 
     sync.requestState();
   </script>

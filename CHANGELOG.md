@@ -6,7 +6,15 @@ For detailed release notes in Spanish, please see [NOTAS_DE_VERSION.md](./NOTAS_
 
 ---
 
+## [1.3.2] - 2026-10-12
+
+### Added
+- **Full Video Audio Playback & Output Routing:** Removed hardcoded muted attribute from audience and operator preview video layers; enabled Chromium `autoplay-policy: no-user-gesture-required` in Electron for unrestricted audio output.
+- **Master Audio Toggle & Volume Controls:** Direct audio toggle buttons (`🔊 Sonido ON` / `🔇 Silenciado`) in Live Program header, media dock header, and transitions panel, plus 0% - 100% volume slider and keyboard shortcut (`M`).
+- **Smart Dual-Screen Acoustic Echo Prevention:** Automatic detection of Audience display presence; mutes operator preview monitor when Audience display is active to prevent comb-filter echoes through computer sound devices while playing faithfully when rehearsing solo.
+
 ## [1.3.1] - 2026-10-11
+
 
 ### Added
 - **IndexedDB Persistent Media Cache Engine (`media-cache.js`):** Unlimited and unthrottled storage for media thumbnails and blobs in IndexedDB (`FreePresenterMediaDB`), preventing `localStorage` 5MB quota overflow.

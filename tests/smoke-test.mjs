@@ -222,6 +222,33 @@ test('RF-40: Creación de Show asignando plantilla e importando texto', () => {
 });
 
 // ----------------------------------------------------
+// SUITE 8: Control de Audio de Videos y Salida Sonora (RF-47 y RF-48)
+// ----------------------------------------------------
+console.log('\n▶️ Grupo 8: Control de Audio de Videos y Salida Sonora (RF-47 y RF-48)');
+test('RF-47/48: Conmutador de Audio (Mute/Unmute), Volumen y Persistencia', () => {
+  const store = new Store();
+  // Estado inicial: sonido habilitado por defecto (no silenciado) y volumen 1.0
+  if (store.state.isMediaAudioMuted !== false) throw new Error('El audio debe estar habilitado por defecto');
+  if (store.state.mediaAudioVolume !== 1.0) throw new Error('El volumen por defecto debe ser 1.0');
+
+  // Conmutar a silenciado
+  const isEnabled = store.toggleMediaAudio();
+  if (isEnabled !== false) throw new Error('toggleMediaAudio debe retornar false al silenciar');
+  if (store.state.isMediaAudioMuted !== true) throw new Error('isMediaAudioMuted debe ser true tras silenciar');
+  if (globalThis.localStorage.getItem('propresenter_media_audio_muted') !== 'true') throw new Error('propresenter_media_audio_muted no se guardó en localStorage');
+
+  // Ajustar volumen
+  store.setMediaAudioVolume(0.65);
+  if (store.state.mediaAudioVolume !== 0.65) throw new Error('El volumen no se actualizó');
+  if (globalThis.localStorage.getItem('propresenter_media_audio_volume') !== '0.65') throw new Error('El volumen no se guardó en localStorage');
+
+  // Reconmutar a sonido activo
+  store.setMediaAudioMuted(false);
+  if (store.state.isMediaAudioMuted !== false) throw new Error('isMediaAudioMuted no se restableció a false');
+});
+
+
+// ----------------------------------------------------
 // RESUMEN FINAL
 // ----------------------------------------------------
 console.log('\n====================================================');

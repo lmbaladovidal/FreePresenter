@@ -612,6 +612,101 @@ body {
   border-bottom: 1px solid var(--border-color);
 }
 
+.btn-monitor-sound {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.btn-monitor-sound:hover {
+  background: rgba(16, 185, 129, 0.28);
+  border-color: #34d399;
+}
+
+.btn-monitor-sound.muted {
+  border-color: rgba(239, 68, 68, 0.4);
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+}
+
+.btn-monitor-sound.muted:hover {
+  background: rgba(239, 68, 68, 0.28);
+  border-color: #f87171;
+}
+
+.btn-audio-pill {
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.btn-audio-pill:hover {
+  background: rgba(16, 185, 129, 0.3);
+}
+
+.btn-audio-pill.muted {
+  border-color: rgba(239, 68, 68, 0.4);
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+}
+
+.btn-audio-pill.muted:hover {
+  background: rgba(239, 68, 68, 0.3);
+}
+
+.btn-dock-audio {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.btn-dock-audio:hover {
+  background: rgba(16, 185, 129, 0.28);
+  border-color: #34d399;
+}
+
+.btn-dock-audio.muted {
+  border-color: rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+}
+
+.btn-dock-audio.muted:hover {
+  background: rgba(239, 68, 68, 0.28);
+  border-color: #f87171;
+}
+
+
 .monitor-screen {
   aspect-ratio: 16/9;
   background: #000;

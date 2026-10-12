@@ -314,6 +314,10 @@ export class Store {
       mediaTransition: getStorageItem("propresenter_media_trans") || "fade",
       fadeDuration: parseInt(getStorageItem("propresenter_fade_duration") || "250"),
 
+      // Audio Settings for Video Playback
+      isMediaAudioMuted: getStorageItem("propresenter_media_audio_muted") === "true",
+      mediaAudioVolume: getStorageItem("propresenter_media_audio_volume") !== null ? parseFloat(getStorageItem("propresenter_media_audio_volume")) : 1.0,
+
       // Scripture Settings
       scriptureMaxLines: parseInt(getStorageItem("propresenter_scripture_maxlines") || "2"),
       scriptureFont: getStorageItem("propresenter_scripture_font") || "Inter, sans-serif",
@@ -353,6 +357,9 @@ export class Store {
         }
       });
     }
+
+    // Provider for new windows requesting current state on launch
+    sync.setStateProvider(() => this.state);
   }
 
   get activeDeck() {
@@ -376,9 +383,31 @@ export class Store {
     setStorageItem("propresenter_text_trans", this.state.textTransition);
     setStorageItem("propresenter_media_trans", this.state.mediaTransition);
     setStorageItem("propresenter_fade_duration", this.state.fadeDuration);
+    setStorageItem("propresenter_media_audio_muted", String(this.state.isMediaAudioMuted));
+    setStorageItem("propresenter_media_audio_volume", String(this.state.mediaAudioVolume));
 
     // Transmit updated state to Audience and Stage displays via Broadcast & IPC
     sync.sendUpdate(this.state);
+  }
+
+  toggleMediaAudio() {
+    this.state.isMediaAudioMuted = !this.state.isMediaAudioMuted;
+    setStorageItem("propresenter_media_audio_muted", String(this.state.isMediaAudioMuted));
+    this.notify();
+    return !this.state.isMediaAudioMuted;
+  }
+
+  setMediaAudioMuted(muted) {
+    this.state.isMediaAudioMuted = !!muted;
+    setStorageItem("propresenter_media_audio_muted", String(this.state.isMediaAudioMuted));
+    this.notify();
+  }
+
+  setMediaAudioVolume(volume) {
+    const clamped = Math.max(0, Math.min(1, parseFloat(volume) || 0));
+    this.state.mediaAudioVolume = clamped;
+    setStorageItem("propresenter_media_audio_volume", String(clamped));
+    this.notify();
   }
 
   setTextTransition(mode) {

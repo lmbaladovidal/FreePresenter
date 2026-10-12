@@ -24,7 +24,7 @@
             <polygon points="5 3 19 12 5 21 5 3"></polygon>
           </svg>
           <span class="brand-name">FreePresenter <span style="color: var(--accent-pink)">AI</span></span>
-          <span class="brand-badge" id="app-brand-badge">PRO v1.3.1</span>
+          <span class="brand-badge" id="app-brand-badge">PRO v1.3.2</span>
         </div>
       </div>
 
@@ -138,8 +138,14 @@
         <!-- Live Output Preview Monitor Box -->
         <div class="monitor-box">
           <div class="monitor-header">
-            <span class="badge-live">LIVE PROGRAM</span>
-            <span style="font-size: 0.68rem; color: var(--text-muted)">AUDIENCE SCREEN</span>
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span class="badge-live">LIVE PROGRAM</span>
+              <span style="font-size: 0.68rem; color: var(--text-muted)">AUDIENCE SCREEN</span>
+            </div>
+            <button id="btn-toggle-video-sound" class="btn-monitor-sound" title="Habilitar/Silenciar Sonido de Videos (Mute/Unmute)">
+              <span id="monitor-sound-icon">🔊</span>
+              <span id="monitor-sound-text">Sonido ON</span>
+            </button>
           </div>
           
           <div class="monitor-screen" style="position: relative; overflow: hidden; aspect-ratio: 16/9; background: #000;">
@@ -192,6 +198,17 @@
               <div class="transition-slider-box">
                 <input type="range" id="input-fade-duration" min="100" max="1000" step="50" value="250">
                 <span id="val-fade-duration" class="transition-val-badge">250ms</span>
+              </div>
+            </div>
+            <div class="transition-row transition-slider-row">
+              <span class="transition-label">AUDIO:</span>
+              <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
+                <button id="btn-audio-mute-toggle" class="btn-audio-pill" title="Habilitar/Silenciar audio de video">
+                  <span id="audio-pill-icon">🔊</span>
+                  <span id="audio-pill-text">ON</span>
+                </button>
+                <input type="range" id="input-video-volume" min="0" max="100" step="5" value="100" style="flex: 1;" title="Volumen de video">
+                <span id="val-video-volume" class="transition-val-badge">100%</span>
               </div>
             </div>
           </div>
@@ -361,13 +378,18 @@
           <!-- 2. Pestaña MEDIA -->
           <div id="res-tab-media" class="res-tab-content">
             <div class="media-dock-header">
-              <button id="btn-open-media-modal" class="btn-create-show-dock" style="background: linear-gradient(135deg, var(--accent-cyan), #0284c7);">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                  <line x1="12" y1="5" x2="12" y2="19"></line>
-                  <line x1="5" y1="12" x2="19" y2="12"></line>
-                </svg>
-                + Cargar Video / Fondo
-              </button>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <button id="btn-open-media-modal" class="btn-create-show-dock" style="background: linear-gradient(135deg, var(--accent-cyan), #0284c7);">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                  </svg>
+                  + Cargar Video / Fondo
+                </button>
+                <button id="btn-dock-audio-toggle" class="btn-dock-audio" title="Habilitar/Silenciar audio de videos (Mute/Unmute)">
+                  <span id="dock-audio-icon">🔊</span> <span id="dock-audio-text">Audio: ON</span>
+                </button>
+              </div>
               <span id="dock-media-info" style="font-size: 0.72rem; color: var(--text-muted);">Carpeta: Todas</span>
             </div>
             <input type="file" id="input-video-file" accept="video/*,image/*" multiple style="display: none;" />

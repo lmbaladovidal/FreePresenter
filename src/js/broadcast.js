@@ -9,10 +9,17 @@ export class BroadcastSync {
     this.channel = new BroadcastChannel(CHANNEL_NAME);
     this.isOperator = isOperator;
     this.listeners = [];
+    this.audienceListeners = [];
+    this.stateProvider = null;
 
     this.channel.onmessage = (event) => {
-      if (event.data && event.data.type === "STATE_UPDATE") {
+      if (!event.data) return;
+      if (event.data.type === "STATE_UPDATE") {
         this.listeners.forEach(fn => fn(event.data.payload));
+      } else if (event.data.type === "REQUEST_STATE" && this.isOperator && this.stateProvider) {
+        this.sendUpdate(this.stateProvider());
+      } else if (event.data.type === "AUDIENCE_PRESENCE") {
+        this.audienceListeners.forEach(fn => fn(!!event.data.active));
       }
     };
 
@@ -23,6 +30,15 @@ export class BroadcastSync {
       });
     }
   }
+
+  setStateProvider(providerFn) {
+    this.stateProvider = providerFn;
+  }
+
+  onAudiencePresence(callback) {
+    this.audienceListeners.push(callback);
+  }
+
 
   // Operator sends state updates to all open displays
   sendUpdate(state) {

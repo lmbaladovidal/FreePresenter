@@ -10,6 +10,8 @@ app.commandLine.appendSwitch('ignore-gpu-blocklist');
 app.commandLine.appendSwitch('enable-gpu-rasterization');
 app.commandLine.appendSwitch('enable-zero-copy');
 app.commandLine.appendSwitch('enable-accelerated-video-decode');
+app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
+
 
 let mainWindow = null;
 let audienceWindow = null;
@@ -92,10 +94,18 @@ function openAudienceWindow() {
     audienceWindow.loadFile(path.join(__dirname, 'dist/audience.html'));
   }
 
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('audience-status-changed', true);
+  }
+
   audienceWindow.on('closed', () => {
     audienceWindow = null;
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('audience-status-changed', false);
+    }
   });
 }
+
 
 function openStageWindow() {
   if (stageWindow && !stageWindow.isDestroyed()) {
@@ -139,6 +149,7 @@ function openStageWindow() {
 // Electron IPC Events Handling
 ipcMain.on('open-audience-window', () => openAudienceWindow());
 ipcMain.on('open-stage-window', () => openStageWindow());
+ipcMain.handle('is-audience-open', () => !!(audienceWindow && !audienceWindow.isDestroyed()));
 
 ipcMain.on('window-minimize', () => mainWindow?.minimize());
 ipcMain.on('window-maximize', () => {
