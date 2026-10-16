@@ -1,18 +1,18 @@
 # 🧪 Protocolo y Plan de Smoke Test - ProPresenter AI Studio
 
-Este documento define el **Plan de Smoke Test** (Prueba de Humo) para verificar de forma rápida la estabilidad y funcionamiento de los 48 Requerimientos Funcionales (**RF-01 al RF-48**) de **ProPresenter AI Studio**.
+Este documento define el **Plan de Smoke Test** (Prueba de Humo) para verificar de forma rápida la estabilidad y funcionamiento de los 50 Requerimientos Funcionales (**RF-01 al RF-50**) de **ProPresenter AI Studio**.
 
 ---
 
 ## ⚡ 1. Ejecución de Pruebas Automatizadas
 
-El proyecto cuenta con un suite de pruebas automatizado que valida la integridad del estado, motor de transiciones, escrituras, live coder 2d, plantillas y motor de audio.
+El proyecto cuenta con un suite de pruebas automatizado que valida la integridad del estado, motor de transiciones, escrituras, live coder 2d, plantillas, motor de audio y motor de secciones.
 
 ```bash
 npm test
 ```
 
-> **Resultado Esperado:** `📊 RESULTADOS SMOKE TEST: 13/13 PRUEBAS EXITOSAS`
+> **Resultado Esperado:** `📊 RESULTADOS SMOKE TEST: 15/15 PRUEBAS EXITOSAS`
 
 ---
 
@@ -127,6 +127,14 @@ npm test
 | ID | Caso de Prueba | Pasos de Verificación | Resultado Esperado | Cobertura RF |
 | :--- | :--- | :--- | :--- | :--- |
 | **ST-40** | Reproducción y Mute de Audio de Videos | Proyectar un video con audio, conmutar botón `Sonido ON` / `Silenciado` (o presionar tecla `M`), ajustar slider de volumen. | El audio del video se reproduce con fidelidad en la salida; al silenciar se enmudece inmediatamente; el volumen escala fluidamente de 0% a 100% y el estado persiste. | RF-47, RF-48 |
+
+---
+
+### 🏷️ Módulo 14: Motor de Secciones de Canciones / Shows y Barra de Salto Rápido
+| ID | Caso de Prueba | Pasos de Verificación | Resultado Esperado | Cobertura RF |
+| :--- | :--- | :--- | :--- | :--- |
+| **ST-41** | Detección y Marcado de Secciones | Crear canción usando etiquetas `[Intro]`, `[Verso 1]`, `[Coro]`, `[Puente]` o usar chips de sección. Modificar sección haciendo clic en badge de tarjeta o menú contextual. | El texto se divide asignando nombres y badges de color correspondientes sin incluir las etiquetas en las letras de las filminas. El badge y nombre de sección se actualizan en vivo. | RF-49 |
+| **ST-42** | Barra de Salto a Secciones | Hacer clic en los botones de sección en la barra superior del dock (`#deck-sections-nav`). | La cuadrícula hace scroll suave a la sección elegida, resalta la filmina con un destello animado y proyecta de inmediato la primera filmina de la sección en vivo. | RF-50 |
 
 ---
 

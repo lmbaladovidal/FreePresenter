@@ -4,9 +4,24 @@ Este archivo registra el control de versiones, cambios granulares, mejoras y cor
 
 ---
 
-## 📌 Versión Actual: `v1.3.2` (Build 20261012.1)
+## 📌 Versión Actual: `v1.3.3` (Build 20261015.1)
 
 ### 🗓️ Registro de Cambios (Changelog Histórico)
+
+### [1.3.3] - 2026-10-15
+#### 🆕 Nuevas Funcionalidades & Mejoras
+- **🏷️ Motor de Secciones de Canciones / Shows (`SECTION_DEFINITIONS` & `parseAndSplitText`):**
+  - Reconocimiento automático de etiquetas de sección estándar (`[Intro]`, `[Verso 1]`, `[Pre-Coro]`, `[Coro]`, `[Puente]`, `[Instrumental]`, `[Final]`, `[Sermón]`) tanto al importar como al pegar letras.
+  - Eliminación automática de los encabezados de sección en el texto de las filminas, manteniendo la proyección limpia y libre de etiquetas técnicas para la audiencia.
+  - Chips rápidos en el modal de creación de show para insertar etiquetas con un solo clic (`+Intro`, `+Verso`, `+Pre-Coro`, `+Coro`, `+Puente`, `+Instrumental`, `+Final`).
+- **🚀 Barra Superior de Navegación y Salto Rápido a Secciones (`#deck-sections-nav`):**
+  - Barra horizontal interactiva sobre la cuadrícula de filminas (`.deck-sections-bar`) que lista todas las secciones de la canción activa con códigos de color e íconos distintivos y conteo de diapositivas.
+  - Salto instantáneo al hacer clic: realiza un scroll suave hacia la sección elegida, resalta la filmina con un destello animado y proyecta de inmediato la primera filmina de la sección en vivo.
+  - Indicador dinámico de sección en vivo (`active-live-section`) con pulso luminoso en tiempo real.
+- **🎨 Selector Interactivo de Sección por Diapositiva & Menú Contextual:**
+  - Píldoras de sección interactivas en el pie de cada tarjeta (`.slide-card-section-badge`) y opción "🏷️ Asignar Sección" en el menú contextual de clic derecho.
+  - Modal rápido de asignación de sección (`#modal-section-picker`) con opciones predefinidas, renombrado personalizado y división de sección a partir de cualquier filmina (`splitGroupAtSlide`).
+  - Integración del selector de sección en el modal de edición de filmina (`#modal-edit-slide`).
 
 ### [1.3.2] - 2026-10-12
 #### 🆕 Nuevas Funcionalidades & Correcciones

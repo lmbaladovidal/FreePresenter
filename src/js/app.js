@@ -156,7 +156,21 @@ class ProPresenterApp {
     this.btnSaveEditSlideConfirm = document.getElementById('btn-save-edit-slide-confirm');
     this.btnCloseEditSlideModal = document.getElementById('btn-close-edit-slide-modal');
     this.btnCancelEditSlide = document.getElementById('btn-cancel-edit-slide');
+    this.inputEditSlideSection = document.getElementById('input-edit-slide-section');
     this.pendingEditSlideTarget = null;
+
+    // Section Navigation & Picker Elements
+    this.deckSectionsNavEl = document.getElementById('deck-sections-nav');
+    this.modalSectionPicker = document.getElementById('modal-section-picker');
+    this.lblSectionPickerTarget = document.getElementById('lbl-section-picker-target');
+    this.inputCustomSectionName = document.getElementById('input-custom-section-name');
+    this.btnApplyCustomSection = document.getElementById('btn-apply-custom-section');
+    this.wrapperSectionSplitAction = document.getElementById('wrapper-section-split-action');
+    this.btnSplitAtSlide = document.getElementById('btn-split-at-slide');
+    this.btnCloseSectionPickerModal = document.getElementById('btn-close-section-picker-modal');
+    this.btnCancelSectionPicker = document.getElementById('btn-cancel-section-picker');
+    this.ctxActionSection = document.getElementById('ctx-action-section');
+    this.pendingSectionPickerTarget = null;
   }
 
   bindEvents() {
@@ -786,6 +800,15 @@ class ProPresenterApp {
       if (this.pendingEditSlideTarget && text !== undefined) {
         const { deckId, groupIndex, slideIndex } = this.pendingEditSlideTarget;
         store.updateSlideText(deckId, groupIndex, slideIndex, text, isTemp);
+
+        if (!isTemp && this.inputEditSlideSection) {
+          const parts = this.inputEditSlideSection.value.split('|');
+          const badge = parts[0];
+          const name = parts[1];
+          if (badge && name) {
+            store.setGroupSection(deckId, groupIndex, name, badge);
+          }
+        }
       }
       closeModalEditSlide();
     };
@@ -793,6 +816,64 @@ class ProPresenterApp {
     this.btnCloseEditSlideModal?.addEventListener('click', closeModalEditSlide);
     this.btnCancelEditSlide?.addEventListener('click', closeModalEditSlide);
     this.btnSaveEditSlideConfirm?.addEventListener('click', saveEditSlide);
+
+    // 8.c. Section Quick Chips in Create Show Modal
+    document.querySelectorAll('.btn-chip-section').forEach(chip => {
+      chip.addEventListener('click', () => {
+        const secTag = chip.getAttribute('data-sec');
+        if (!secTag || !this.inputShowText) return;
+
+        const curVal = this.inputShowText.value;
+        const start = this.inputShowText.selectionStart || curVal.length;
+        const end = this.inputShowText.selectionEnd || curVal.length;
+
+        const prefix = (start > 0 && curVal[start - 1] !== '\n') ? '\n\n' : '';
+        const insertText = `${prefix}${secTag}\n`;
+        this.inputShowText.value = curVal.substring(0, start) + insertText + curVal.substring(end);
+        this.inputShowText.focus();
+        const nextPos = start + insertText.length;
+        this.inputShowText.setSelectionRange(nextPos, nextPos);
+      });
+    });
+
+    // 8.d. Section Picker Modal Listeners
+    document.querySelectorAll('.btn-picker-section').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const badge = btn.getAttribute('data-badge');
+        const name = btn.getAttribute('data-name');
+        if (this.pendingSectionPickerTarget && badge && name) {
+          const { deckId, groupIndex } = this.pendingSectionPickerTarget;
+          store.setGroupSection(deckId, groupIndex, name, badge);
+        }
+        this.closeSectionPickerModal();
+      });
+    });
+
+    this.btnApplyCustomSection?.addEventListener('click', () => {
+      const customName = this.inputCustomSectionName?.value?.trim();
+      if (this.pendingSectionPickerTarget && customName) {
+        const { deckId, groupIndex, currentBadge } = this.pendingSectionPickerTarget;
+        store.setGroupSection(deckId, groupIndex, customName, currentBadge || 'badge-custom');
+      }
+      this.closeSectionPickerModal();
+    });
+
+    this.inputCustomSectionName?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        this.btnApplyCustomSection?.click();
+      }
+    });
+
+    this.btnSplitAtSlide?.addEventListener('click', () => {
+      if (this.pendingSectionPickerTarget) {
+        const { deckId, groupIndex, slideIndex } = this.pendingSectionPickerTarget;
+        store.splitGroupAtSlide(deckId, groupIndex, slideIndex, 'Coro', 'badge-chorus');
+      }
+      this.closeSectionPickerModal();
+    });
+
+    this.btnCloseSectionPickerModal?.addEventListener('click', () => this.closeSectionPickerModal());
+    this.btnCancelSectionPicker?.addEventListener('click', () => this.closeSectionPickerModal());
 
     // 9. Panel Tabs Switching
     document.querySelectorAll('.panel-tab').forEach(tab => {
@@ -997,6 +1078,9 @@ class ProPresenterApp {
       if (duplicateEl) duplicateEl.style.display = 'none';
     }
 
+    const sectionEl = document.getElementById('ctx-action-section');
+    if (sectionEl) sectionEl.style.display = target.type === 'slide' ? 'flex' : 'none';
+
     const menu = document.getElementById('custom-context-menu');
     if (!menu) return;
 
@@ -1088,6 +1172,23 @@ class ProPresenterApp {
         this.executeDeleteTarget(this.contextTarget);
       }
     });
+
+    document.getElementById('ctx-action-section')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const target = this.contextTarget;
+      this.hideContextMenu();
+      if (!target || target.type !== 'slide') return;
+      const activeDeck = store.decks.find(d => d.id === target.deckId) || store.activeDeck;
+      const groupObj = activeDeck?.groups[target.groupIndex];
+      this.openSectionPickerModal({
+        deckId: target.deckId,
+        groupIndex: target.groupIndex,
+        slideIndex: target.slideIndex,
+        currentName: groupObj?.name || 'Sección',
+        currentBadge: groupObj?.badge || 'badge-verse',
+        canSplit: (groupObj?.slides?.length || 0) > 1 && target.slideIndex > 0
+      });
+    });
   }
 
   openEditSlideModal(target) {
@@ -1096,14 +1197,74 @@ class ProPresenterApp {
     const modal = document.getElementById('modal-edit-slide');
     const lblTarget = document.getElementById('lbl-edit-slide-target');
     const inputArea = document.getElementById('input-edit-slide-text');
+    const inputSec = document.getElementById('input-edit-slide-section');
 
     if (lblTarget) lblTarget.textContent = target.name || 'Diapositiva';
     if (inputArea) inputArea.value = (target.text || '').replace(/<br\s*\/?>/gi, '\n');
+
+    if (inputSec) {
+      const activeDeck = store.decks.find(d => d.id === target.deckId) || store.activeDeck;
+      const group = activeDeck?.groups[target.groupIndex];
+      if (group) {
+        const matchingOpt = Array.from(inputSec.options).find(opt => opt.value.startsWith(group.badge) || opt.value.endsWith(`|${group.name}`));
+        if (matchingOpt) {
+          inputSec.value = matchingOpt.value;
+        } else {
+          inputSec.value = "badge-verse|Verso";
+        }
+      }
+    }
 
     const radioBase = document.querySelector('input[name="edit-slide-scope"][value="base"]');
     if (radioBase) radioBase.checked = true;
 
     if (modal) modal.classList.add('open');
+  }
+
+  openSectionPickerModal(target) {
+    if (!target) return;
+    this.pendingSectionPickerTarget = target;
+
+    if (this.lblSectionPickerTarget) {
+      this.lblSectionPickerTarget.textContent = `Filmina #${target.slideIndex + 1} • Sección actual: "${target.currentName || 'Estrofa'}"`;
+    }
+
+    if (this.inputCustomSectionName) {
+      this.inputCustomSectionName.value = target.currentName || '';
+    }
+
+    if (this.wrapperSectionSplitAction) {
+      this.wrapperSectionSplitAction.style.display = target.canSplit ? 'block' : 'none';
+    }
+
+    if (this.modalSectionPicker) {
+      this.modalSectionPicker.classList.add('open');
+    }
+  }
+
+  closeSectionPickerModal() {
+    if (this.modalSectionPicker) {
+      this.modalSectionPicker.classList.remove('open');
+    }
+    this.pendingSectionPickerTarget = null;
+  }
+
+  navigateToSection(groupIndex, focusOnly = false) {
+    const activeDeck = store.activeDeck;
+    if (!activeDeck || !activeDeck.groups[groupIndex]) return;
+
+    const targetCard = this.slideGroupsWrapper?.querySelector(`.slide-card[data-gidx="${groupIndex}"][data-sidx="0"]`);
+    if (targetCard) {
+      targetCard.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+      targetCard.classList.remove('section-target-highlight');
+      void targetCard.offsetWidth; // trigger reflow
+      targetCard.classList.add('section-target-highlight');
+      setTimeout(() => targetCard.classList.remove('section-target-highlight'), 1200);
+    }
+
+    if (!focusOnly) {
+      store.setLiveSlide(groupIndex, 0);
+    }
   }
 
   closeAllModals() {
@@ -2449,11 +2610,61 @@ class ProPresenterApp {
     this.renderScripture3ColView();
     this.populateScriptureSettingsForm();
 
-    // 3. Active Deck & Slide Cards
+    // 3. Active Deck, Sections Navigation Bar & Slide Cards
     const activeDeck = store.activeDeck;
     if (activeDeck) {
       this.activeDeckTitle.textContent = activeDeck.title;
       this.activeDeckCategory.textContent = `${activeDeck.category || activeDeck.type} • ${activeDeck.groups.length} Secciones`;
+
+      // Render Deck Sections Quick Navigation Bar
+      const sectionsNavEl = document.getElementById('deck-sections-nav');
+      if (sectionsNavEl) {
+        if (!activeDeck.groups || activeDeck.groups.length === 0) {
+          sectionsNavEl.innerHTML = `<span class="section-nav-empty">Sin secciones definidas en esta canción</span>`;
+        } else {
+          const liveGIdx = state.liveGroupIndex;
+          const sectionButtonsHTML = activeDeck.groups.map((group, gIdx) => {
+            const isGroupLive = liveGIdx === gIdx && !state.isTextCleared;
+            const badgeClass = group.badge || 'badge-verse';
+            const slideCount = group.slides?.length || 1;
+
+            let icon = '📖';
+            if (badgeClass.includes('intro')) icon = '🎵';
+            else if (badgeClass.includes('prechorus')) icon = '⚡';
+            else if (badgeClass.includes('chorus')) icon = '🔥';
+            else if (badgeClass.includes('bridge')) icon = '🌉';
+            else if (badgeClass.includes('instrumental')) icon = '🎸';
+            else if (badgeClass.includes('outro')) icon = '🏁';
+            else if (badgeClass.includes('sermon')) icon = '💬';
+
+            return `
+              <button type="button" class="btn-section-nav ${badgeClass} ${isGroupLive ? 'active-live-section' : ''}" data-gidx="${gIdx}" title="Saltar a ${group.name} (${slideCount} filminas)">
+                <span class="section-icon">${icon}</span>
+                <span class="section-title">${group.name}</span>
+                <span class="section-count">${slideCount}</span>
+                ${isGroupLive ? '<span class="section-live-dot" title="En Vivo">●</span>' : ''}
+              </button>
+            `;
+          }).join('');
+
+          sectionsNavEl.innerHTML = `
+            <span class="section-nav-label">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 6h16M4 12h16M4 18h7"/></svg>
+              SECCIONES:
+            </span>
+            <div class="section-nav-buttons-track">
+              ${sectionButtonsHTML}
+            </div>
+          `;
+
+          sectionsNavEl.querySelectorAll('.btn-section-nav').forEach(btn => {
+            btn.addEventListener('click', () => {
+              const gIdx = parseInt(btn.getAttribute('data-gidx'));
+              this.navigateToSection(gIdx);
+            });
+          });
+        }
+      }
 
       let globalIndex = 1;
       const allCardsHTML = activeDeck.groups.flatMap((group, gIdx) => {
@@ -2512,7 +2723,9 @@ class ProPresenterApp {
                 <div class="slide-card-text" style="${tplStyles}">${slide.text.replace(/\n/g, '<br/>')}</div>
               </div>
               <div class="slide-card-footer-line">
-                <span class="badge ${group.badge}">${group.name}</span>
+                <span class="badge ${group.badge} slide-card-section-badge" data-gidx="${gIdx}" data-sidx="${sIdx}" title="Clic para cambiar o asignar sección">
+                  ${group.name} ▾
+                </span>
               </div>
             </div>
           `;
@@ -2534,6 +2747,18 @@ class ProPresenterApp {
 
         card.addEventListener('click', () => {
           store.setLiveSlide(gIdx, sIdx);
+        });
+
+        card.querySelector('.slide-card-section-badge')?.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.openSectionPickerModal({
+            deckId: activeDeck.id,
+            groupIndex: gIdx,
+            slideIndex: sIdx,
+            currentName: groupObj.name,
+            currentBadge: groupObj.badge,
+            canSplit: (groupObj.slides?.length || 0) > 1 && sIdx > 0
+          });
         });
 
         card.addEventListener('dblclick', (e) => {

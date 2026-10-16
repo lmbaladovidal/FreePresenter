@@ -24,7 +24,7 @@
             <polygon points="5 3 19 12 5 21 5 3"></polygon>
           </svg>
           <span class="brand-name">FreePresenter <span style="color: var(--accent-pink)">AI</span></span>
-          <span class="brand-badge" id="app-brand-badge">PRO v1.3.2</span>
+          <span class="brand-badge" id="app-brand-badge">PRO v1.3.3</span>
         </div>
       </div>
 
@@ -124,6 +124,11 @@
             <button id="btn-prev-slide" class="btn-output">◀ Anterior</button>
             <button id="btn-next-slide" class="btn-output" style="background: var(--accent-blue); color: #fff; border: none; font-weight: 700;">Siguiente ▶</button>
           </div>
+        </div>
+
+        <!-- Barra de Navegación Rápida de Secciones -->
+        <div id="deck-sections-nav" class="deck-sections-bar">
+          <!-- Dynamically populated section buttons -->
         </div>
 
         <div class="slide-grid-container">
@@ -713,13 +718,24 @@
               </select>
             </div>
 
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; margin-bottom: 4px;">
+            <div class="section-quick-chips" style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; margin-bottom: 6px; align-items: center;">
+              <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700;">Etiquetas de Sección:</span>
+              <button type="button" class="btn-chip-section" data-sec="[Intro]" title="Insertar sección Intro">🎵 +Intro</button>
+              <button type="button" class="btn-chip-section" data-sec="[Verso 1]" title="Insertar sección Verso">📖 +Verso</button>
+              <button type="button" class="btn-chip-section" data-sec="[Pre-Coro]" title="Insertar sección Pre-Coro">⚡ +Pre-Coro</button>
+              <button type="button" class="btn-chip-section" data-sec="[Coro]" title="Insertar sección Coro">🔥 +Coro</button>
+              <button type="button" class="btn-chip-section" data-sec="[Puente]" title="Insertar sección Puente">🌉 +Puente</button>
+              <button type="button" class="btn-chip-section" data-sec="[Instrumental]" title="Insertar sección Instrumental">🎸 +Instrumental</button>
+              <button type="button" class="btn-chip-section" data-sec="[Final]" title="Insertar sección Final/Outro">🏁 +Final</button>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px; margin-bottom: 4px;">
               <label style="margin: 0;">Contenido de Diapositivas (separa estrofas dejando una línea en blanco):</label>
               <button type="button" id="btn-paste-clipboard" style="background: linear-gradient(135deg, var(--accent-cyan), #0284c7); color: #fff; border: none; padding: 4px 10px; border-radius: 4px; font-size: 0.73rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 4px;" title="Pegar automáticamente el texto copiado en el portapapeles">
                 📋 Pegar Portapapeles
               </button>
             </div>
-            <textarea id="input-show-text" placeholder="Estrofa 1:&#10;Línea uno del canto&#10;Línea dos del canto&#10;&#10;Coro:&#10;Línea del coro 1&#10;Línea del coro 2"></textarea>
+            <textarea id="input-show-text" placeholder="[Intro]&#10;Línea instrumental&#10;&#10;[Verso 1]&#10;Línea uno del canto&#10;Línea dos del canto&#10;&#10;[Coro]&#10;Línea del coro 1&#10;Línea del coro 2"></textarea>
           </div>
 
           <!-- Vista 2: Buscador Web de Letras -->
@@ -901,6 +917,19 @@
         </div>
         <div class="modal-body">
           <label id="lbl-edit-slide-target" style="font-weight: 700; color: var(--accent-cyan); font-size: 0.85rem; margin-bottom: 6px; display: block;">Sección / Filmina</label>
+          <div style="margin-bottom: 10px;">
+            <label style="font-weight: 700; font-size: 0.8rem; color: #cbd5e1; display: block; margin-bottom: 4px;">Sección de la Canción:</label>
+            <select id="input-edit-slide-section" style="background: var(--bg-darkest); border: 1px solid var(--border-color); color: #fff; padding: 6px 10px; border-radius: 6px; width: 100%; outline: none; font-size: 0.85rem;">
+              <option value="badge-intro|Intro">🎵 Intro</option>
+              <option value="badge-verse|Verso">📖 Verso / Estrofa</option>
+              <option value="badge-prechorus|Pre-Coro">⚡ Pre-Coro</option>
+              <option value="badge-chorus|Coro">🔥 Coro</option>
+              <option value="badge-bridge|Puente">🌉 Puente</option>
+              <option value="badge-instrumental|Instrumental">🎸 Instrumental</option>
+              <option value="badge-outro|Final">🏁 Final / Outro</option>
+              <option value="badge-sermon|Sermón">💬 Sermón / Notas</option>
+            </select>
+          </div>
           <label>Contenido del Texto:</label>
           <textarea id="input-edit-slide-text" rows="5" placeholder="Escribe el texto de la diapositiva..." style="width: 100%; font-size: 0.95rem; line-height: 1.4; padding: 10px; background: var(--bg-darkest); border: 1px solid var(--border-color); color: #fff; border-radius: 6px; outline: none; resize: vertical; margin-bottom: 12px;"></textarea>
           
@@ -999,6 +1028,14 @@
       <span id="ctx-action-duplicate-label">Duplicar Elemento</span>
     </div>
 
+    <div id="ctx-action-section" class="context-menu-item" style="display: none;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+        <line x1="7" y1="7" x2="7.01" y2="7"></line>
+      </svg>
+      <span id="ctx-action-section-label">🏷️ Asignar Sección</span>
+    </div>
+
     <div class="context-menu-divider"></div>
 
     <div id="ctx-item-delete" class="context-menu-item item-danger">
@@ -1008,6 +1045,82 @@
       </svg>
       <span id="ctx-item-label">Eliminar Elemento</span>
       <span class="context-menu-shortcut">Supr</span>
+    </div>
+  </div>
+
+  <!-- Modal para Asignar / Cambiar Sección de Diapositiva -->
+  <div id="modal-section-picker" class="modal-overlay">
+    <div class="modal-card" style="max-width: 480px;">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 1.2rem;">🏷️</span>
+          <div>
+            <h3 style="margin: 0; font-size: 1.05rem;">Asignar Sección a la Diapositiva</h3>
+            <p id="lbl-section-picker-target" style="font-size: 0.75rem; color: var(--text-muted); margin: 2px 0 0 0;">Filmina actual: Estrofa 1</p>
+          </div>
+        </div>
+        <button id="btn-close-section-picker-modal" class="modal-close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <label style="font-weight: 700; font-size: 0.8rem; color: #cbd5e1; display: block; margin-bottom: 8px;">
+          Selecciona el tipo de sección:
+        </label>
+        <div class="section-picker-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 12px;">
+          <button type="button" class="btn-picker-section" data-badge="badge-intro" data-name="Intro">
+            <span class="sec-dot" style="background: #0284c7;"></span>
+            <span>🎵 Intro</span>
+          </button>
+          <button type="button" class="btn-picker-section" data-badge="badge-verse" data-name="Verso">
+            <span class="sec-dot" style="background: #2563eb;"></span>
+            <span>📖 Verso / Estrofa</span>
+          </button>
+          <button type="button" class="btn-picker-section" data-badge="badge-prechorus" data-name="Pre-Coro">
+            <span class="sec-dot" style="background: #db2777;"></span>
+            <span>⚡ Pre-Coro</span>
+          </button>
+          <button type="button" class="btn-picker-section" data-badge="badge-chorus" data-name="Coro">
+            <span class="sec-dot" style="background: #7c3aed;"></span>
+            <span>🔥 Coro</span>
+          </button>
+          <button type="button" class="btn-picker-section" data-badge="badge-bridge" data-name="Puente">
+            <span class="sec-dot" style="background: #d97706;"></span>
+            <span>🌉 Puente</span>
+          </button>
+          <button type="button" class="btn-picker-section" data-badge="badge-instrumental" data-name="Instrumental">
+            <span class="sec-dot" style="background: #0d9488;"></span>
+            <span>🎸 Instrumental</span>
+          </button>
+          <button type="button" class="btn-picker-section" data-badge="badge-outro" data-name="Final">
+            <span class="sec-dot" style="background: #e11d48;"></span>
+            <span>🏁 Final / Outro</span>
+          </button>
+          <button type="button" class="btn-picker-section" data-badge="badge-sermon" data-name="Sermón">
+            <span class="sec-dot" style="background: #059669;"></span>
+            <span>💬 Sermón / Notas</span>
+          </button>
+        </div>
+
+        <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; margin-bottom: 12px;">
+          <label style="font-weight: 700; font-size: 0.78rem; color: #cbd5e1; display: block; margin-bottom: 4px;">Nombre personalizado o numeración:</label>
+          <div style="display: flex; gap: 8px;">
+            <input type="text" id="input-custom-section-name" placeholder="Ej: Coro 2, Estrofa 3, Solo Saxo..." style="flex: 1; padding: 6px 10px; font-size: 0.85rem; background: var(--bg-darkest); border: 1px solid var(--border-color); border-radius: 6px; color: #fff; outline: none;" />
+            <button type="button" id="btn-apply-custom-section" class="btn-modal-save" style="font-size: 0.8rem; padding: 6px 14px; white-space: nowrap;">Aplicar</button>
+          </div>
+        </div>
+
+        <div id="wrapper-section-split-action" style="display: none; background: rgba(14, 165, 233, 0.08); border: 1px dashed var(--accent-cyan); border-radius: 8px; padding: 10px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <strong style="font-size: 0.82rem; color: var(--accent-cyan);">✂️ Dividir sección a partir de esta filmina</strong>
+              <p style="font-size: 0.72rem; color: #94a3b8; margin: 2px 0 0 0;">Crea una nueva sección independiente a partir de esta diapositiva.</p>
+            </div>
+            <button type="button" id="btn-split-at-slide" class="btn-output" style="background: var(--accent-cyan); color: #000; font-weight: 700; font-size: 0.75rem; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; white-space: nowrap;">Dividir Aquí</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" id="btn-cancel-section-picker" class="btn-modal-cancel">Cerrar</button>
+      </div>
     </div>
   </div>
 </body>

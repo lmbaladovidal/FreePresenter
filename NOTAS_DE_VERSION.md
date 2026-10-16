@@ -4,6 +4,29 @@ Todas las novedades, mejoras y correcciones de errores importantes de **ProPrese
 
 ---
 
+## 🚀 Versión 1.3.3 (Motor de Secciones de Canciones / Shows y Barra de Salto Rápido) — *15 de Octubre, 2026*
+
+Esta versión introduce el soporte nativo integral para **Secciones de Canciones y Shows** (Intro, Verso, Pre-Coro, Coro, Puente, Instrumental, Outro/Final y Sermón), permitiendo etiquetar, dividir, reorganizar y saltar instantáneamente entre secciones durante eventos en vivo con un solo clic.
+
+### ✨ Novedades y Funcionalidades
+
+#### 🏷️ Detección Inteligente y Marcado de Secciones
+- **Reconocimiento Automático de Encabezados:** Al pegar o importar letras con etiquetas como `[Intro]`, `[Verso 1]`, `[Coro]`, `[Puente]`, `Coro:`, etc., el sistema las detecta y clasifica automáticamente.
+- **Proyección de Letras Limpias:** El encabezado de sección se elimina automáticamente del contenido de la diapositiva, garantizando que en las pantallas del público y de transmisión solo se muestre la letra de adoración limpia.
+- **Chips Rápidos de Inserción:** En el modal de creación de canciones, una hilera de botones de un solo clic permite insertar marcas como `+Intro`, `+Verso`, `+Pre-Coro`, `+Coro`, `+Puente`, `+Instrumental` y `+Final`.
+
+#### 🚀 Barra Superior de Navegación Rápida a Secciones (`#deck-sections-nav`)
+- **Dock de Salto en Vivo:** Una elegante barra horizontal compacta ubicada directamente arriba de las diapositivas muestra las secciones de la canción activa con códigos de color e íconos.
+- **Salto y Proyección Instantánea:** Al presionar un botón de sección (ej. `🔥 Coro (2)`), la cuadrícula hace scroll suave hacia dicha sección, resalta la tarjeta con un destello animado y proyecta de inmediato su primera diapositiva en vivo.
+- **Indicador de Sección en Vivo:** La sección activa emite un pulso visual (`active-live-section`) para que el operador sepa en todo momento en qué parte de la canción se encuentra el equipo de alabanza.
+
+#### 🎨 Selector Interactivo y División de Secciones
+- **Píldora Clickeable en Tarjeta:** Cada diapositiva cuenta con su badge de sección interactivo (`slide-card-section-badge`) en el pie de la tarjeta para cambiar su sección al instante.
+- **Menú Contextual:** Opción de clic derecho "🏷️ Asignar Sección" en cualquier diapositiva.
+- **Modal de Selección y División (`#modal-section-picker`):** Permite elegir entre secciones predefinidas, ingresar un nombre personalizado o dividir un bloque de diapositivas en dos secciones independientes.
+
+---
+
 ## 🚀 Versión 1.3.2 (Reproducción de Audio en Videos, Conmutador Mute/Unmute y Control de Volumen) — *12 de Octubre, 2026*
 
 Esta versión habilita la salida sonora completa en la reproducción de videos, incorporando botones de control interactivo para silenciar o habilitar el sonido (`Mute/Unmute`), un control deslizante de volumen master, atajo de teclado dedicado (`M`) y un sistema inteligente de prevención de eco acústico multipantalla.

@@ -247,6 +247,76 @@ test('RF-47/48: Conmutador de Audio (Mute/Unmute), Volumen y Persistencia', () =
   if (store.state.isMediaAudioMuted !== false) throw new Error('isMediaAudioMuted no se restableció a false');
 });
 
+// ----------------------------------------------------
+// SUITE 9: Motor de Secciones de Canciones & Navegación (RF-49 y RF-50)
+// ----------------------------------------------------
+console.log('\n▶️ Grupo 9: Motor de Secciones de Canciones & Navegación (RF-49 y RF-50)');
+test('RF-49: Detección inteligente de etiquetas de sección y limpieza de lyrics', () => {
+  const songWithTags = `[Intro]
+Piano y guitarras
+
+[Verso 1]
+Señor mi Dios al contemplar los cielos
+El firmamento y las estrellas mil
+
+[Coro]
+Mi corazón entona la canción
+Cuan grande es Él
+
+[Puente]
+Y cuando pienso que en la cruz murió
+Por mí pecador
+
+[Final]
+Grande es tu fidelidad`;
+
+  const groups = parseAndSplitText(songWithTags, 'paragraph', 0);
+  if (groups.length !== 5) throw new Error(`Se esperaban 5 grupos/secciones, se obtuvieron ${groups.length}`);
+
+  // Verificar Intro
+  if (groups[0].name !== 'Intro' || groups[0].badge !== 'badge-intro') throw new Error('Intro no detectado correctamente');
+  if (groups[0].slides[0].text !== 'Piano y guitarras') throw new Error('El encabezado [Intro] no fue extraído del texto de la filmina');
+
+  // Verificar Verso 1
+  if (groups[1].name !== 'Verso 1' || groups[1].badge !== 'badge-verse') throw new Error('Verso 1 no detectado');
+  if (groups[1].slides[0].text.includes('[Verso 1]')) throw new Error('[Verso 1] aún presente en el slide');
+
+  // Verificar Coro
+  if (groups[2].name !== 'Coro' || groups[2].badge !== 'badge-chorus') throw new Error('Coro no detectado');
+
+  // Verificar Puente
+  if (groups[3].name !== 'Puente' || groups[3].badge !== 'badge-bridge') throw new Error('Puente no detectado');
+
+  // Verificar Final/Outro
+  if (groups[4].name !== 'Final' || groups[4].badge !== 'badge-outro') throw new Error('Final no detectado');
+});
+
+test('RF-49/50: Marcado dinámico, asignación de secciones y salto a sección', () => {
+  const store = new Store();
+  const testDeck = store.createNewShow("Canción Secciones Test", "Alabanza", "Estrofa inicial 1\nEstrofa inicial 2\n\nSegunda parte 1\nSegunda parte 2");
+
+  if (!testDeck || testDeck.groups.length !== 2) throw new Error('No se crearon los grupos base');
+
+  // Modificar sección del grupo 1 a Coro
+  store.setGroupSection(testDeck.id, 1, 'Coro Principal', 'badge-chorus');
+  if (testDeck.groups[1].name !== 'Coro Principal' || testDeck.groups[1].badge !== 'badge-chorus') {
+    throw new Error('setGroupSection no actualizó el nombre o badge');
+  }
+
+  // Dividir grupo 0 en filmina 1 para crear una sección de Puente si tiene más de 1 filmina
+  // (creamos un grupo con 2 filminas para probar splitGroupAtSlide)
+  testDeck.groups[0].slides.push({ id: 'test-split-slide', text: 'Slide para dividir' });
+  store.splitGroupAtSlide(testDeck.id, 0, 1, 'Puente Especial', 'badge-bridge');
+  if (testDeck.groups.length !== 3) throw new Error('splitGroupAtSlide no creó el nuevo grupo');
+  if (testDeck.groups[1].name !== 'Puente Especial') throw new Error('El grupo dividido no tiene el nombre correcto');
+
+  // Salto y activación de filmina en sección
+  store.setLiveSlide(1, 0);
+  if (store.state.liveGroupIndex !== 1 || store.state.liveSlideIndex !== 0) {
+    throw new Error('No se activó la filmina en vivo de la sección seleccionada');
+  }
+});
+
 
 // ----------------------------------------------------
 // RESUMEN FINAL

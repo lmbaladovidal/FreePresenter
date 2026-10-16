@@ -1,35 +1,90 @@
 import { sync } from './broadcast.js';
 import { MediaCache } from './media-cache.js';
 
+export const SECTION_DEFINITIONS = [
+  { id: 'intro', name: 'Intro', badge: 'badge-intro', icon: '🎵', regex: /^\s*\[?(?:intro|introducci[oó]n)\]?:?\s*$/i },
+  { id: 'verse', name: 'Verso', badge: 'badge-verse', icon: '📖', regex: /^\s*\[?(?:verso|estrofa)\s*(\d*)\]?:?\s*$/i },
+  { id: 'prechorus', name: 'Pre-Coro', badge: 'badge-prechorus', icon: '⚡', regex: /^\s*\[?(?:pre-?coro|pre-?chorus)\]?:?\s*$/i },
+  { id: 'chorus', name: 'Coro', badge: 'badge-chorus', icon: '🔥', regex: /^\s*\[?(?:coro|chorus)\s*(\d*)\]?:?\s*$/i },
+  { id: 'bridge', name: 'Puente', badge: 'badge-bridge', icon: '🌉', regex: /^\s*\[?(?:puente|bridge)\s*(\d*)\]?:?\s*$/i },
+  { id: 'instrumental', name: 'Instrumental', badge: 'badge-instrumental', icon: '🎸', regex: /^\s*\[?(?:instrumental|solo)\s*(\d*)\]?:?\s*$/i },
+  { id: 'outro', name: 'Final', badge: 'badge-outro', icon: '🏁', regex: /^\s*\[?(?:outro|final|coda)\]?:?\s*$/i },
+  { id: 'sermon', name: 'Sermón', badge: 'badge-sermon', icon: '💬', regex: /^\s*\[?(?:serm[oó]n|puntos)\]?:?\s*$/i }
+];
+
 export function parseAndSplitText(rawText, splitMode = 'paragraph', maxLines = 0) {
   if (!rawText || !rawText.trim()) return [];
 
   const paragraphs = rawText.split(/\n\s*\n/).filter(p => p.trim());
 
   const groups = paragraphs.map((p, idx) => {
-    const textBlock = p.trim();
+    let textBlock = p.trim();
     let badge = "badge-verse";
     let name = `Estrofa ${idx + 1}`;
 
-    const lower = textBlock.toLowerCase();
-    if (lower.startsWith("coro") || lower.includes("chorus")) {
-      badge = "badge-chorus";
-      name = "Coro";
-    } else if (lower.startsWith("puente") || lower.includes("bridge")) {
-      badge = "badge-bridge";
-      name = "Puente";
-    } else if (lower.startsWith("sermon") || lower.includes("puntos")) {
-      badge = "badge-sermon";
-      name = "Sermón";
-    } else if (lower.startsWith("intro")) {
-      badge = "badge-intro";
-      name = "Intro";
-    } else if (lower.startsWith("outro") || lower.includes("final")) {
-      badge = "badge-outro";
-      name = "Final";
+    let rawLines = textBlock.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+    if (rawLines.length === 0) return null;
+
+    // 1. Check if first line is an explicit section tag like [Coro], [Verso 2], Coro:, etc.
+    const firstLine = rawLines[0];
+    let matchedDef = null;
+
+    for (const def of SECTION_DEFINITIONS) {
+      if (def.regex.test(firstLine)) {
+        matchedDef = def;
+        break;
+      }
     }
 
-    const rawLines = textBlock.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+    if (matchedDef) {
+      badge = matchedDef.badge;
+      const cleanName = firstLine.replace(/[\[\]:]/g, '').trim();
+      name = cleanName || matchedDef.name;
+
+      if (rawLines.length > 1) {
+        rawLines.shift();
+        textBlock = rawLines.join('\n');
+      }
+    } else {
+      // 2. Check if first line starts with an inline prefix e.g. "Coro: Al contemplar..."
+      const colonMatch = firstLine.match(/^(?:\[?(intro|verso\s*\d*|estrofa\s*\d*|pre-?coro|coro|chorus|puente|bridge|instrumental|outro|final|serm[oó]n)\]?)\s*:\s*(.+)$/i);
+      if (colonMatch) {
+        const secTag = colonMatch[1].toLowerCase();
+        const remainingFirstLine = colonMatch[2].trim();
+        for (const def of SECTION_DEFINITIONS) {
+          if (def.regex.test(secTag)) {
+            matchedDef = def;
+            badge = def.badge;
+            name = colonMatch[1].trim();
+            rawLines[0] = remainingFirstLine;
+            textBlock = rawLines.join('\n');
+            break;
+          }
+        }
+      }
+    }
+
+    // 3. Fallback heuristic keyword detection if not yet matched
+    if (!matchedDef) {
+      const lower = textBlock.toLowerCase();
+      if (lower.startsWith("coro") || lower.includes("chorus")) {
+        badge = "badge-chorus";
+        name = "Coro";
+      } else if (lower.startsWith("puente") || lower.includes("bridge")) {
+        badge = "badge-bridge";
+        name = "Puente";
+      } else if (lower.startsWith("sermon") || lower.includes("puntos")) {
+        badge = "badge-sermon";
+        name = "Sermón";
+      } else if (lower.startsWith("intro")) {
+        badge = "badge-intro";
+        name = "Intro";
+      } else if (lower.startsWith("outro") || lower.includes("final")) {
+        badge = "badge-outro";
+        name = "Final";
+      }
+    }
+
     let slides = [];
 
     if (splitMode === 'lines') {
@@ -63,7 +118,7 @@ export function parseAndSplitText(rawText, splitMode = 'paragraph', maxLines = 0
       badge,
       slides: slides.length > 0 ? slides : [{ id: `slide-${Date.now()}-${idx}-0`, text: textBlock }]
     };
-  });
+  }).filter(Boolean);
 
   return groups;
 }
@@ -757,6 +812,35 @@ export class Store {
         this.state.liveText = newText;
       }
     }
+    this.notify();
+  }
+
+  setGroupSection(deckId, groupIndex, sectionName, sectionBadge) {
+    const deck = this.decks.find(d => d.id === deckId);
+    if (!deck || !deck.groups[groupIndex]) return;
+
+    deck.groups[groupIndex].name = sectionName;
+    if (sectionBadge) {
+      deck.groups[groupIndex].badge = sectionBadge;
+    }
+    this.notify();
+  }
+
+  splitGroupAtSlide(deckId, groupIndex, slideIndex, newSectionName = 'Coro', newSectionBadge = 'badge-chorus') {
+    const deck = this.decks.find(d => d.id === deckId);
+    if (!deck || !deck.groups[groupIndex]) return;
+
+    const group = deck.groups[groupIndex];
+    if (slideIndex <= 0 || slideIndex >= group.slides.length) return;
+
+    const remainingSlides = group.slides.splice(slideIndex);
+    const newGroup = {
+      name: newSectionName,
+      badge: newSectionBadge,
+      slides: remainingSlides
+    };
+
+    deck.groups.splice(groupIndex + 1, 0, newGroup);
     this.notify();
   }
 

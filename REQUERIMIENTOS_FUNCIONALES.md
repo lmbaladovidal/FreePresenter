@@ -119,5 +119,12 @@ Este documento especifica todos los **Requerimientos Funcionales (RF)** de **Pro
 * **RF-47 | Reproducción Sonora de Videos:** La aplicación debe reproducir el audio de los videos proyectados a través de la pantalla de Audiencia (`audience.html`) y a través de la consola del operador (cuando la ventana de audiencia no esté abierta para evitar eco acústico), garantizando salida sonora sincronizada sin bloqueos por políticas de autoplay.
 * **RF-48 | Conmutador de Sonido y Control de Volumen (Mute / Unmute & Volume):** La aplicación debe proporcionar botones accesibles en la cabecera del monitor en vivo (`LIVE PROGRAM`), en el panel de transiciones y en el dock de medios para habilitar o silenciar el sonido de los videos en tiempo real, con soporte para atajo de teclado (`M`) y deslizador de volumen master (0% - 100%).
 
+---
+
+## 🏷️ 14. Motor de Secciones de Canciones / Shows y Barra de Salto Rápido
+
+* **RF-49 | Detección Inteligente y Marcado de Secciones de Canción:** La aplicación debe reconocer automáticamente etiquetas de sección (`[Intro]`, `[Verso 1]`, `[Pre-Coro]`, `[Coro]`, `[Puente]`, `[Instrumental]`, `[Final]`, `[Sermón]`) tanto al importar o pegar letras como al crearlas manualmente, eliminando automáticamente los encabezados de los textos proyectados en pantalla y permitiendo asignar o reasignar secciones dinámicamente mediante chips rápidos, menú contextual o selector en la tarjeta de filmina.
+* **RF-50 | Barra Superior de Navegación y Salto Rápido a Secciones:** La aplicación debe renderizar una barra horizontal interactiva (`#deck-sections-nav`) ubicada directamente arriba de la cuadrícula de filminas, mostrando botones codificados por color con el nombre y conteo de diapositivas de cada sección; al presionar cualquier botón de sección, el sistema debe realizar un scroll suave hacia dicha sección, resaltar la tarjeta con un destello animado y proyectar de inmediato su primera diapositiva en vivo.
+
 
 

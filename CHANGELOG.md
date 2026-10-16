@@ -6,6 +6,13 @@ For detailed release notes in Spanish, please see [NOTAS_DE_VERSION.md](./NOTAS_
 
 ---
 
+## [1.3.3] - 2026-10-15
+
+### Added
+- **Song & Show Sections Engine (`SECTION_DEFINITIONS` & `parseAndSplitText`):** Automatic recognition of standard section tags (`[Intro]`, `[Verso 1]`, `[Pre-Coro]`, `[Coro]`, `[Puente]`, `[Instrumental]`, `[Final]`, `[Sermón]`) and automatic strip of section headers from displayed lyrics.
+- **Top Quick Jump Sections Navigation Bar (`#deck-sections-nav`):** Color-coded and icon-adorned horizontal section buttons dock above the slide grid, allowing instant jump, smooth scroll, pulse focus, and immediate live projection of any song section.
+- **Interactive Section Badges & Picker Modal (`#modal-section-picker`):** Interactive pills in slide cards, right-click context menu "🏷️ Asignar Sección", custom renaming, section splitting (`splitGroupAtSlide`), and quick insertion chips in the show creation modal.
+
 ## [1.3.2] - 2026-10-12
 
 ### Added
