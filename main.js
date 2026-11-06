@@ -4,11 +4,11 @@
  */
 const { app, BrowserWindow, ipcMain, dialog, screen } = require('electron');
 const path = require('path');
+const fs = require('fs');
 
 // Optimize Chromium GPU Hardware Acceleration & Video Decoding Performance
 app.commandLine.appendSwitch('ignore-gpu-blocklist');
 app.commandLine.appendSwitch('enable-gpu-rasterization');
-app.commandLine.appendSwitch('enable-zero-copy');
 app.commandLine.appendSwitch('enable-accelerated-video-decode');
 app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
 
@@ -44,8 +44,13 @@ function createMainWindow() {
 
   mainWindow.maximize();
 
+  let usingLocalDist = !isDev;
+
   if (isDev) {
-    mainWindow.loadURL(DEV_URL);
+    mainWindow.loadURL(DEV_URL).catch(() => {
+      usingLocalDist = true;
+      mainWindow.loadFile(path.join(__dirname, 'dist/index.html'));
+    });
   } else {
     mainWindow.loadFile(path.join(__dirname, 'dist/index.html'));
   }
@@ -89,7 +94,9 @@ function openAudienceWindow() {
   audienceWindow.maximize();
 
   if (isDev) {
-    audienceWindow.loadURL(`${DEV_URL}/audience.html`);
+    audienceWindow.loadURL(`${DEV_URL}/audience.html`).catch(() => {
+      audienceWindow.loadFile(path.join(__dirname, 'dist/audience.html'));
+    });
   } else {
     audienceWindow.loadFile(path.join(__dirname, 'dist/audience.html'));
   }
@@ -136,7 +143,9 @@ function openStageWindow() {
   });
 
   if (isDev) {
-    stageWindow.loadURL(`${DEV_URL}/stage.html`);
+    stageWindow.loadURL(`${DEV_URL}/stage.html`).catch(() => {
+      stageWindow.loadFile(path.join(__dirname, 'dist/stage.html'));
+    });
   } else {
     stageWindow.loadFile(path.join(__dirname, 'dist/stage.html'));
   }
@@ -150,6 +159,14 @@ function openStageWindow() {
 ipcMain.on('open-audience-window', () => openAudienceWindow());
 ipcMain.on('open-stage-window', () => openStageWindow());
 ipcMain.handle('is-audience-open', () => !!(audienceWindow && !audienceWindow.isDestroyed()));
+
+ipcMain.on('focus-main-window', () => {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.focus();
+    mainWindow.webContents.focus();
+  }
+});
 
 ipcMain.on('window-minimize', () => mainWindow?.minimize());
 ipcMain.on('window-maximize', () => {
@@ -191,6 +208,161 @@ ipcMain.handle('select-media-files', async () => {
       url: `file:///${filePath.replace(/\\/g, '/')}`
     };
   });
+});
+
+// Physical Disk Folders Real-Time Watching & Synchronization
+const MEDIA_EXT_REGEX = /\.(mp4|webm|mov|avi|mkv|png|jpg|jpeg|gif|webp|svg|bmp)$/i;
+const IMAGE_EXT_REGEX = /\.(png|jpg|jpeg|gif|webp|svg|bmp)$/i;
+const physicalFolderWatchers = new Map();
+
+function scanPhysicalFolder(folderPath) {
+  try {
+    if (!folderPath || !fs.existsSync(folderPath)) return [];
+    const entries = fs.readdirSync(folderPath, { withFileTypes: true });
+    const files = [];
+    for (const entry of entries) {
+      if (entry.isFile() && MEDIA_EXT_REGEX.test(entry.name)) {
+        const fullPath = path.join(folderPath, entry.name);
+        const isImg = IMAGE_EXT_REGEX.test(entry.name);
+        files.push({
+          name: entry.name,
+          filePath: fullPath,
+          url: `file:///${fullPath.replace(/\\/g, '/')}`,
+          type: isImg ? 'image/png' : 'video/mp4'
+        });
+      }
+    }
+    files.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
+    return files;
+  } catch (err) {
+    console.warn('[PhysicalFolder] Error scanning folder:', folderPath, err.message);
+    return [];
+  }
+}
+
+function unwatchPhysicalFolder(folderPath) {
+  const existing = physicalFolderWatchers.get(folderPath);
+  if (existing) {
+    if (existing.watcher) {
+      try { existing.watcher.close(); } catch (e) { }
+    }
+    if (existing.debounceTimer) {
+      clearTimeout(existing.debounceTimer);
+    }
+    if (existing.pollInterval) {
+      clearInterval(existing.pollInterval);
+    }
+    physicalFolderWatchers.delete(folderPath);
+  }
+}
+
+function watchPhysicalFolder(folderPath) {
+  if (!folderPath || !fs.existsSync(folderPath)) return [];
+  unwatchPhysicalFolder(folderPath);
+
+  const folderName = path.basename(folderPath) || folderPath;
+  let lastFilesSignature = '';
+
+  const emitIfChanged = (force = false) => {
+    const files = scanPhysicalFolder(folderPath);
+    const sig = files.map(f => f.name).join('|');
+    if (force || sig !== lastFilesSignature) {
+      lastFilesSignature = sig;
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('physical-folder-updated', {
+          path: folderPath,
+          name: folderName,
+          folderPath,
+          folderName,
+          files
+        });
+      }
+    }
+    return files;
+  };
+
+  const initialFiles = scanPhysicalFolder(folderPath);
+  lastFilesSignature = initialFiles.map(f => f.name).join('|');
+
+  let watcher = null;
+  const record = { watcher: null, debounceTimer: null, pollInterval: null };
+
+  try {
+    watcher = fs.watch(folderPath, { persistent: false }, () => {
+      if (record.debounceTimer) clearTimeout(record.debounceTimer);
+      record.debounceTimer = setTimeout(() => {
+        emitIfChanged(false);
+      }, 280);
+    });
+    watcher.on('error', () => { });
+    record.watcher = watcher;
+  } catch (e) {
+    console.warn('[PhysicalFolder] fs.watch fallback to polling for:', folderPath);
+  }
+
+  // Lightweight polling backup so external drives / bulk copy operations never miss an update
+  record.pollInterval = setInterval(() => {
+    emitIfChanged(false);
+  }, 3000);
+
+  physicalFolderWatchers.set(folderPath, record);
+  return initialFiles;
+}
+
+ipcMain.handle('select-physical-folder', async () => {
+  if (!mainWindow) return null;
+  const result = await dialog.showOpenDialog(mainWindow, {
+    title: "Vincular Carpeta Física de Medios (Actualización en Tiempo Real)",
+    properties: ['openDirectory']
+  });
+
+  if (result.canceled || !result.filePaths || result.filePaths.length === 0) {
+    return null;
+  }
+
+  const folderPath = result.filePaths[0];
+  const folderName = path.basename(folderPath) || folderPath;
+  const files = watchPhysicalFolder(folderPath);
+
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.focus();
+    mainWindow.webContents.focus();
+  }
+
+  return {
+    path: folderPath,
+    name: folderName,
+    folderPath,
+    folderName,
+    files
+  };
+});
+
+ipcMain.handle('sync-physical-folders', async (event, folderPaths) => {
+  if (!Array.isArray(folderPaths)) return [];
+  const synced = [];
+  for (const rawPath of folderPaths) {
+    if (!rawPath || typeof rawPath !== 'string') continue;
+    const exists = fs.existsSync(rawPath);
+    const folderName = path.basename(rawPath) || rawPath;
+    const files = exists ? watchPhysicalFolder(rawPath) : [];
+    synced.push({
+      path: rawPath,
+      name: folderName,
+      folderPath: rawPath,
+      folderName,
+      exists,
+      files
+    });
+  }
+  return synced;
+});
+
+ipcMain.handle('unwatch-physical-folder', async (event, folderPath) => {
+  if (folderPath) {
+    unwatchPhysicalFolder(folderPath);
+  }
+  return true;
 });
 
 // Real-Time High Performance Local IPC Broadcast Synchronization

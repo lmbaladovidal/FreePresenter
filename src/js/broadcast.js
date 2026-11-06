@@ -10,6 +10,8 @@ export class BroadcastSync {
     this.isOperator = isOperator;
     this.listeners = [];
     this.audienceListeners = [];
+    this.mediaEndedListeners = [];
+    this.mediaCommandListeners = [];
     this.stateProvider = null;
 
     this.channel.onmessage = (event) => {
@@ -20,6 +22,10 @@ export class BroadcastSync {
         this.sendUpdate(this.stateProvider());
       } else if (event.data.type === "AUDIENCE_PRESENCE") {
         this.audienceListeners.forEach(fn => fn(!!event.data.active));
+      } else if (event.data.type === "MEDIA_ENDED" && this.isOperator) {
+        this.mediaEndedListeners.forEach(fn => fn(event.data.url));
+      } else if (event.data.type === "MEDIA_COMMAND") {
+        this.mediaCommandListeners.forEach(fn => fn(event.data.command));
       }
     };
 
@@ -37,6 +43,26 @@ export class BroadcastSync {
 
   onAudiencePresence(callback) {
     this.audienceListeners.push(callback);
+  }
+
+  onMediaEnded(callback) {
+    this.mediaEndedListeners.push(callback);
+  }
+
+  notifyMediaEnded(url = "") {
+    try {
+      this.channel.postMessage({ type: "MEDIA_ENDED", url, timestamp: Date.now() });
+    } catch (e) {}
+  }
+
+  onMediaCommand(callback) {
+    this.mediaCommandListeners.push(callback);
+  }
+
+  sendMediaCommand(command) {
+    try {
+      this.channel.postMessage({ type: "MEDIA_COMMAND", command, timestamp: Date.now() });
+    } catch (e) {}
   }
 
 

@@ -4,6 +4,54 @@ Todas las novedades, mejoras y correcciones de errores importantes de **ProPrese
 
 ---
 
+## 🚀 Versión 1.5.0 (Buscador Global de Descargas, Control Visual de Edición, Carpetas Físicas en Vivo y Corrección Definitiva de Modales) — *5 de Noviembre, 2026*
+
+Esta versión incluye la resolución definitiva a la falta de respuesta en modales de carga de canciones, la búsqueda inteligente de canciones ya descargadas, control visual en tiempo real de cambios al editar letras y vinculación de carpetas físicas del disco en la misma lista multimedia.
+
+### ✨ Novedades y Funcionalidades
+
+#### 🔍 Buscador de Canciones ya Descargadas
+- **Coincidencia Total Insensible a Tildes y Mayúsculas:** Búsqueda en simultáneo por título, categoría, etiquetas de sección y contenido completo de la letra.
+- **Acceso Unificado:** Disponible en el dock de shows (`#input-shows-local-search`), en la barra lateral de proyectos (`#input-project-search`) y en el buscador general.
+- **Resultados Locales Prioritarios en Búsqueda Web:** Al buscar letras online en el modal de canciones, el sistema prioriza y resalta las canciones ya presentes en la biblioteca local con botones directos para **▶️ Proyectar** o **✏️ Editar**.
+
+#### 👁️ Control Visual de Edición (Qué Queda y Qué se Borra)
+- **Comparador Visual en Vivo:** Panel interactivo al editar canciones o diapositivas individuales mostrando qué renglones permanecen en verde (`QUEDA` / `NUEVO`) y cuáles han sido eliminados en rojo tachado (`SE BORRA`).
+- **Botón de Restauración Rápida (`↩ Restaurar`):** Permite recuperar renglones borrados accidentalmente sin tener que volver a escribirlos.
+- **Edición In-Place Sin Duplicados:** Modificación directa de la canción seleccionada actualizando diapositivas y metadatos sin generar copias duplicadas.
+
+#### 💽 Carpetas Físicas de Medios en Tiempo Real
+- **Convivencia en la Misma Lista:** Las carpetas del disco de Windows se integran en `#media-folders-list` con distintivo `💽` y badge `LIVE`.
+- **Detección Automática:** Monitoreo mediante `fs.watch` nativo en Electron que actualiza la lista de videos e imágenes de forma instantánea al copiar, mover o borrar archivos en el disco.
+
+#### ⏱️ Línea de Tiempo Manejable y Dock de Audiencia Ampliado
+- **Dock Ampliado al Doble:** Espaciado confortable para los controles de emisión y estado de audiencia.
+- **Línea de Tiempo Interactiva:** Control deslizante de posición (seek slider), botones de reproducir/pausar, reiniciar y contadores precisos de tiempo transcurrido y restante.
+
+#### 🛡️ Corrección Definitiva del Bug de Modales Inactivos en Electron
+- **Desacoplamiento Estructural:** Modales reubicados fuera del grid CSS con `overflow: hidden` de `#app`.
+- **Optimización de Hit-Testing GPU:** Retiro del switch problemático `enable-zero-copy` y sustitución de `backdrop-filter: blur` por capas sólidas translúcidas de alto rendimiento.
+- **Foco Confiable sin Bloqueos:** Reemplazo de alertas nativas por sistema Toast no bloqueante y recuperación proactiva de foco con `ensureModalInteractive`.
+
+---
+
+## 🚀 Versión 1.3.4 (Cola de Reproducción Multimedia con Alt+Click y Transición Automática al Finalizar) — *4 de Noviembre, 2026*
+
+Esta versión introduce la **Cola de Reproducción Multimedia inteligente**, permitiendo programar qué video o imagen debe reproducirse automáticamente apenas termine el video actual sin cortar su reproducción de forma abrupta.
+
+### ✨ Novedades y Funcionalidades
+
+#### ⏭️ Encolado con `Alt + Click` y Paso Automático al Finalizar Video
+- **Transición Inteligente Loop vs. Cola:** Por defecto, los videos se reproducen en bucle continuo (`loop`). En cuanto se suma un elemento a la cola, el video en reproducción desactiva el bucle y, al llegar a su final (`ended`), transiciona automáticamente al siguiente elemento marcado en la cola. Al llegar al último elemento de la cola, este vuelve a quedar en modo `loop`.
+- **Atajo Rápido `Alt + Click`:** Manteniendo presionada la tecla `Alt` y haciendo clic sobre cualquier tarjeta en la pestaña `Media`, el elemento se suma al final de la cola (también disponible mediante el botón `+Cola` en la tarjeta o con clic derecho `⏭️ Agregar a la Cola`).
+- **Badges de Posición en Tarjetas:** Las tarjetas de medios que están en espera muestran una insignia ámbar con su orden en la cola (`⏭️ #1`, `#2`).
+
+#### 📋 Lista de Cola a la Derecha (En Pestaña Media y Barra Lateral Derecha)
+- **Aparición Automática al Crear Cola:** Una vez que se agrega al menos un elemento a la cola, aparece automáticamente un panel a la derecha de la grilla de medios (`#media-dock-queue-panel`) y debajo del monitor en vivo en la barra derecha (`#right-sidebar-queue-box`) mostrando qué elemento está en curso y cuáles siguen (`#1`, `#2`, `#3`...).
+- **Control Total de la Cola:** Permite pasar inmediatamente al siguiente (`⏭️ Pasar`), reproducir cualquier elemento de la lista al instante (`▶`), reordenar elementos (`↑` / `↓`), quitar elementos individuales (`×`) o vaciar la cola completa (`🗑️ Vaciar`).
+
+---
+
 ## 🚀 Versión 1.3.3 (Motor de Secciones de Canciones / Shows y Barra de Salto Rápido) — *15 de Octubre, 2026*
 
 Esta versión introduce el soporte nativo integral para **Secciones de Canciones y Shows** (Intro, Verso, Pre-Coro, Coro, Puente, Instrumental, Outro/Final y Sermón), permitiendo etiquetar, dividir, reorganizar y saltar instantáneamente entre secciones durante eventos en vivo con un solo clic.

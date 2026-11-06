@@ -24,7 +24,7 @@
             <polygon points="5 3 19 12 5 21 5 3"></polygon>
           </svg>
           <span class="brand-name">FreePresenter <span style="color: var(--accent-pink)">AI</span></span>
-          <span class="brand-badge" id="app-brand-badge">PRO v1.3.3</span>
+          <span class="brand-badge" id="app-brand-badge">PRO v1.3.4</span>
         </div>
       </div>
 
@@ -102,6 +102,13 @@
           </div>
         </div>
 
+        <!-- Buscador rápido en lista de proyectos / canciones descargadas -->
+        <div class="sidebar-search-bar">
+          <span class="sidebar-search-icon">🔍</span>
+          <input type="text" id="input-project-search" placeholder="Buscar canción guardada..." autocomplete="off" />
+          <button type="button" id="btn-clear-project-search" class="btn-clear-search-input" style="display: none;" title="Limpiar búsqueda">&times;</button>
+        </div>
+
         <div id="deck-list" class="deck-list">
           <!-- Dynamically populated -->
         </div>
@@ -114,12 +121,13 @@
             <h2 id="active-deck-title">Cuan Grande Es Él</h2>
             <p id="active-deck-category">Alabanza • 3 Secciones</p>
           </div>
-          <div style="display: flex; gap: 8px; align-items: center;">
+          <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
             <div class="slide-card-zoom-box" style="display: flex; align-items: center; gap: 6px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 6px; padding: 3px 8px;" title="Ajustar tamaño de las tarjetas de filminas">
               <span style="font-size: 0.72rem; color: var(--text-muted);">🔍</span>
               <input type="range" id="input-slide-card-size" min="140" max="380" step="10" value="220" style="width: 75px; accent-color: var(--accent-cyan); cursor: pointer;" title="Arrastra para aumentar o reducir el tamaño de las filminas" />
               <span id="val-slide-card-size" style="font-size: 0.68rem; font-weight: 700; color: #cbd5e1; min-width: 34px;">220px</span>
             </div>
+            <button id="btn-edit-active-deck" class="btn-output" style="background: rgba(56, 189, 248, 0.14); border: 1px solid rgba(56, 189, 248, 0.45); color: #38bdf8; font-size: 0.73rem; font-weight: 700; padding: 4px 10px;" title="Editar letra completa y secciones de esta canción">✏️ Editar Canción</button>
             <button id="btn-reflow-deck" class="btn-output" style="background: var(--bg-card); border: 1px solid var(--border-color); font-size: 0.73rem; padding: 4px 8px;" title="Re-dividir filminas por número de renglones o plantilla">✂️ Dividir Filminas</button>
             <button id="btn-prev-slide" class="btn-output">◀ Anterior</button>
             <button id="btn-next-slide" class="btn-output" style="background: var(--accent-blue); color: #fff; border: none; font-weight: 700;">Siguiente ▶</button>
@@ -161,13 +169,64 @@
             <div id="operator-live-text-wrapper" style="position: absolute; left: 5%; right: 5%; top: 50%; transform: translateY(-50%); text-align: center; pointer-events: none; z-index: 1;">
               <div id="operator-live-text" class="monitor-live-text" style="color: white; line-height: 1.25;"></div>
             </div>
+
+            <!-- Lower Third Overlay Banner en Monitor del Operador (Fiel a la pantalla de Audiencia) -->
+            <div id="operator-lower-third-banner" style="position: absolute; bottom: 8px; left: 12px; z-index: 3; background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.95)); border-left: 4px solid #3b82f6; border-radius: 0 6px 6px 0; padding: 6px 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.8); pointer-events: none; transition: all 0.3s ease; transform: translateX(-120%); opacity: 0; max-width: 85%;">
+              <div id="operator-lower-third-title" style="font-size: 0.78rem; font-weight: 800; color: #ffffff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">--</div>
+              <div id="operator-lower-third-subtitle" style="font-size: 0.62rem; font-weight: 600; color: #93c5fd; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">--</div>
+            </div>
           </div>
 
-          <div style="display: flex; gap: 6px; margin-top: 6px;">
-            <button id="btn-quick-prev" class="btn-output" style="padding: 4px 8px;" title="Anterior">‹</button>
-            <button id="btn-quick-next" class="btn-output" style="padding: 4px 8px;" title="Siguiente">›</button>
+          <!-- Línea de Tiempo Manejable del Medio en Reproducción -->
+          <div id="media-timeline-panel" class="media-timeline-bar">
+            <div class="media-timeline-top">
+              <div class="media-timeline-title-wrap">
+                <span id="lbl-timeline-media-icon" class="media-timeline-icon">🎬</span>
+                <span id="lbl-timeline-media-name" class="media-timeline-name" title="Medio en reproducción">Space Stars Motion</span>
+              </div>
+              <div class="media-timeline-badges">
+                <span id="lbl-timeline-mode-badge" class="media-timeline-mode-badge">🔁 LOOP</span>
+                <span id="lbl-timeline-remaining" class="media-timeline-remaining" title="Tiempo restante">-00:00</span>
+              </div>
+            </div>
+            <div class="media-timeline-controls">
+              <button type="button" id="btn-timeline-play-pause" class="btn-timeline-ctrl" title="Pausar / Reanudar medio en reproducción">
+                <span id="icon-timeline-play-pause">⏸</span>
+              </button>
+              <button type="button" id="btn-timeline-restart" class="btn-timeline-ctrl" title="Reiniciar video desde 00:00">
+                ⏮
+              </button>
+              <span id="lbl-timeline-current" class="media-timeline-time">00:00</span>
+              <div class="media-timeline-slider-wrap">
+                <input type="range" id="input-media-timeline" class="media-timeline-slider" min="0" max="1000" step="1" value="0" title="Arrastra o haz clic para adelantar o retroceder el video en vivo">
+              </div>
+              <span id="lbl-timeline-duration" class="media-timeline-time">00:00</span>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 8px; margin-top: 8px;">
+            <button id="btn-quick-prev" class="btn-output" style="padding: 6px 14px;" title="Diapositiva Anterior">‹ Anterior</button>
+            <button id="btn-quick-next" class="btn-output" style="padding: 6px 14px;" title="Siguiente Diapositiva">Siguiente ›</button>
             <button class="btn-output" style="flex: 1; text-align: center;" title="Estado Transmisión">EN VIVO</button>
           </div>
+        </div>
+
+        <!-- Cola de Reproducción de Medios en Panel Derecho (Se muestra cuando hay cola activa) -->
+        <div id="right-sidebar-queue-box" class="sidebar-media-queue-box" style="display: none;">
+          <div class="media-queue-header">
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span class="queue-pulse-dot"></span>
+              <span class="media-queue-title">⏭️ SIGUIENTES EN COLA (<span id="sidebar-queue-count">0</span>)</span>
+            </div>
+            <div style="display: flex; gap: 4px;">
+              <button type="button" id="btn-sidebar-queue-next" class="btn-queue-action btn-queue-skip" title="Pasar al siguiente medio ahora">⏭️ Pasar</button>
+              <button type="button" id="btn-sidebar-queue-clear" class="btn-queue-action btn-queue-clear" title="Vaciar toda la cola (volver a Loop)">🗑️ Vaciar</button>
+            </div>
+          </div>
+          <div id="sidebar-queue-current-info" class="media-queue-current-banner">
+            🎬 En curso: <strong>--</strong> <span>(Al finalizar ➔ #1)</span>
+          </div>
+          <div id="sidebar-media-queue-list" class="media-queue-list"></div>
         </div>
 
         <!-- Master Clear Control Panel (Estilo ProPresenter Red) -->
@@ -288,14 +347,18 @@
             </div>
           </div>
 
-          <!-- 2. Menu Lateral para la pestaña MEDIA (Carpetas Virtuales: Anuncios, Rápidos, Estribos, etc.) -->
+          <!-- 2. Menu Lateral para la pestaña MEDIA (Carpetas Virtuales y Carpetas Físicas en Tiempo Real) -->
           <div id="sub-sidebar-media" class="sub-sidebar-content">
             <div class="folders-header-row">
               <span class="folders-header">Carpetas de Medios</span>
-              <button id="btn-add-virtual-folder" class="btn-add-folder" title="Crear Nueva Carpeta Virtual">+</button>
+              <div style="display: flex; align-items: center; gap: 4px;">
+                <button id="btn-add-physical-folder" class="btn-add-folder btn-add-phys-folder" title="Vincular Carpeta Física del Disco (Se actualiza en tiempo real al agregar archivos)">💽+</button>
+                <button id="btn-add-virtual-folder" class="btn-add-folder" title="Crear Nueva Carpeta Virtual">+</button>
+              </div>
             </div>
+            <input type="file" id="input-physical-folder-fallback" webkitdirectory directory multiple style="display: none;" />
             <div id="media-folders-list" class="folder-list">
-              <!-- Dynamically populated virtual folders -->
+              <!-- Dynamically populated virtual and physical folders -->
             </div>
           </div>
 
@@ -367,15 +430,22 @@
         <div class="resource-grid-area">
           <!-- 1. Pestaña SHOWS -->
           <div id="res-tab-shows" class="res-tab-content active">
-            <div class="shows-dock-header">
-              <button id="btn-open-create-modal" class="btn-create-show-dock">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                  <line x1="12" y1="5" x2="12" y2="19"></line>
-                  <line x1="5" y1="12" x2="19" y2="12"></line>
-                </svg>
-                + Nuevo Texto / Canción
-              </button>
-              <span id="dock-shows-info" style="font-size: 0.72rem; color: var(--text-muted);">4 elementos creados</span>
+            <div class="shows-dock-header" style="gap: 10px; flex-wrap: wrap;">
+              <div style="display: flex; align-items: center; gap: 8px; flex: 1; min-width: 260px;">
+                <button id="btn-open-create-modal" class="btn-create-show-dock" style="white-space: nowrap;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                  </svg>
+                  + Nuevo Texto / Canción
+                </button>
+                <div class="shows-local-search-box">
+                  <span>🔍</span>
+                  <input type="text" id="input-shows-local-search" placeholder="Buscar en canciones descargadas (por título, letra o categoría)..." autocomplete="off" />
+                  <button type="button" id="btn-clear-shows-search" class="btn-clear-search-input" style="display: none;" title="Limpiar búsqueda">&times;</button>
+                </div>
+              </div>
+              <span id="dock-shows-info" style="font-size: 0.72rem; color: var(--text-muted); white-space: nowrap;">4 elementos creados</span>
             </div>
             <div id="shows-grid" class="shows-dock-grid"></div>
           </div>
@@ -383,7 +453,7 @@
           <!-- 2. Pestaña MEDIA -->
           <div id="res-tab-media" class="res-tab-content">
             <div class="media-dock-header">
-              <div style="display: flex; align-items: center; gap: 8px;">
+              <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                 <button id="btn-open-media-modal" class="btn-create-show-dock" style="background: linear-gradient(135deg, var(--accent-cyan), #0284c7);">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
                     <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -394,11 +464,32 @@
                 <button id="btn-dock-audio-toggle" class="btn-dock-audio" title="Habilitar/Silenciar audio de videos (Mute/Unmute)">
                   <span id="dock-audio-icon">🔊</span> <span id="dock-audio-text">Audio: ON</span>
                 </button>
+                <span class="media-queue-hint-pill" title="Mantén presionado Alt y haz clic sobre cualquier video o imagen para sumarlo a la cola de reproducción automática">
+                  ✨ <strong>Alt + Click</strong>: Sumar a la Cola
+                </span>
               </div>
               <span id="dock-media-info" style="font-size: 0.72rem; color: var(--text-muted);">Carpeta: Todas</span>
             </div>
             <input type="file" id="input-video-file" accept="video/*,image/*" multiple style="display: none;" />
-            <div id="media-grid" class="media-dock-grid"></div>
+            <div class="media-dock-split-layout">
+              <div id="media-grid" class="media-dock-grid"></div>
+              <aside id="media-dock-queue-panel" class="media-dock-queue-panel" style="display: none;">
+                <div class="media-queue-header">
+                  <div style="display: flex; align-items: center; gap: 6px;">
+                    <span class="queue-pulse-dot"></span>
+                    <span class="media-queue-title">⏭️ COLA DE MEDIOS (<span id="dock-queue-count">0</span>)</span>
+                  </div>
+                  <div style="display: flex; gap: 4px;">
+                    <button type="button" id="btn-dock-queue-next" class="btn-queue-action btn-queue-skip" title="Pasar al siguiente medio ahora">⏭️ Pasar</button>
+                    <button type="button" id="btn-dock-queue-clear" class="btn-queue-action btn-queue-clear" title="Vaciar toda la cola (volver a Loop)">🗑️ Vaciar</button>
+                  </div>
+                </div>
+                <div id="dock-queue-current-info" class="media-queue-current-banner">
+                  🎬 En curso: <strong>--</strong> <span>(Al finalizar ➔ #1)</span>
+                </div>
+                <div id="dock-media-queue-list" class="media-queue-list"></div>
+              </aside>
+            </div>
           </div>
 
           <!-- 3. Pestaña TEMPLATES -->
@@ -653,14 +744,28 @@
       </div>
     </section>
 
-    <!-- Modal para Crear / Buscar Nuevo Texto o Canción -->
+    <!-- Footer Status Bar -->
+    <footer class="status-bar">
+      <div class="status-item">
+        <div id="status-dot" class="status-dot"></div>
+        <span id="status-text">Consola lista • Sincronización activa</span>
+      </div>
+      <div class="status-item">
+        <span>Capa de Texto: <strong id="status-text-layer" style="color: var(--accent-green)">ACTIVA</strong></span>
+        <span style="margin: 0 8px;">|</span>
+        <span>Fondo de Video: <strong id="status-bg-layer" style="color: var(--accent-cyan)">VIDEO LOOP</strong></span>
+      </div>
+    </footer>
+  </div>
+
+    <!-- Modal para Crear / Editar / Buscar Texto o Canción -->
     <div id="modal-create-show" class="modal-overlay">
-      <div class="modal-card" style="max-width: 640px;">
+      <div class="modal-card" style="max-width: 780px; width: 92vw;">
         <div class="modal-header">
-          <h3>🎵 Agregar Nueva Canción o Presentación</h3>
+          <h3 id="modal-show-header-title">🎵 Agregar Nueva Canción o Presentación</h3>
           <button id="btn-close-modal" class="modal-close-btn">&times;</button>
         </div>
-        <div class="modal-body">
+        <div class="modal-body" style="max-height: 78vh; overflow-y: auto;">
 
           <!-- Selector de Modo: Crear de 0 vs Buscar Web vs Pegar Portapapeles -->
           <div class="modal-mode-tabs" style="display: flex; gap: 8px; margin-bottom: 14px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
@@ -687,6 +792,7 @@
               <option value="Sermón">Sermón / Predicación</option>
               <option value="Lectura">Lectura Bíblica</option>
               <option value="Anuncio">Anuncios / Avisos</option>
+              <option value="Overlays Stream">Overlays Stream / Lower Thirds</option>
             </select>
 
             <div style="display: flex; gap: 10px; margin-top: 10px;">
@@ -727,15 +833,30 @@
               <button type="button" class="btn-chip-section" data-sec="[Puente]" title="Insertar sección Puente">🌉 +Puente</button>
               <button type="button" class="btn-chip-section" data-sec="[Instrumental]" title="Insertar sección Instrumental">🎸 +Instrumental</button>
               <button type="button" class="btn-chip-section" data-sec="[Final]" title="Insertar sección Final/Outro">🏁 +Final</button>
+              <button type="button" class="btn-chip-section" data-sec="[Overlay]" title="Insertar sección Overlay / Lower Third (Línea 1 = Título, Línea 2 = Subtítulo)">👤 +Overlay</button>
             </div>
 
             <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px; margin-bottom: 4px;">
-              <label style="margin: 0;">Contenido de Diapositivas (separa estrofas dejando una línea en blanco):</label>
+              <label style="margin: 0;">Contenido de Diapositivas (selecciona texto para borrar o usa la vista de control debajo):</label>
               <button type="button" id="btn-paste-clipboard" style="background: linear-gradient(135deg, var(--accent-cyan), #0284c7); color: #fff; border: none; padding: 4px 10px; border-radius: 4px; font-size: 0.73rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 4px;" title="Pegar automáticamente el texto copiado en el portapapeles">
                 📋 Pegar Portapapeles
               </button>
             </div>
             <textarea id="input-show-text" placeholder="[Intro]&#10;Línea instrumental&#10;&#10;[Verso 1]&#10;Línea uno del canto&#10;Línea dos del canto&#10;&#10;[Coro]&#10;Línea del coro 1&#10;Línea del coro 2"></textarea>
+
+            <!-- Panel Visual de Control de Edición: Qué se mantiene y Qué se borra -->
+            <div id="song-edit-diff-panel" class="song-edit-diff-panel">
+              <div class="song-edit-diff-header">
+                <span class="diff-header-title">👁️ VISTA DE CONTROL DE EDICIÓN (QUÉ QUEDA Y QUÉ SE BORRA)</span>
+                <div class="diff-stats-badges">
+                  <span id="badge-diff-kept" class="diff-badge-kept">✓ 0 líneas activas</span>
+                  <span id="badge-diff-deleted" class="diff-badge-deleted" style="display: none;">🗑️ 0 borradas</span>
+                </div>
+              </div>
+              <div id="song-edit-diff-list" class="song-edit-diff-list">
+                <div class="diff-empty-hint">Escribe o edita la letra arriba para ver en tiempo real qué líneas quedan activas (verde) y cuáles se están borrando (rojo tachado).</div>
+              </div>
+            </div>
           </div>
 
           <!-- Vista 2: Buscador Web de Letras -->
@@ -872,20 +993,32 @@
       </div>
     </div>
 
-    <!-- Modal para Crear Nueva Carpeta Virtual -->
+    <!-- Modal para Crear Nueva Carpeta Virtual o Vincular Carpeta Física -->
     <div id="modal-create-folder" class="modal-overlay">
-      <div class="modal-card" style="max-width: 420px;">
+      <div class="modal-card" style="max-width: 450px;">
         <div class="modal-header">
-          <h3>📁 Crear Nueva Carpeta Virtual</h3>
+          <h3>📁 Agregar Carpeta de Medios</h3>
           <button id="btn-close-create-folder-modal" class="modal-close-btn">&times;</button>
         </div>
         <div class="modal-body">
-          <label>Nombre de la Carpeta:</label>
+          <label>1. Crear Carpeta Virtual (En Biblioteca):</label>
           <input type="text" id="input-virtual-folder-name" placeholder="Ej: Anuncios, Rápidos, Estribos, Fondos..." />
+
+          <div style="margin: 14px 0 8px 0; text-align: center; font-size: 0.7rem; color: var(--text-muted); position: relative;">
+            <span style="background: #161b26; padding: 0 8px; position: relative; z-index: 1; font-weight: 700;">O VINCULAR CARPETA FÍSICA DE LA PC (TIEMPO REAL)</span>
+            <div style="position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: var(--border-color); z-index: 0;"></div>
+          </div>
+
+          <button type="button" id="btn-link-physical-folder-modal" class="btn-output" style="width: 100%; justify-content: center; padding: 9px 12px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.5); color: #34d399; font-weight: 700; font-size: 0.78rem; gap: 6px;">
+            💽 Seleccionar Carpeta Física del Disco (Auto-Sync)
+          </button>
+          <span style="font-size: 0.68rem; color: var(--text-muted); margin-top: 2px;">
+            Las carpetas físicas se suman a la misma lista y detectan automáticamente en vivo cuando agregas o quitas videos/imágenes en Windows.
+          </span>
         </div>
         <div class="modal-footer">
           <button id="btn-cancel-create-folder" class="btn-modal-cancel">Cancelar</button>
-          <button id="btn-save-virtual-folder-confirm" class="btn-modal-save" style="background: linear-gradient(135deg, var(--accent-cyan), #0284c7);">📁 Crear Carpeta</button>
+          <button id="btn-save-virtual-folder-confirm" class="btn-modal-save" style="background: linear-gradient(135deg, var(--accent-cyan), #0284c7);">📁 Crear Carpeta Virtual</button>
         </div>
       </div>
     </div>
@@ -928,10 +1061,14 @@
               <option value="badge-instrumental|Instrumental">🎸 Instrumental</option>
               <option value="badge-outro|Final">🏁 Final / Outro</option>
               <option value="badge-sermon|Sermón">💬 Sermón / Notas</option>
+              <option value="badge-lowerthird|Overlay">👤 Overlay / Lower Third</option>
             </select>
           </div>
-          <label>Contenido del Texto:</label>
-          <textarea id="input-edit-slide-text" rows="5" placeholder="Escribe el texto de la diapositiva..." style="width: 100%; font-size: 0.95rem; line-height: 1.4; padding: 10px; background: var(--bg-darkest); border: 1px solid var(--border-color); color: #fff; border-radius: 6px; outline: none; resize: vertical; margin-bottom: 12px;"></textarea>
+          <label>Contenido del Texto (selecciona para borrar o revisa el comparador debajo):</label>
+          <textarea id="input-edit-slide-text" rows="5" placeholder="Escribe el texto de la diapositiva..." style="width: 100%; font-size: 0.95rem; line-height: 1.4; padding: 10px; background: var(--bg-darkest); border: 1px solid var(--border-color); color: #fff; border-radius: 6px; outline: none; resize: vertical; margin-bottom: 8px;"></textarea>
+          
+          <!-- Vista previa en vivo de qué se borra y qué queda en la diapositiva -->
+          <div id="slide-edit-diff-preview" class="slide-edit-diff-preview"></div>
           
           <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; margin-top: 5px;">
             <label style="font-weight: 700; font-size: 0.8rem; color: #cbd5e1; display: block; margin-bottom: 6px;">Alcance de la modificación:</label>
@@ -984,19 +1121,8 @@
       </div>
     </div>
 
-    <!-- Footer Status Bar -->
-    <footer class="status-bar">
-      <div class="status-item">
-        <div id="status-dot" class="status-dot"></div>
-        <span id="status-text">Consola lista • Sincronización activa</span>
-      </div>
-      <div class="status-item">
-        <span>Capa de Texto: <strong id="status-text-layer" style="color: var(--accent-green)">ACTIVA</strong></span>
-        <span style="margin: 0 8px;">|</span>
-        <span>Fondo de Video: <strong id="status-bg-layer" style="color: var(--accent-cyan)">VIDEO LOOP</strong></span>
-      </div>
-    </footer>
-  </div>
+  <!-- Contenedor de Notificaciones Toast (Sin bloqueo de foco) -->
+  <div id="app-toast-container" class="app-toast-container"></div>
 
   <!-- Menú Contextual Personalizado Dinámico (Clic Derecho) -->
   <div id="custom-context-menu" class="custom-context-menu">
@@ -1034,6 +1160,15 @@
         <line x1="7" y1="7" x2="7.01" y2="7"></line>
       </svg>
       <span id="ctx-action-section-label">🏷️ Asignar Sección</span>
+    </div>
+
+    <div id="ctx-action-queue-media" class="context-menu-item" style="display: none;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polygon points="5 4 15 12 5 20 5 4"></polygon>
+        <line x1="19" y1="5" x2="19" y2="19"></line>
+      </svg>
+      <span>⏭️ Agregar a la Cola</span>
+      <span class="context-menu-shortcut">Alt+Click</span>
     </div>
 
     <div class="context-menu-divider"></div>
@@ -1097,6 +1232,10 @@
           <button type="button" class="btn-picker-section" data-badge="badge-sermon" data-name="Sermón">
             <span class="sec-dot" style="background: #059669;"></span>
             <span>💬 Sermón / Notas</span>
+          </button>
+          <button type="button" class="btn-picker-section" data-badge="badge-lowerthird" data-name="Overlay">
+            <span class="sec-dot" style="background: #db2777;"></span>
+            <span>👤 Overlay / Lower Third</span>
           </button>
         </div>
 

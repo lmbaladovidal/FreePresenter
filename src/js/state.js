@@ -3,19 +3,20 @@ import { MediaCache } from './media-cache.js';
 
 export const SECTION_DEFINITIONS = [
   { id: 'intro', name: 'Intro', badge: 'badge-intro', icon: '🎵', regex: /^\s*\[?(?:intro|introducci[oó]n)\]?:?\s*$/i },
-  { id: 'verse', name: 'Verso', badge: 'badge-verse', icon: '📖', regex: /^\s*\[?(?:verso|estrofa)\s*(\d*)\]?:?\s*$/i },
+  { id: 'verse', name: 'Verso', badge: 'badge-verse', icon: '📖', regex: /^\s*\[?(?:verso|estrofa|vers[ií]culo)\s*(\d*)\]?:?\s*$/i },
   { id: 'prechorus', name: 'Pre-Coro', badge: 'badge-prechorus', icon: '⚡', regex: /^\s*\[?(?:pre-?coro|pre-?chorus)\]?:?\s*$/i },
   { id: 'chorus', name: 'Coro', badge: 'badge-chorus', icon: '🔥', regex: /^\s*\[?(?:coro|chorus)\s*(\d*)\]?:?\s*$/i },
   { id: 'bridge', name: 'Puente', badge: 'badge-bridge', icon: '🌉', regex: /^\s*\[?(?:puente|bridge)\s*(\d*)\]?:?\s*$/i },
   { id: 'instrumental', name: 'Instrumental', badge: 'badge-instrumental', icon: '🎸', regex: /^\s*\[?(?:instrumental|solo)\s*(\d*)\]?:?\s*$/i },
   { id: 'outro', name: 'Final', badge: 'badge-outro', icon: '🏁', regex: /^\s*\[?(?:outro|final|coda)\]?:?\s*$/i },
-  { id: 'sermon', name: 'Sermón', badge: 'badge-sermon', icon: '💬', regex: /^\s*\[?(?:serm[oó]n|puntos)\]?:?\s*$/i }
+  { id: 'sermon', name: 'Sermón', badge: 'badge-sermon', icon: '💬', regex: /^\s*\[?(?:serm[oó]n|puntos)\]?:?\s*$/i },
+  { id: 'lowerthird', name: 'Overlay', badge: 'badge-lowerthird', icon: '👤', regex: /^\s*\[?(?:lower-?third|overlay|tercero|z[oó]calo)\]?:?\s*$/i }
 ];
 
 export function parseAndSplitText(rawText, splitMode = 'paragraph', maxLines = 0) {
   if (!rawText || !rawText.trim()) return [];
 
-  const paragraphs = rawText.split(/\n\s*\n/).filter(p => p.trim());
+  const paragraphs = rawText.split(/(?:\r?\n\s*){2,}|(?:\r?\n\s*-{3,}\s*\r?\n)/).filter(p => p.trim());
 
   const groups = paragraphs.map((p, idx) => {
     let textBlock = p.trim();
@@ -82,16 +83,21 @@ export function parseAndSplitText(rawText, splitMode = 'paragraph', maxLines = 0
       } else if (lower.startsWith("outro") || lower.includes("final")) {
         badge = "badge-outro";
         name = "Final";
+      } else if (lower.startsWith("overlay") || lower.startsWith("lowerthird") || lower.startsWith("zocalo")) {
+        badge = "badge-lowerthird";
+        name = "Overlay";
       }
     }
 
+    const isLowerThirdBadge = badge === "badge-lowerthird";
     let slides = [];
 
     if (splitMode === 'lines') {
       // 1 renglón por filmina
       slides = rawLines.map((lineText, sIdx) => ({
         id: `slide-${Date.now()}-${idx}-${sIdx}-${Math.random().toString(36).substr(2, 4)}`,
-        text: lineText
+        text: lineText,
+        isLowerThird: isLowerThirdBadge
       }));
     } else if ((splitMode === 'fixed' || maxLines > 0) && maxLines > 0) {
       // Bloques de N renglones por filmina
@@ -101,7 +107,8 @@ export function parseAndSplitText(rawText, splitMode = 'paragraph', maxLines = 0
         if (chunk) {
           slides.push({
             id: `slide-${Date.now()}-${idx}-${slideCount++}-${Math.random().toString(36).substr(2, 4)}`,
-            text: chunk
+            text: chunk,
+            isLowerThird: isLowerThirdBadge
           });
         }
       }
@@ -109,14 +116,15 @@ export function parseAndSplitText(rawText, splitMode = 'paragraph', maxLines = 0
       // Párrafo completo por filmina
       slides = [{
         id: `slide-${Date.now()}-${idx}-0`,
-        text: textBlock
+        text: textBlock,
+        isLowerThird: isLowerThirdBadge
       }];
     }
 
     return {
       name,
       badge,
-      slides: slides.length > 0 ? slides : [{ id: `slide-${Date.now()}-${idx}-0`, text: textBlock }]
+      slides: slides.length > 0 ? slides : [{ id: `slide-${Date.now()}-${idx}-0`, text: textBlock, isLowerThird: isLowerThirdBadge }]
     };
   }).filter(Boolean);
 
@@ -307,7 +315,7 @@ export class Store {
   constructor() {
     // Persistent Decks & Project Items
     const savedDecks = getStorageItem("propresenter_decks");
-    this.decks = savedDecks ? JSON.parse(savedDecks) : DEFAULT_DECKS;
+    this.decks = savedDecks ? JSON.parse(savedDecks) : JSON.parse(JSON.stringify(DEFAULT_DECKS));
 
     const savedProjectIds = getStorageItem("propresenter_project_deck_ids");
     this.projectDeckIds = savedProjectIds ? JSON.parse(savedProjectIds) : this.decks.map(d => d.id);
@@ -315,17 +323,21 @@ export class Store {
 
     // Persistent Templates
     const savedTemplates = getStorageItem("propresenter_templates");
-    this.templates = savedTemplates ? JSON.parse(savedTemplates) : DEFAULT_TEMPLATES;
+    this.templates = savedTemplates ? JSON.parse(savedTemplates) : JSON.parse(JSON.stringify(DEFAULT_TEMPLATES));
     this.activeTemplateId = getStorageItem("propresenter_active_template") || "preset-modern";
 
     // Persistent Media Library & Folders
     const savedMedia = getStorageItem("propresenter_media_library");
     const savedFolders = getStorageItem("propresenter_media_folders");
+    const savedPhysicalFolders = getStorageItem("propresenter_physical_media_folders");
+    const savedMediaQueue = getStorageItem("propresenter_media_queue");
 
     this.state = {
       // Proyección Live
       activeVideoUrl: "https://assets.mixkit.co/videos/preview/mixkit-stars-in-space-background-1610-large.mp4",
       activeVideoTitle: "Space Motion Background",
+      activeVideoName: "Space Stars Motion",
+      activeMediaPlayId: 1,
       liveText: "",
       liveSlideId: null,
       liveGroupIndex: null,
@@ -340,8 +352,9 @@ export class Store {
       // Active Template Object
       activeTemplate: this.templates.find(t => t.id === this.activeTemplateId) || this.templates[0],
 
-      // Media Virtual Folders
+      // Media Virtual & Physical Folders
       mediaFolders: savedFolders ? JSON.parse(savedFolders) : ["General", "Anuncios", "Rápidos", "Estribos"],
+      physicalMediaFolders: savedPhysicalFolders ? JSON.parse(savedPhysicalFolders) : [],
       mediaLibrary: savedMedia ? JSON.parse(savedMedia) : [
         {
           id: "default-bg-1",
@@ -358,6 +371,7 @@ export class Store {
           folder: "Estribos"
         }
       ],
+      mediaQueue: savedMediaQueue ? JSON.parse(savedMediaQueue) : [],
       
       // Lower Third / Overlay
       lowerThirdText: "",
@@ -372,6 +386,8 @@ export class Store {
       // Audio Settings for Video Playback
       isMediaAudioMuted: getStorageItem("propresenter_media_audio_muted") === "true",
       mediaAudioVolume: getStorageItem("propresenter_media_audio_volume") !== null ? parseFloat(getStorageItem("propresenter_media_audio_volume")) : 1.0,
+      isMediaPaused: false,
+      mediaPlaybackCommand: null,
 
       // Scripture Settings
       scriptureMaxLines: parseInt(getStorageItem("propresenter_scripture_maxlines") || "2"),
@@ -433,6 +449,8 @@ export class Store {
     setStorageItem("propresenter_decks", JSON.stringify(this.decks));
     setStorageItem("propresenter_media_library", JSON.stringify(this.state.mediaLibrary));
     setStorageItem("propresenter_media_folders", JSON.stringify(this.state.mediaFolders));
+    setStorageItem("propresenter_physical_media_folders", JSON.stringify(this.state.physicalMediaFolders || []));
+    setStorageItem("propresenter_media_queue", JSON.stringify(this.state.mediaQueue || []));
     setStorageItem("propresenter_templates", JSON.stringify(this.templates));
     setStorageItem("propresenter_active_template", this.activeTemplateId);
     setStorageItem("propresenter_text_trans", this.state.textTransition);
@@ -607,6 +625,7 @@ export class Store {
     this.state.isOverlayCleared = true;
     this.state.liveSlideId = null;
     this.state.isLowerThirdActive = false;
+    this.state.isMediaPaused = false;
     this.notify();
   }
 
@@ -618,6 +637,7 @@ export class Store {
 
   clearMedia() {
     this.state.isMediaCleared = true;
+    this.state.isMediaPaused = false;
     this.notify();
   }
 
@@ -625,6 +645,10 @@ export class Store {
     this.state.isOverlayCleared = true;
     this.state.isLowerThirdActive = false;
     this.notify();
+  }
+
+  clearLowerThird() {
+    this.clearOverlays();
   }
 
   nextSlide() {
@@ -749,26 +773,84 @@ export class Store {
 
     const groups = parseAndSplitText(rawText, splitMode, maxLines);
 
+    const isOverlayCategory = (category || "").toLowerCase().includes("overlay") || (category || "").toLowerCase().includes("lowerthird");
+    const isOverlayType = isOverlayCategory || groups.some(g => g.badge === "badge-lowerthird");
+
     const newDeck = {
-      id: "deck-" + Date.now(),
-      title: title || "Nuevo Texto de Proyección",
-      type: "song",
-      category: category || "Alabanza",
-      templateId: targetTemplateId,
+      id: "deck-" + Date.now() + "-" + Math.random().toString(36).substr(2, 4),
+      title: title || (isOverlayType ? "Nuevo Overlay Lower Third" : "Nuevo Texto de Proyección"),
+      type: isOverlayType ? "lowerthird" : "song",
+      category: category || (isOverlayType ? "Overlays Stream" : "Alabanza"),
+      templateId: targetTemplateId || (isOverlayType ? "preset-lowerthird" : this.activeTemplateId),
       groups: groups.length > 0 ? groups : [
         {
-          name: "Diapositiva 1",
-          badge: "badge-verse",
-          slides: [{ id: `slide-${Date.now()}-0`, text: rawText || "Texto de diapositiva" }]
+          name: isOverlayType ? "Presentador" : "Diapositiva 1",
+          badge: isOverlayType ? "badge-lowerthird" : "badge-verse",
+          slides: [{ id: `slide-${Date.now()}-0`, text: rawText || (isOverlayType ? "Nombre del Presentador\nCargo o Función" : "Texto de diapositiva"), isLowerThird: isOverlayType }]
         }
       ]
     };
+
+    if (isOverlayCategory) {
+      newDeck.groups.forEach(g => {
+        if (!g.badge || g.badge === "badge-verse") g.badge = "badge-lowerthird";
+        g.slides.forEach(s => s.isLowerThird = true);
+      });
+    }
 
     this.addDeck(newDeck);
     if (targetTemplateId) {
       this.setActiveTemplate(targetTemplateId, false);
     }
     return newDeck;
+  }
+
+  updateDeckContent(deckId, title, category, rawText, options = {}) {
+    const deck = this.decks.find(d => d.id === deckId);
+    if (!deck) return null;
+
+    const opts = typeof options === 'object' && options !== null ? options : {};
+    const splitMode = opts.splitMode || 'paragraph';
+    let maxLines = parseInt(opts.maxLines) || 0;
+    const targetTemplateId = opts.templateId || deck.templateId || this.activeTemplateId;
+    const targetTemplate = this.templates.find(t => t.id === targetTemplateId);
+
+    if (maxLines <= 0 && targetTemplate && targetTemplate.maxLines > 0) {
+      maxLines = targetTemplate.maxLines;
+    }
+
+    const groups = parseAndSplitText(rawText, splitMode, maxLines);
+    const isOverlayCategory = (category || "").toLowerCase().includes("overlay") || (category || "").toLowerCase().includes("lowerthird");
+    const isOverlayType = isOverlayCategory || groups.some(g => g.badge === "badge-lowerthird");
+
+    deck.title = title || deck.title;
+    deck.category = category || deck.category || "Alabanza";
+    deck.type = isOverlayType ? "lowerthird" : (deck.type === "lowerthird" ? "lowerthird" : "song");
+    deck.templateId = targetTemplateId;
+    deck.groups = groups.length > 0 ? groups : [
+      {
+        name: isOverlayType ? "Presentador" : "Diapositiva 1",
+        badge: isOverlayType ? "badge-lowerthird" : "badge-verse",
+        slides: [{ id: `slide-${Date.now()}-0`, text: rawText || "Texto de diapositiva", isLowerThird: isOverlayType }]
+      }
+    ];
+
+    if (isOverlayCategory) {
+      deck.groups.forEach(g => {
+        if (!g.badge || g.badge === "badge-verse") g.badge = "badge-lowerthird";
+        g.slides.forEach(s => s.isLowerThird = true);
+      });
+    }
+
+    setStorageItem("propresenter_decks", JSON.stringify(this.decks));
+    if (this.activeDeckId === deck.id && !this.state.isTextCleared && this.state.liveGroupIndex !== null) {
+      const gIdx = Math.min(this.state.liveGroupIndex, deck.groups.length - 1);
+      const sIdx = Math.min(this.state.liveSlideIndex || 0, deck.groups[gIdx].slides.length - 1);
+      this.setLiveSlide(gIdx, sIdx);
+    } else {
+      this.notify();
+    }
+    return deck;
   }
 
   duplicateDeck(deckId) {
@@ -822,6 +904,11 @@ export class Store {
     deck.groups[groupIndex].name = sectionName;
     if (sectionBadge) {
       deck.groups[groupIndex].badge = sectionBadge;
+      const isLt = sectionBadge === "badge-lowerthird";
+      deck.groups[groupIndex].slides.forEach(s => s.isLowerThird = isLt);
+      if (isLt && deck.type !== "lowerthird") {
+        deck.type = "lowerthird";
+      }
     }
     this.notify();
   }
@@ -834,6 +921,9 @@ export class Store {
     if (slideIndex <= 0 || slideIndex >= group.slides.length) return;
 
     const remainingSlides = group.slides.splice(slideIndex);
+    const isLt = newSectionBadge === "badge-lowerthird";
+    remainingSlides.forEach(s => s.isLowerThird = isLt);
+
     const newGroup = {
       name: newSectionName,
       badge: newSectionBadge,
@@ -914,6 +1004,123 @@ export class Store {
     this.notify();
   }
 
+  // Physical Disk Folders Management (Real-Time Sync)
+  addPhysicalMediaFolder(folderPath, folderName = "", files = []) {
+    if (!folderPath || typeof folderPath !== "string") return null;
+    const normalizedPath = folderPath.trim();
+    if (!Array.isArray(this.state.physicalMediaFolders)) {
+      this.state.physicalMediaFolders = [];
+    }
+
+    const derivedName = folderName ? folderName.trim() : (normalizedPath.split(/[\\/]/).filter(Boolean).pop() || normalizedPath);
+    let existing = this.state.physicalMediaFolders.find(f => f.path === normalizedPath);
+    if (!existing) {
+      existing = {
+        path: normalizedPath,
+        name: derivedName,
+        isPhysical: true,
+        addedAt: Date.now()
+      };
+      this.state.physicalMediaFolders.push(existing);
+    } else {
+      existing.name = derivedName;
+    }
+
+    this.syncPhysicalFolderItems(normalizedPath, derivedName, files);
+    return existing;
+  }
+
+  syncPhysicalFolderItems(folderPath, folderName = "", files = []) {
+    if (!folderPath) return;
+    const normalizedPath = folderPath.trim();
+    const derivedName = folderName ? folderName.trim() : (normalizedPath.split(/[\\/]/).filter(Boolean).pop() || normalizedPath);
+    const folderTag = `phys:${normalizedPath}`;
+
+    if (!Array.isArray(this.state.physicalMediaFolders)) {
+      this.state.physicalMediaFolders = [];
+    }
+    const physRecord = this.state.physicalMediaFolders.find(f => f.path === normalizedPath);
+    if (physRecord) {
+      physRecord.name = derivedName;
+    }
+
+    const incomingFiles = Array.isArray(files) ? files : [];
+    const incomingUrlSet = new Set(incomingFiles.map(f => f.url || (`file:///${(f.filePath || '').replace(/\\/g, '/')}`)));
+    const incomingPathSet = new Set(incomingFiles.map(f => f.filePath).filter(Boolean));
+
+    // Map existing items from this physical folder by url or filePath to preserve IDs and generated thumbnails
+    const existingByPathOrUrl = new Map();
+    this.state.mediaLibrary.forEach(item => {
+      if (item.physicalFolder === normalizedPath || item.physicalFolderPath === normalizedPath || item.folder === folderTag) {
+        if (item.filePath) existingByPathOrUrl.set(item.filePath, item);
+        if (item.url) existingByPathOrUrl.set(item.url, item);
+      }
+    });
+
+    // Remove items from this physical folder that were deleted on disk
+    this.state.mediaLibrary = this.state.mediaLibrary.filter(item => {
+      const belongsToFolder = item.physicalFolder === normalizedPath || item.physicalFolderPath === normalizedPath || item.folder === folderTag;
+      if (!belongsToFolder) return true;
+      const stillExists = (item.filePath && incomingPathSet.has(item.filePath)) || (item.url && incomingUrlSet.has(item.url));
+      if (!stillExists && Array.isArray(this.state.mediaQueue)) {
+        this.state.mediaQueue = this.state.mediaQueue.filter(q => q.id !== item.id && q.url !== item.url);
+      }
+      return stillExists;
+    });
+
+    // Add any new files added on disk
+    incomingFiles.forEach((f, idx) => {
+      const fileUrl = f.url || (f.filePath ? `file:///${f.filePath.replace(/\\/g, '/')}` : '');
+      const existingItem = (f.filePath && existingByPathOrUrl.get(f.filePath)) || (fileUrl && existingByPathOrUrl.get(fileUrl));
+      if (!existingItem && fileUrl) {
+        const isImg = (f.type && f.type.startsWith('image/')) || !!(f.name && f.name.match(/\.(png|jpg|jpeg|gif|webp|svg|bmp)$/i));
+        this.state.mediaLibrary.push({
+          id: "phys-media-" + Date.now() + "-" + idx + "-" + Math.random().toString(36).substr(2, 4),
+          name: f.name || fileUrl.split('/').pop() || "Medio de Disco",
+          url: fileUrl,
+          filePath: f.filePath || "",
+          type: f.type || (isImg ? "image/png" : "video/mp4"),
+          folder: `💽 ${derivedName}`,
+          folderDisplayName: derivedName,
+          physicalFolder: normalizedPath,
+          physicalFolderPath: normalizedPath,
+          isPhysicalFolderItem: true,
+          thumbnail: f.thumbnail || ""
+        });
+      } else if (existingItem) {
+        existingItem.folder = `💽 ${derivedName}`;
+        existingItem.folderDisplayName = derivedName;
+        existingItem.physicalFolder = normalizedPath;
+        existingItem.physicalFolderPath = normalizedPath;
+        existingItem.isPhysicalFolderItem = true;
+      }
+    });
+
+    this.notify();
+  }
+
+  removePhysicalMediaFolder(folderPath) {
+    if (!folderPath) return;
+    const normalizedPath = folderPath.trim();
+    const folderTag = `phys:${normalizedPath}`;
+    if (Array.isArray(this.state.physicalMediaFolders)) {
+      this.state.physicalMediaFolders = this.state.physicalMediaFolders.filter(f => f.path !== normalizedPath);
+    }
+    this.state.mediaLibrary = this.state.mediaLibrary.filter(item =>
+      item.physicalFolder !== normalizedPath &&
+      item.physicalFolderPath !== normalizedPath &&
+      item.folder !== folderTag
+    );
+    if (Array.isArray(this.state.mediaQueue)) {
+      this.state.mediaQueue = this.state.mediaQueue.filter(q =>
+        q.folder !== folderTag &&
+        q.physicalFolder !== normalizedPath &&
+        q.physicalFolderPath !== normalizedPath
+      );
+    }
+    this.notify();
+  }
+
   addMediaItem(name, url, type = "video/mp4", folder = "General", thumbnail = "", filePath = "") {
     const targetFolder = folder ? folder.trim() : "General";
     if (targetFolder && !this.state.mediaFolders.includes(targetFolder)) {
@@ -985,6 +1192,9 @@ export class Store {
     } catch (e) {}
 
     this.state.mediaLibrary = this.state.mediaLibrary.filter(m => m.id !== itemId);
+    if (Array.isArray(this.state.mediaQueue)) {
+      this.state.mediaQueue = this.state.mediaQueue.filter(q => q.id !== itemId && q.url !== target.url);
+    }
     if (this.state.activeVideoUrl === target.url) {
       this.clearMedia();
     }
@@ -993,13 +1203,144 @@ export class Store {
 
   setActiveVideo(url, name = "", type = "") {
     this.state.activeVideoUrl = url;
-    this.state.activeVideoName = name;
+    this.state.activeVideoName = name || this.state.mediaLibrary.find(m => m.url === url)?.name || "Fondo Multimedia";
+    this.state.activeVideoTitle = this.state.activeVideoName;
     this.state.activeVideoType = type;
+    this.state.activeMediaPlayId = (this.state.activeMediaPlayId || 0) + 1;
     const isImage = (type && type.startsWith('image/')) || (url && url.match(/\.(jpeg|jpg|gif|png|webp|svg|bmp)($|\?)/i));
     this.state.activeVideoIsImage = !!isImage;
     this.state.backgroundType = isImage ? "image" : "video";
     this.state.isMediaCleared = false;
+    this.state.isMediaPaused = false;
+    this.state.mediaPlaybackCommand = null;
     this.notify();
+  }
+
+  // Media Playback Timeline & Transport Control (Play / Pause / Seek / Restart)
+  setMediaPaused(paused) {
+    this.state.isMediaPaused = !!paused;
+    const cmd = {
+      id: "cmd-" + Date.now() + "-" + Math.random().toString(36).substr(2, 4),
+      action: this.state.isMediaPaused ? "pause" : "play",
+      timestamp: Date.now()
+    };
+    this.state.mediaPlaybackCommand = cmd;
+    sync.sendMediaCommand(cmd);
+    this.notify();
+    return this.state.isMediaPaused;
+  }
+
+  toggleMediaPause() {
+    return this.setMediaPaused(!this.state.isMediaPaused);
+  }
+
+  seekActiveMedia(timeSeconds) {
+    const targetTime = Math.max(0, Number(timeSeconds) || 0);
+    const cmd = {
+      id: "cmd-" + Date.now() + "-" + Math.random().toString(36).substr(2, 4),
+      action: "seek",
+      time: targetTime,
+      timestamp: Date.now()
+    };
+    this.state.mediaPlaybackCommand = cmd;
+    sync.sendMediaCommand(cmd);
+    this.notify();
+    return targetTime;
+  }
+
+  restartActiveMedia() {
+    this.state.isMediaPaused = false;
+    const cmd = {
+      id: "cmd-" + Date.now() + "-" + Math.random().toString(36).substr(2, 4),
+      action: "restart",
+      time: 0,
+      timestamp: Date.now()
+    };
+    this.state.mediaPlaybackCommand = cmd;
+    sync.sendMediaCommand(cmd);
+    this.notify();
+  }
+
+  // Media Playback Queue Management (Alt+Click / Auto-advance on video end)
+  enqueueMedia(itemOrId) {
+    if (!Array.isArray(this.state.mediaQueue)) {
+      this.state.mediaQueue = [];
+    }
+
+    let source = null;
+    if (typeof itemOrId === "string") {
+      source = this.state.mediaLibrary.find(m => m.id === itemOrId || m.url === itemOrId);
+    } else if (itemOrId && typeof itemOrId === "object") {
+      source = this.state.mediaLibrary.find(m => (itemOrId.id && m.id === itemOrId.id) || (itemOrId.url && m.url === itemOrId.url)) || itemOrId;
+    }
+
+    if (!source || !source.url) return null;
+
+    const queueEntry = {
+      queueId: "q-" + Date.now() + "-" + Math.random().toString(36).substr(2, 5),
+      id: source.id || "",
+      name: source.name || "Elemento Multimedia",
+      url: source.url,
+      type: source.type || "video/mp4",
+      folder: source.folder || "General",
+      thumbnail: source.thumbnail || ""
+    };
+
+    this.state.mediaQueue.push(queueEntry);
+    this.notify();
+    return queueEntry;
+  }
+
+  removeFromMediaQueue(queueIdOrIndex) {
+    if (!Array.isArray(this.state.mediaQueue)) return;
+    if (typeof queueIdOrIndex === "number") {
+      if (queueIdOrIndex >= 0 && queueIdOrIndex < this.state.mediaQueue.length) {
+        this.state.mediaQueue.splice(queueIdOrIndex, 1);
+      }
+    } else {
+      this.state.mediaQueue = this.state.mediaQueue.filter(q => q.queueId !== queueIdOrIndex);
+    }
+    this.notify();
+  }
+
+  moveMediaQueueItem(fromIndex, toIndex) {
+    if (!Array.isArray(this.state.mediaQueue)) return;
+    if (
+      fromIndex < 0 ||
+      fromIndex >= this.state.mediaQueue.length ||
+      toIndex < 0 ||
+      toIndex >= this.state.mediaQueue.length ||
+      fromIndex === toIndex
+    ) {
+      return;
+    }
+    const [moved] = this.state.mediaQueue.splice(fromIndex, 1);
+    this.state.mediaQueue.splice(toIndex, 0, moved);
+    this.notify();
+  }
+
+  clearMediaQueue() {
+    this.state.mediaQueue = [];
+    this.notify();
+  }
+
+  advanceMediaQueue() {
+    if (!Array.isArray(this.state.mediaQueue) || this.state.mediaQueue.length === 0) {
+      return null;
+    }
+    const nextItem = this.state.mediaQueue.shift();
+    if (!nextItem) return null;
+    this.setActiveVideo(nextItem.url, nextItem.name, nextItem.type);
+    return nextItem;
+  }
+
+  playQueueItemNow(queueId) {
+    if (!Array.isArray(this.state.mediaQueue) || this.state.mediaQueue.length === 0) return null;
+    const idx = this.state.mediaQueue.findIndex(q => q.queueId === queueId);
+    if (idx === -1) return null;
+    const [targetItem] = this.state.mediaQueue.splice(idx, 1);
+    this.setActiveVideo(targetItem.url, targetItem.name, targetItem.type);
+    return targetItem;
   }
 }
 

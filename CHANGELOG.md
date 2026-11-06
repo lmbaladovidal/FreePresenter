@@ -6,6 +6,24 @@ For detailed release notes in Spanish, please see [NOTAS_DE_VERSION.md](./NOTAS_
 
 ---
 
+## [1.5.0] - 2026-11-05
+
+### Added
+- **Global Search for Downloaded Songs:** Accent-insensitive, multi-field search (title, category, section tags, lyrics) across shows dock, projects sidebar, and in-modal web search tab featuring a prioritized "📚 Local Library Matches" list.
+- **Visual Difference & Editing Control Panel:** Live diff preview panel for song editing (`#song-edit-diff-panel`) and slide card editing (`#slide-edit-diff-preview`) visually identifying kept lines (green) vs. deleted lines (red strikethrough with a 1-click `↩ Restaurar` button).
+- **In-Place Song Content Updates:** Direct update of existing decks (`store.updateDeckContent`) without generating duplicate entries.
+- **Real-Time Physical Disk Media Folders:** Ability to link and auto-sync physical folders from local disk (`fs.watch` + polling fallback) seamlessly in `#media-folders-list` with real-time file addition and removal.
+- **Interactive Media Playback Timeline & Expanded Audience Dock:** Doubled width for audience screen controls dock and manageable media timeline with seek slider, play/pause toggle, restart button, and time formatting.
+
+### Fixed
+- **Electron Modal Input & Button Freeze / Unresponsive Modales:** Fixed recurring bug where modal textboxes and buttons stopped responding to mouse clicks by hoisting modal overlays out of the `#app` CSS grid, removing `backdrop-filter: blur` & GPU `enable-zero-copy` compositor conflicts, replacing focus-locking `window.alert()` calls with toast notifications, and ensuring active pointer-events and focus restoration via `ensureModalInteractive`.
+
+## [1.3.4] - 2026-11-04
+
+### Added
+- **Media Playback Queue & Auto-Advance on Video End (`enqueueMedia` & `advanceMediaQueue`):** Queue one or multiple media items via `Alt + Click` (or `+Cola` button / right-click context menu). When the queue has items, the currently playing video disables looping (`loop = false`) and automatically transitions to the next queued item upon completion (`ended` event), returning to normal loop mode once the queue is empty.
+- **Right-Side Live Queue List Panels (`#media-dock-queue-panel` & `#right-sidebar-queue-box`):** Automatic right-hand queue panel in the Media tab and under the Live Program monitor showing the active media item and upcoming queued items (`#1`, `#2`, ...) with controls to play now (`▶`), skip to next (`⏭️ Pasar`), reorder (`↑`/`↓`), remove individual items (`×`), or clear the queue (`🗑️ Vaciar`).
+
 ## [1.3.3] - 2026-10-15
 
 ### Added

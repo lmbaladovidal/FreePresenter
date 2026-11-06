@@ -1,18 +1,18 @@
 # 🧪 Protocolo y Plan de Smoke Test - ProPresenter AI Studio
 
-Este documento define el **Plan de Smoke Test** (Prueba de Humo) para verificar de forma rápida la estabilidad y funcionamiento de los 50 Requerimientos Funcionales (**RF-01 al RF-50**) de **ProPresenter AI Studio**.
+Este documento define el **Plan de Smoke Test** (Prueba de Humo) para verificar de forma rápida la estabilidad y funcionamiento de los 52 Requerimientos Funcionales (**RF-01 al RF-52**) de **ProPresenter AI Studio**.
 
 ---
 
 ## ⚡ 1. Ejecución de Pruebas Automatizadas
 
-El proyecto cuenta con un suite de pruebas automatizado que valida la integridad del estado, motor de transiciones, escrituras, live coder 2d, plantillas, motor de audio y motor de secciones.
+El proyecto cuenta con un suite de pruebas automatizado que valida la integridad del estado, motor de transiciones, escrituras, live coder 2d, plantillas, motor de audio, motor de secciones y cola de reproducción multimedia.
 
 ```bash
 npm test
 ```
 
-> **Resultado Esperado:** `📊 RESULTADOS SMOKE TEST: 15/15 PRUEBAS EXITOSAS`
+> **Resultado Esperado:** `📊 RESULTADOS SMOKE TEST: 16/16 PRUEBAS EXITOSAS`
 
 ---
 
@@ -112,7 +112,7 @@ npm test
 | **ST-35** | Zoom Dinámico Grid | Deslizar la barra de zoom de filminas de `140px` a `380px`. | Las tarjetas de filmina redimensionan su tamaño en vivo. | RF-41 |
 | **ST-36** | Paridad 1:1 Monitor | Proyectar canción y comparar `.monitor-screen` con `audience.html`. | Fuentes, espaciados, saltos de línea y posición vertical coinciden 100% idénticos. | RF-42 |
 | **ST-37** | Menú Contextual | Hacer clic derecho en una canción, medio, biblia o filmina. | Muestra menú dinámico con opciones Proyectar, Editar, Duplicar, Copiar, Eliminar. | RF-43 |
-| **ST-38** | Badge de Versión | Inspeccionar la insignia del encabezado superior. | Muestra dinámicamente la versión leída desde `package.json` (`PRO v1.3.1`). | RF-44 |
+| **ST-38** | Badge de Versión | Inspeccionar la insignia del encabezado superior. | Muestra dinámicamente la versión leída desde `package.json` (`PRO v1.3.4`). | RF-44 |
 
 ---
 
@@ -135,6 +135,23 @@ npm test
 | :--- | :--- | :--- | :--- | :--- |
 | **ST-41** | Detección y Marcado de Secciones | Crear canción usando etiquetas `[Intro]`, `[Verso 1]`, `[Coro]`, `[Puente]` o usar chips de sección. Modificar sección haciendo clic en badge de tarjeta o menú contextual. | El texto se divide asignando nombres y badges de color correspondientes sin incluir las etiquetas en las letras de las filminas. El badge y nombre de sección se actualizan en vivo. | RF-49 |
 | **ST-42** | Barra de Salto a Secciones | Hacer clic en los botones de sección en la barra superior del dock (`#deck-sections-nav`). | La cuadrícula hace scroll suave a la sección elegida, resalta la filmina con un destello animado y proyecta de inmediato la primera filmina de la sección en vivo. | RF-50 |
+
+---
+
+### ⏭️ Módulo 15: Cola de Reproducción Multimedia y Auto-Avance al Finalizar
+| ID | Caso de Prueba | Pasos de Verificación | Resultado Esperado | Cobertura RF |
+| :--- | :--- | :--- | :--- | :--- |
+| **ST-43** | Encolar con `Alt + Click` y Lista Derecha | En la pestaña `Media`, mantener `Alt` y hacer clic en uno o más videos. | El elemento se suma a la cola, muestra el badge `⏭️ #1` en la tarjeta y aparece automáticamente el panel lateral derecho con la lista de los elementos que siguen. | RF-51, RF-52 |
+| **ST-44** | Transición Automática al Finalizar Video | Dejar que el video actual llegue al final teniendo elementos en la cola. | En lugar de repetir en loop, al terminar pasa automáticamente al siguiente elemento de la cola y actualiza la lista. | RF-51, RF-52 |
+
+---
+
+### ⏱️ Módulo 16: Línea de Tiempo Manejable de Medios, Edición In-Place y Overlays Personalizados
+| ID | Caso de Prueba | Pasos de Verificación | Resultado Esperado | Cobertura RF |
+| :--- | :--- | :--- | :--- | :--- |
+| **ST-45** | Timeline Manejable y Dock de Audiencia | Reproducir un video y arrastrar la barra de tiempo en el dock de audiencia. Probar Play/Pausa y Reinicio (`⏮️`). | El dock cuenta con el doble de ancho, el seek actualiza el tiempo sincronizado con la audiencia y la barra de progreso avanza suavemente. | RF-53 |
+| **ST-46** | Edición In-Place con Diff Visual y Carpetas Físicas | Editar canción descargada con `modal-edit-show`, modificar letras viendo el panel comparativo de borrados/agregados. Vincular carpeta física en Media. | La canción se actualiza in-place en la biblioteca sin duplicarse; el diff visual resalta lo que se borra y lo que se agrega; la carpeta física sincroniza altas y bajas de archivos en tiempo real. | RF-54, RF-55, RF-56 |
+| **ST-47** | Overlays / Lower Thirds Personalizados | Crear show con categoría `Overlays Stream / Lower Thirds` o etiquetas `[Overlay]`. Proyectar un slide de overlay. | El banner de Lower Third se activa simultáneamente en la pantalla de Audiencia y en el monitor del operador dividiendo título y subtítulo, sin sustituir la capa de texto general. | RF-57, RF-58 |
 
 ---
 

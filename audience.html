@@ -148,9 +148,57 @@
     const ltSub = document.getElementById('lower-third-subtitle');
 
     let currentVideoUrl = "";
+    let currentMediaPlayId = 0;
     let currentLiveText = "";
     let activeMediaLayer = 'A'; // 'A' or 'B'
     let fadeTimeout = null;
+    let hasQueuedMedia = false;
+    let lastMediaCommandId = null;
+
+    const getActiveAudienceVideo = () => {
+      const candidate = activeMediaLayer === 'A' ? bgVideoA : bgVideoB;
+      if (candidate && candidate.style.display !== 'none' && candidate.src) {
+        return candidate;
+      }
+      if (bgVideoA.style.opacity === '1' && bgVideoA.style.display !== 'none') return bgVideoA;
+      if (bgVideoB.style.opacity === '1' && bgVideoB.style.display !== 'none') return bgVideoB;
+      return candidate;
+    };
+
+    const executeAudienceMediaCommand = (cmd) => {
+      if (!cmd || !cmd.id || cmd.id === lastMediaCommandId) return;
+      lastMediaCommandId = cmd.id;
+
+      const activeVid = getActiveAudienceVideo();
+      if (!activeVid || activeVid.style.display === 'none') return;
+
+      if (cmd.action === 'seek' && typeof cmd.time === 'number' && !isNaN(cmd.time)) {
+        try {
+          activeVid.currentTime = Math.max(0, cmd.time);
+        } catch (e) {}
+      } else if (cmd.action === 'restart') {
+        try {
+          activeVid.currentTime = 0;
+          activeVid.play().catch(() => {});
+        } catch (e) {}
+      } else if (cmd.action === 'pause') {
+        activeVid.pause();
+      } else if (cmd.action === 'play') {
+        activeVid.play().catch(() => {});
+      }
+    };
+
+    sync.onMediaCommand((cmd) => {
+      executeAudienceMediaCommand(cmd);
+    });
+
+    const handleVideoEnded = (videoEl) => {
+      if (videoEl.style.opacity === '1' && hasQueuedMedia) {
+        sync.notifyMediaEnded(currentVideoUrl);
+      }
+    };
+    bgVideoA.addEventListener('ended', () => handleVideoEnded(bgVideoA));
+    bgVideoB.addEventListener('ended', () => handleVideoEnded(bgVideoB));
 
     sync.onUpdate((state) => {
       // 0. Active Template Typography & Layout Styles
@@ -229,12 +277,16 @@
       const mediaMode = state.mediaTransition || 'fade';
       const isAudioMuted = !!state.isMediaAudioMuted;
       const audioVolume = typeof state.mediaAudioVolume === 'number' ? state.mediaAudioVolume : 1.0;
+      hasQueuedMedia = Array.isArray(state.mediaQueue) && state.mediaQueue.length > 0;
+      const shouldLoop = !hasQueuedMedia;
 
-      // Real-time synchronization of audio mute state and volume on currently active video
+      // Real-time synchronization of audio mute state, volume, and loop mode on currently active video
       bgVideoA.muted = isAudioMuted;
       bgVideoB.muted = isAudioMuted;
       bgVideoA.volume = audioVolume;
       bgVideoB.volume = audioVolume;
+      bgVideoA.loop = shouldLoop;
+      bgVideoB.loop = shouldLoop;
 
       function isMediaImage(url, type = "") {
         if (type && type.startsWith('image/')) return true;
@@ -262,8 +314,10 @@
         bgVideoA.pause();
         bgVideoB.pause();
         currentVideoUrl = "";
-      } else if (currentVideoUrl !== state.activeVideoUrl) {
+        currentMediaPlayId = 0;
+      } else if (currentVideoUrl !== state.activeVideoUrl || (state.activeMediaPlayId && currentMediaPlayId !== state.activeMediaPlayId)) {
         currentVideoUrl = state.activeVideoUrl;
+        currentMediaPlayId = state.activeMediaPlayId || 0;
 
         const isImage = (state.activeVideoType && state.activeVideoType.startsWith('image/')) || (state.activeVideoIsImage && !state.activeVideoType?.startsWith('video/')) || isMediaImage(currentVideoUrl, state.activeVideoType);
 
@@ -282,6 +336,7 @@
         } else {
           incomingMedia.video.src = currentVideoUrl;
           incomingMedia.video.currentTime = 0;
+          incomingMedia.video.loop = shouldLoop;
           incomingMedia.video.muted = isAudioMuted;
           incomingMedia.video.volume = audioVolume;
           incomingMedia.video.style.display = 'block';
@@ -326,6 +381,11 @@
             performCrossfade();
           }
         }
+      }
+
+      // Synchronize timeline seek / play / pause commands
+      if (state.mediaPlaybackCommand) {
+        executeAudienceMediaCommand(state.mediaPlaybackCommand);
       }
 
       // 3. Lower Third Overlay Layer

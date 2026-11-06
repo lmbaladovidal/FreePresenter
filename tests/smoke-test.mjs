@@ -317,6 +317,224 @@ test('RF-49/50: Marcado dinámico, asignación de secciones y salto a sección',
   }
 });
 
+// ----------------------------------------------------
+// SUITE 10: Cola de Reproducción de Medios (Alt+Click & Auto-Advance) (RF-51 y RF-52)
+// ----------------------------------------------------
+console.log('\n▶️ Grupo 10: Cola de Reproducción de Medios (Alt+Click & Auto-Advance) (RF-51 y RF-52)');
+test('RF-51/52: Encolado de medios (enqueueMedia), reordenamiento y transición automática al finalizar', () => {
+  const store = new Store();
+  store.clearMediaQueue();
+  if (store.state.mediaQueue.length !== 0) throw new Error('La cola de medios debe iniciar vacía');
+
+  const itemA = store.addMediaItem("Video Intro", "https://example.com/intro.mp4", "video/mp4", "General");
+  const itemB = store.addMediaItem("Video Alabanza", "https://example.com/worship.mp4", "video/mp4", "General");
+  const itemC = store.addMediaItem("Video Cierre", "https://example.com/outro.mp4", "video/mp4", "General");
+
+  // Reproducir itemA inicialmente
+  store.setActiveVideo(itemA.url, itemA.name, itemA.type);
+  if (store.state.activeVideoUrl !== itemA.url) throw new Error('itemA debería estar en reproducción');
+
+  // Sumar itemB e itemC a la cola (simulando Alt+Click)
+  const q1 = store.enqueueMedia(itemB);
+  const q2 = store.enqueueMedia(itemC.id);
+
+  if (store.state.mediaQueue.length !== 2) throw new Error('Se esperaban 2 elementos en la cola');
+  if (store.state.mediaQueue[0].url !== itemB.url) throw new Error('El primer elemento en cola debe ser itemB');
+  if (store.state.mediaQueue[1].url !== itemC.url) throw new Error('El segundo elemento en cola debe ser itemC');
+
+  // Probar reordenamiento (mover posición 1 a 0)
+  store.moveMediaQueueItem(1, 0);
+  if (store.state.mediaQueue[0].url !== itemC.url) throw new Error('moveMediaQueueItem no movió itemC al frente');
+  // Devolver al orden original
+  store.moveMediaQueueItem(0, 1);
+
+  // Simular finalización del video activo -> advanceMediaQueue()
+  const advanced1 = store.advanceMediaQueue();
+  if (!advanced1 || advanced1.url !== itemB.url) throw new Error('advanceMediaQueue no avanzó a itemB');
+  if (store.state.activeVideoUrl !== itemB.url) throw new Error('activeVideoUrl no cambió a itemB');
+  if (store.state.mediaQueue.length !== 1) throw new Error('Debe quedar 1 elemento en la cola');
+
+  // Simular finalización del segundo video -> avanza a itemC y deja la cola vacía (vuelve a loop)
+  const advanced2 = store.advanceMediaQueue();
+  if (!advanced2 || advanced2.url !== itemC.url) throw new Error('advanceMediaQueue no avanzó a itemC');
+  if (store.state.activeVideoUrl !== itemC.url) throw new Error('activeVideoUrl no cambió a itemC');
+  if (store.state.mediaQueue.length !== 0) throw new Error('La cola debe quedar vacía tras el último elemento');
+
+  // Probar eliminar item específico y vaciar cola
+  const qTemp = store.enqueueMedia(itemA);
+  store. enqueueMedia(itemB);
+  store.removeFromMediaQueue(qTemp.queueId);
+  if (store.state.mediaQueue.length !== 1 || store.state.mediaQueue[0].url !== itemB.url) {
+    throw new Error('removeFromMediaQueue no eliminó el item correcto');
+  }
+  store.clearMediaQueue();
+  if (store.state.mediaQueue.length !== 0) throw new Error('clearMediaQueue no vació la cola');
+});
+
+test('RF-53: Línea de tiempo manejable del medio en reproducción (Seek, Play/Pause y Reinicio)', () => {
+  const store = new Store();
+  store.setActiveVideo("https://example.com/timeline-test.mp4", "Timeline Video", "video/mp4");
+
+  if (store.state.isMediaPaused !== false) throw new Error('El video debe iniciar en reproducción (isMediaPaused = false)');
+
+  // Pausar reproducción
+  const pausedState = store.toggleMediaPause();
+  if (pausedState !== true || store.state.isMediaPaused !== true) {
+    throw new Error('toggleMediaPause no cambió isMediaPaused a true');
+  }
+  if (!store.state.mediaPlaybackCommand || store.state.mediaPlaybackCommand.action !== 'pause') {
+    throw new Error('No se emitió el comando de pausa a la pantalla de audiencia');
+  }
+
+  // Adelantar / mover línea de tiempo (Seek a 42.5 segundos)
+  const seekedTime = store.seekActiveMedia(42.5);
+  if (seekedTime !== 42.5) throw new Error('seekActiveMedia no retornó el tiempo objetivo');
+  if (!store.state.mediaPlaybackCommand || store.state.mediaPlaybackCommand.action !== 'seek' || store.state.mediaPlaybackCommand.time !== 42.5) {
+    throw new Error('No se emitió el comando seek con el tiempo exacto');
+  }
+
+  // Reiniciar video desde 00:00
+  store.restartActiveMedia();
+  if (store.state.isMediaPaused !== false) throw new Error('restartActiveMedia debe reanudar la reproducción');
+  if (!store.state.mediaPlaybackCommand || store.state.mediaPlaybackCommand.action !== 'restart' || store.state.mediaPlaybackCommand.time !== 0) {
+    throw new Error('No se emitió el comando restart a 00:00');
+  }
+});
+
+// ----------------------------------------------------
+// SUITE 11: Edición de Canciones Descargadas y Carpetas Físicas en Tiempo Real (RF-54 y RF-55)
+// ----------------------------------------------------
+console.log('\n▶️ Grupo 11: Edición de Canciones Descargadas y Carpetas Físicas en Tiempo Real (RF-54 y RF-55)');
+test('RF-54: Actualización in-place de canción descargada (updateDeckContent sin duplicar)', () => {
+  const store = new Store();
+  const created = store.createNewShow(
+    "Cuán Grande Es Él",
+    "Alabanza",
+    "[Verso 1]\nSeñor mi Dios\nAl contemplar los cielos\n\n[Coro]\nMi corazón entona la canción"
+  );
+  const countBefore = store.decks.length;
+
+  // Editar borrando la segunda línea del Verso 1 y cambiando el título
+  const updated = store.updateDeckContent(
+    created.id,
+    "Cuán Grande Es Él (Editada)",
+    "Adoración",
+    "[Verso 1]\nSeñor mi Dios\n\n[Coro]\nMi corazón entona la canción"
+  );
+
+  if (!updated) throw new Error('updateDeckContent no retornó el deck actualizado');
+  if (store.decks.length !== countBefore) throw new Error('updateDeckContent no debe duplicar la canción en la biblioteca');
+  if (updated.title !== "Cuán Grande Es Él (Editada)") throw new Error('El título de la canción no se actualizó');
+  if (updated.groups[0].slides[0].text.includes("Al contemplar los cielos")) {
+    throw new Error('La línea borrada sigue apareciendo en la filmina');
+  }
+});
+
+test('RF-55: Vinculación y sincronización en tiempo real de carpetas físicas junto a carpetas virtuales', () => {
+  const store = new Store();
+  const physPath = "C:\\Media\\FondosIglesia";
+  const initialFiles = [
+    { name: "cielo.mp4", url: "file:///C:/Media/FondosIglesia/cielo.mp4", filePath: "C:\\Media\\FondosIglesia\\cielo.mp4", type: "video/mp4" },
+    { name: "cruz.png", url: "file:///C:/Media/FondosIglesia/cruz.png", filePath: "C:\\Media\\FondosIglesia\\cruz.png", type: "image/png" }
+  ];
+
+  store.addPhysicalMediaFolder(physPath, "FondosIglesia", initialFiles);
+
+  if (!store.state.physicalMediaFolders.some(f => f.path === physPath)) {
+    throw new Error('La carpeta física no se registró en physicalMediaFolders');
+  }
+
+  const physItems1 = store.state.mediaLibrary.filter(m => m.physicalFolderPath === physPath);
+  if (physItems1.length !== 2) throw new Error(`Se esperaban 2 archivos sincronizados, se encontraron ${physItems1.length}`);
+
+  // Simular actualización en tiempo real: se agrega un archivo nuevo y se borra cruz.png
+  const updatedFiles = [
+    { name: "cielo.mp4", url: "file:///C:/Media/FondosIglesia/cielo.mp4", filePath: "C:\\Media\\FondosIglesia\\cielo.mp4", type: "video/mp4" },
+    { name: "fuego.mp4", url: "file:///C:/Media/FondosIglesia/fuego.mp4", filePath: "C:\\Media\\FondosIglesia\\fuego.mp4", type: "video/mp4" }
+  ];
+  store.syncPhysicalFolderItems(physPath, "FondosIglesia", updatedFiles);
+
+  const physItems2 = store.state.mediaLibrary.filter(m => m.physicalFolderPath === physPath);
+  if (physItems2.length !== 2 || !physItems2.some(m => m.name === "fuego.mp4") || physItems2.some(m => m.name === "cruz.png")) {
+    throw new Error('syncPhysicalFolderItems no reflejó el alta y baja en tiempo real de archivos del disco');
+  }
+
+  // Desvincular carpeta física
+  store.removePhysicalMediaFolder(physPath);
+  if (store.state.physicalMediaFolders.some(f => f.path === physPath)) {
+    throw new Error('removePhysicalMediaFolder no quitó la carpeta de physicalMediaFolders');
+  }
+  if (store.state.mediaLibrary.some(m => m.physicalFolderPath === physPath)) {
+    throw new Error('removePhysicalMediaFolder no limpió los items asociados de mediaLibrary');
+  }
+});
+
+console.log('\n▶️ Grupo 12: Overlays y Lower Thirds Personalizados (RF-58)');
+
+test('RF-58: Creación, etiquetado y activación de overlays / lower-thirds personalizados', () => {
+  const store = new Store();
+  // 1. Creación directa seleccionando categoría 'Overlays Stream'
+  const newOverlayDeck = store.createNewShow(
+    "Pastores Invitados",
+    "Overlays Stream",
+    "Pastor Juan Pérez\nIglesia Central\n---\nPastor Invitado\nPredicador"
+  );
+
+  if (!newOverlayDeck || newOverlayDeck.type !== "lowerthird") {
+    throw new Error(`Se esperaba que el show creado con categoría 'Overlays Stream' tuviese type='lowerthird', pero se obtuvo: ${newOverlayDeck?.type}`);
+  }
+  const allOverlaySlides = newOverlayDeck.groups.flatMap(g => g.slides);
+  if (allOverlaySlides.length !== 2) {
+    throw new Error(`Se esperaban 2 slides de overlay, se obtuvieron ${allOverlaySlides.length}`);
+  }
+  if (!allOverlaySlides[0].isLowerThird || !allOverlaySlides[1].isLowerThird) {
+    throw new Error('Los slides del show de overlay deben tener isLowerThird = true');
+  }
+
+  // 2. Activación en vivo del Lower Third personalizado
+  store.setActiveDeck(newOverlayDeck.id);
+  store.setLiveSlide(0, 0);
+
+  if (!store.state.isLowerThirdActive) {
+    throw new Error('isLowerThirdActive no se activó al proyectar el slide de overlay');
+  }
+  if (store.state.lowerThirdText !== "Pastor Juan Pérez") {
+    throw new Error(`lowerThirdText esperado 'Pastor Juan Pérez', obtenido '${store.state.lowerThirdText}'`);
+  }
+  if (store.state.lowerThirdSubtext !== "Iglesia Central") {
+    throw new Error(`lowerThirdSubtext esperado 'Iglesia Central', obtenido '${store.state.lowerThirdSubtext}'`);
+  }
+
+  // 3. Desactivación con clearLowerThird
+  store.clearLowerThird();
+  if (store.state.isLowerThirdActive) {
+    throw new Error('clearLowerThird no desactivó isLowerThirdActive');
+  }
+
+  // 4. Creación con etiqueta explicita de sección [Overlay]
+  const mixedDeck = store.createNewShow(
+    "Culto Especial",
+    "Prédicas",
+    "[Overlay]\nPastor Marcos\nOrador Principal\n---\n[Versículo]\nJuan 3:16\nPorque de tal manera amó Dios al mundo"
+  );
+
+  const mixedSlides = mixedDeck.groups.flatMap(g => g.slides);
+  if (!mixedSlides[0].isLowerThird || mixedDeck.groups[0].badge !== "badge-lowerthird") {
+    throw new Error('El slide con tag [Overlay] no fue asignado con badge-lowerthird o isLowerThird=true');
+  }
+  if (mixedSlides[1].isLowerThird) {
+    throw new Error('El slide de versículo no debe ser considerado lower-third');
+  }
+
+  // Proyectar el slide 0 del show mixto
+  store.setActiveDeck(mixedDeck.id);
+  store.setLiveSlide(0, 0);
+  if (!store.state.isLowerThirdActive || store.state.lowerThirdText !== "Pastor Marcos" || store.state.lowerThirdSubtext !== "Orador Principal") {
+    throw new Error('El slide con tag [Overlay] no activó correctamente el lower-third en vivo');
+  }
+  store.clearLowerThird();
+});
+
 
 // ----------------------------------------------------
 // RESUMEN FINAL

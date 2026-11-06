@@ -18,18 +18,29 @@ class ProPresenterApp {
 
     // State for Scriptures Navigator & Operator Video Crossfade
     this.operatorVideoUrl = "";
+    this.operatorMediaPlayId = 0;
     this.operatorActiveMediaLayer = 'A';
+    this.lastQueueAdvanceTime = 0;
     this.selectedBibleVersion = '';
     this.selectedBookId = 'JHN';
     this.selectedChapter = 3;
     this.scriptureQuery = '';
     this.matchedBookSuggestion = null;
     this.isAudienceOpen = false;
+    this.projectSearchQuery = '';
+    this.editingDeckId = null;
+    this.originalEditLines = [];
+    this.originalSlideEditLines = [];
 
     // Track Audience window status for operator audio echo prevention
     sync.onAudiencePresence((isOpen) => {
       this.isAudienceOpen = isOpen;
       this.updateOperatorAudioMute();
+    });
+
+    // Listen for Audience window reporting video playback completion for queue auto-advance
+    sync.onMediaEnded(() => {
+      this.handleActiveVideoEnded();
     });
 
     if (window.electronAPI) {
@@ -53,6 +64,7 @@ class ProPresenterApp {
     this.initModalBackdropListeners();
     this.initKeyboardShortcuts();
     this.bindContextMenuEvents();
+    this.initPhysicalFoldersSync();
 
     // Subscribe to state changes and sync displays
     store.subscribe((state, decks) => {
@@ -180,8 +192,16 @@ class ProPresenterApp {
         document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
         tab.classList.add('active');
         const mode = tab.getAttribute('data-mode');
-        console.log(`Modo de vista cambiado a: ${mode}`);
+        if (mode === 'edit' && store.activeDeckId) {
+          this.openEditDeckModal(store.activeDeckId);
+        }
       });
+    });
+
+    document.getElementById('btn-edit-active-deck')?.addEventListener('click', () => {
+      if (store.activeDeckId) {
+        this.openEditDeckModal(store.activeDeckId);
+      }
     });
 
     document.getElementById('btn-open-audience')?.addEventListener('click', () => {
@@ -205,6 +225,99 @@ class ProPresenterApp {
     document.getElementById('btn-clear-text')?.addEventListener('click', () => store.clearText());
     document.getElementById('btn-clear-media')?.addEventListener('click', () => store.clearMedia());
     document.getElementById('btn-clear-overlays')?.addEventListener('click', () => store.clearOverlays());
+
+    // 2b. Media Playback Queue Controls, Timeline Scrubbing & Video Ended Listeners
+    this.isScrubbingTimeline = false;
+    const opVidA = document.getElementById('operator-video-preview-a');
+    const opVidB = document.getElementById('operator-video-preview-b');
+    opVidA?.addEventListener('ended', () => {
+      if (opVidA.style.opacity === '1') this.handleActiveVideoEnded();
+    });
+    opVidB?.addEventListener('ended', () => {
+      if (opVidB.style.opacity === '1') this.handleActiveVideoEnded();
+    });
+
+    const timelineEvents = ['timeupdate', 'loadedmetadata', 'durationchange', 'play', 'pause', 'seeked'];
+    timelineEvents.forEach(evtName => {
+      opVidA?.addEventListener(evtName, () => {
+        if (this.getActiveOperatorVideo() === opVidA) this.updateMediaTimelineUI();
+      });
+      opVidB?.addEventListener(evtName, () => {
+        if (this.getActiveOperatorVideo() === opVidB) this.updateMediaTimelineUI();
+      });
+    });
+
+    const timelineSlider = document.getElementById('input-media-timeline');
+    const btnTimelinePlayPause = document.getElementById('btn-timeline-play-pause');
+    const btnTimelineRestart = document.getElementById('btn-timeline-restart');
+
+    if (timelineSlider) {
+      const startScrub = () => { this.isScrubbingTimeline = true; };
+      const endScrub = () => {
+        if (!this.isScrubbingTimeline) return;
+        this.isScrubbingTimeline = false;
+        const activeVid = this.getActiveOperatorVideo();
+        if (activeVid && activeVid.duration && isFinite(activeVid.duration)) {
+          const ratio = Math.max(0, Math.min(1, parseFloat(timelineSlider.value) / 1000));
+          const targetTime = ratio * activeVid.duration;
+          try { activeVid.currentTime = targetTime; } catch (e) {}
+          store.seekActiveMedia(targetTime);
+        }
+        this.updateMediaTimelineUI();
+      };
+
+      timelineSlider.addEventListener('mousedown', startScrub);
+      timelineSlider.addEventListener('touchstart', startScrub, { passive: true });
+      timelineSlider.addEventListener('mouseup', endScrub);
+      timelineSlider.addEventListener('touchend', endScrub);
+      timelineSlider.addEventListener('change', endScrub);
+
+      timelineSlider.addEventListener('input', () => {
+        this.isScrubbingTimeline = true;
+        const activeVid = this.getActiveOperatorVideo();
+        const ratio = Math.max(0, Math.min(1, parseFloat(timelineSlider.value) / 1000));
+        timelineSlider.style.setProperty('--timeline-progress', `${(ratio * 100).toFixed(1)}%`);
+
+        if (activeVid && activeVid.duration && isFinite(activeVid.duration)) {
+          const targetTime = ratio * activeVid.duration;
+          try { activeVid.currentTime = targetTime; } catch (e) {}
+          const curEl = document.getElementById('lbl-timeline-current');
+          const remEl = document.getElementById('lbl-timeline-remaining');
+          if (curEl) curEl.textContent = this.formatMediaTime(targetTime);
+          if (remEl) remEl.textContent = `-${this.formatMediaTime(Math.max(0, activeVid.duration - targetTime))}`;
+          store.seekActiveMedia(targetTime);
+        }
+      });
+    }
+
+    btnTimelinePlayPause?.addEventListener('click', () => {
+      const activeVid = this.getActiveOperatorVideo();
+      if (!activeVid || store.state.isMediaCleared || !store.state.activeVideoUrl) return;
+      const shouldPause = !activeVid.paused;
+      if (shouldPause) {
+        activeVid.pause();
+      } else {
+        activeVid.play().catch(() => {});
+      }
+      store.setMediaPaused(shouldPause);
+      this.updateMediaTimelineUI();
+    });
+
+    btnTimelineRestart?.addEventListener('click', () => {
+      const activeVid = this.getActiveOperatorVideo();
+      if (!activeVid || store.state.isMediaCleared || !store.state.activeVideoUrl) return;
+      try {
+        activeVid.currentTime = 0;
+        activeVid.play().catch(() => {});
+      } catch (e) {}
+      store.restartActiveMedia();
+      this.updateMediaTimelineUI();
+    });
+
+    document.getElementById('btn-dock-queue-next')?.addEventListener('click', () => store.advanceMediaQueue());
+    document.getElementById('btn-sidebar-queue-next')?.addEventListener('click', () => store.advanceMediaQueue());
+    document.getElementById('btn-dock-queue-clear')?.addEventListener('click', () => store.clearMediaQueue());
+    document.getElementById('btn-sidebar-queue-clear')?.addEventListener('click', () => store.clearMediaQueue());
 
     // 3. Load Bible Modal Events
     this.bindLoadBibleModalEvents();
@@ -261,11 +374,58 @@ class ProPresenterApp {
     this.bindScriptureEvents();
     this.initDockResizer();
 
-    // 5. Live Search Input in Resource Dock
-    this.dockSearchInput?.addEventListener('input', (e) => {
-      this.searchQuery = e.target.value.toLowerCase().trim();
+    // 5. Live Search Input in Resource Dock, Shows Header & Projects Sidebar (Accent-insensitive + Lyrics)
+    const showsLocalSearchInput = document.getElementById('input-shows-local-search');
+    const btnClearShowsSearch = document.getElementById('btn-clear-shows-search');
+    const projectSearchInput = document.getElementById('input-project-search');
+    const btnClearProjectSearch = document.getElementById('btn-clear-project-search');
+
+    const applyShowsAndMediaSearch = (rawVal, sourceEl) => {
+      this.searchQuery = (rawVal || '').trim();
+      if (this.dockSearchInput && sourceEl !== this.dockSearchInput) {
+        this.dockSearchInput.value = rawVal || '';
+      }
+      if (showsLocalSearchInput && sourceEl !== showsLocalSearchInput) {
+        showsLocalSearchInput.value = rawVal || '';
+      }
+      if (btnClearShowsSearch) {
+        btnClearShowsSearch.style.display = this.searchQuery ? 'inline-flex' : 'none';
+      }
+      this.lastShowsCacheKey = null;
+      this.lastMediaGridCacheKey = null;
       this.renderShowsDock(store.state, store.decks);
       this.renderMediaDock(store.state);
+    };
+
+    this.dockSearchInput?.addEventListener('input', (e) => {
+      applyShowsAndMediaSearch(e.target.value, this.dockSearchInput);
+    });
+
+    showsLocalSearchInput?.addEventListener('input', (e) => {
+      applyShowsAndMediaSearch(e.target.value, showsLocalSearchInput);
+    });
+
+    btnClearShowsSearch?.addEventListener('click', () => {
+      applyShowsAndMediaSearch('', null);
+      showsLocalSearchInput?.focus();
+    });
+
+    const applyProjectSidebarSearch = (rawVal) => {
+      this.projectSearchQuery = (rawVal || '').trim();
+      if (btnClearProjectSearch) {
+        btnClearProjectSearch.style.display = this.projectSearchQuery ? 'inline-flex' : 'none';
+      }
+      this.renderUI(store.state, store.decks);
+    };
+
+    projectSearchInput?.addEventListener('input', (e) => {
+      applyProjectSidebarSearch(e.target.value);
+    });
+
+    btnClearProjectSearch?.addEventListener('click', () => {
+      if (projectSearchInput) projectSearchInput.value = '';
+      applyProjectSidebarSearch('');
+      projectSearchInput?.focus();
     });
 
     // 6. Sub-sidebar Filter Click
@@ -307,6 +467,7 @@ class ProPresenterApp {
 
         if (viewManual) viewManual.style.display = 'block';
         if (viewSearch) viewSearch.style.display = 'none';
+        this.ensureModalInteractive(this.modalCreateShow, this.editingDeckId ? this.inputShowText : this.inputShowTitle);
       } else if (mode === 'search') {
         setTabStyle(tabSearch, true);
         setTabStyle(tabManual, false);
@@ -314,9 +475,10 @@ class ProPresenterApp {
 
         if (viewSearch) viewSearch.style.display = 'block';
         if (viewManual) viewManual.style.display = 'none';
-        document.getElementById('input-song-search-query')?.focus();
+        this.ensureModalInteractive(this.modalCreateShow, document.getElementById('input-song-search-query'));
       }
     };
+    this.switchCreateModalMode = switchModalMode;
 
     const pasteFromClipboard = async () => {
       try {
@@ -326,13 +488,15 @@ class ProPresenterApp {
         }
 
         if (!clipboardText || !clipboardText.trim()) {
-          alert("El portapapeles está vacío o no contiene texto legible.");
+          this.showToast("⚠️ El portapapeles está vacío o no contiene texto legible.", "warn");
+          this.ensureModalInteractive(this.modalCreateShow, this.inputShowText);
           return;
         }
 
         const trimmed = clipboardText.trim();
         if (this.inputShowText) {
           this.inputShowText.value = trimmed;
+          this.renderSongEditDiff();
         }
 
         // Sugerir título desde la primera línea si el título está vacío
@@ -347,9 +511,11 @@ class ProPresenterApp {
             this.inputShowTitle.value = candidate;
           }
         }
+        this.ensureModalInteractive(this.modalCreateShow, this.inputShowText);
       } catch (err) {
         console.warn("No se pudo acceder directamente al portapapeles:", err);
-        alert("No se pudo leer automáticamente el portapapeles. Puedes usar Ctrl+V directamente en el área de texto.");
+        this.showToast("ℹ️ Puedes pegar directamente con Ctrl+V en el cuadro de letra.", "warn");
+        this.ensureModalInteractive(this.modalCreateShow, this.inputShowText);
       }
     };
 
@@ -361,77 +527,134 @@ class ProPresenterApp {
     });
     btnPasteClipboard?.addEventListener('click', pasteFromClipboard);
 
-    // Web Song Search Logic
+    this.inputShowText?.addEventListener('input', () => {
+      this.renderSongEditDiff();
+    });
+
+    // Local + Web Song Search Logic
     const btnSongSearch = document.getElementById('btn-song-search-submit');
     const inputSongQuery = document.getElementById('input-song-search-query');
     const songResultsList = document.getElementById('song-search-results-list');
 
     let currentSearchResults = [];
 
+    const renderCombinedSongResults = (localMatches, webResults, q, isLoadingWeb = false) => {
+      if (!songResultsList) return;
+      let html = '';
+
+      if (localMatches.length > 0) {
+        html += `<div style="font-size: 0.72rem; font-weight: 800; color: #34d399; text-transform: uppercase; letter-spacing: 0.04em; padding: 4px 2px;">📚 En tu Biblioteca Local (${localMatches.length} descargada${localMatches.length === 1 ? '' : 's'})</div>`;
+        html += localMatches.map(deck => `
+          <div class="song-search-item" style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 6px; padding: 8px 12px; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+            <div style="display: flex; flex-direction: column; gap: 2px; overflow: hidden; flex: 1;">
+              <span style="font-size: 0.85rem; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">🎵 ${deck.title}</span>
+              <div style="display: flex; align-items: center; gap: 8px; font-size: 0.72rem; color: var(--text-muted);">
+                <span style="color: #6ee7b7; font-weight: 700;">✓ Ya descargada</span>
+                <span>•</span>
+                <span>📂 ${deck.category || 'Alabanza'}</span>
+              </div>
+            </div>
+            <div style="display: flex; gap: 6px; align-items: center;">
+              <button type="button" class="btn-project-local-song" data-deck-id="${deck.id}" style="background: #059669; color: white; border: none; padding: 5px 10px; border-radius: 4px; font-size: 0.73rem; font-weight: 700; cursor: pointer; white-space: nowrap;">
+                ▶️ Proyectar
+              </button>
+              <button type="button" class="btn-edit-local-song" data-deck-id="${deck.id}" style="background: rgba(56, 189, 248, 0.16); color: #7dd3fc; border: 1px solid rgba(56, 189, 248, 0.4); padding: 5px 10px; border-radius: 4px; font-size: 0.73rem; font-weight: 700; cursor: pointer; white-space: nowrap;">
+                ✏️ Editar
+              </button>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      if (isLoadingWeb) {
+        html += `<div style="padding: 14px; text-align: center; color: var(--text-muted); font-size: 0.78rem;">⏳ Buscando más resultados en la web para "<strong>${q}</strong>"...</div>`;
+      } else if (webResults.length > 0) {
+        html += `<div style="font-size: 0.72rem; font-weight: 800; color: var(--accent-cyan); text-transform: uppercase; letter-spacing: 0.04em; padding: 6px 2px 2px 2px;">🌐 Resultados Online (${webResults.length})</div>`;
+        html += webResults.map((song, idx) => `
+          <div class="song-search-item" style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 6px; padding: 8px 12px; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+            <div style="display: flex; flex-direction: column; gap: 2px; overflow: hidden; flex: 1;">
+              <span style="font-size: 0.85rem; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">🎵 ${song.title}</span>
+              <div style="display: flex; align-items: center; gap: 8px; font-size: 0.72rem; color: var(--text-muted);">
+                <span>👤 <strong>Autor:</strong> ${song.artist}</span>
+                <span>•</span>
+                <span style="color: var(--accent-cyan);">🌐 <strong>Página:</strong> ${song.source}</span>
+              </div>
+            </div>
+            <button type="button" class="btn-select-song-result" data-song-idx="${idx}" style="background: linear-gradient(135deg, var(--accent-magenta), #db2777); color: white; border: none; padding: 5px 10px; border-radius: 4px; font-size: 0.73rem; font-weight: 700; cursor: pointer; white-space: nowrap;">
+              📥 Cargar Letra
+            </button>
+          </div>
+        `).join('');
+      } else if (localMatches.length === 0) {
+        html = `<div style="padding: 20px; text-align: center; color: var(--text-muted); font-size: 0.8rem;">❌ No se encontraron canciones locales ni online para "${q}".</div>`;
+      }
+
+      songResultsList.innerHTML = html;
+
+      songResultsList.querySelectorAll('.btn-project-local-song').forEach(btn => {
+        btn.addEventListener('click', (ev) => {
+          ev.preventDefault();
+          const deckId = btn.getAttribute('data-deck-id');
+          if (deckId) {
+            store.setActiveDeck(deckId);
+            closeModalShow();
+          }
+        });
+      });
+
+      songResultsList.querySelectorAll('.btn-edit-local-song').forEach(btn => {
+        btn.addEventListener('click', (ev) => {
+          ev.preventDefault();
+          const deckId = btn.getAttribute('data-deck-id');
+          if (deckId) {
+            this.openEditDeckModal(deckId);
+          }
+        });
+      });
+
+      songResultsList.querySelectorAll('.btn-select-song-result').forEach(btn => {
+        btn.addEventListener('click', (ev) => {
+          ev.preventDefault();
+          const idx = parseInt(btn.getAttribute('data-song-idx'));
+          const selectedSong = currentSearchResults[idx];
+          if (selectedSong) {
+            this.editingDeckId = null;
+            this.originalEditLines = selectedSong.lyrics.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+            if (this.inputShowTitle) this.inputShowTitle.value = selectedSong.title;
+            if (this.inputShowText) this.inputShowText.value = selectedSong.lyrics;
+            if (this.activeFilter && this.activeFilter !== 'all' && this.inputShowCategory) {
+              this.inputShowCategory.value = this.activeFilter;
+            }
+            switchModalMode('manual');
+            this.renderSongEditDiff();
+          }
+        });
+      });
+    };
+
     const handleSongSearch = async (e) => {
       if (e) e.preventDefault();
       const q = inputSongQuery?.value.trim();
       if (!q) {
         if (songResultsList) {
-          songResultsList.innerHTML = `<div style="padding: 20px; text-align: center; color: var(--text-muted); font-size: 0.8rem;">⚠️ Por favor ingresa el título o autor de la canción.</div>`;
+          songResultsList.innerHTML = `<div style="padding: 20px; text-align: center; color: var(--text-muted); font-size: 0.8rem;">⚠️ Por favor ingresa el título, letra o autor de la canción.</div>`;
         }
         return;
       }
+
+      const localMatches = (store.decks || []).filter(deck => this.deckMatchesQuery(deck, q));
 
       if (btnSongSearch) {
         btnSongSearch.disabled = true;
         btnSongSearch.textContent = "⌛ Buscando...";
       }
-      if (songResultsList) {
-        songResultsList.innerHTML = `<div style="padding: 20px; text-align: center; color: var(--text-muted); font-size: 0.8rem;">⏳ Buscando letras en la web para "<strong>${q}</strong>"...</div>`;
-      }
+      renderCombinedSongResults(localMatches, [], q, true);
 
       try {
         currentSearchResults = await searchSongsOnline(q);
-        
-        if (currentSearchResults.length === 0) {
-          if (songResultsList) {
-            songResultsList.innerHTML = `<div style="padding: 20px; text-align: center; color: var(--text-muted); font-size: 0.8rem;">❌ No se encontraron canciones. Intenta con otro nombre o artista.</div>`;
-          }
-        } else {
-          if (songResultsList) {
-            songResultsList.innerHTML = currentSearchResults.map((song, idx) => `
-              <div class="song-search-item" style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 6px; padding: 8px 12px; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
-                <div style="display: flex; flex-direction: column; gap: 2px; overflow: hidden; flex: 1;">
-                  <span style="font-size: 0.85rem; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">🎵 ${song.title}</span>
-                  <div style="display: flex; align-items: center; gap: 8px; font-size: 0.72rem; color: var(--text-muted);">
-                    <span>👤 <strong>Autor:</strong> ${song.artist}</span>
-                    <span>•</span>
-                    <span style="color: var(--accent-cyan);">🌐 <strong>Página:</strong> ${song.source}</span>
-                  </div>
-                </div>
-                <button type="button" class="btn-select-song-result" data-song-idx="${idx}" style="background: linear-gradient(135deg, var(--accent-magenta), #db2777); color: white; border: none; padding: 5px 10px; border-radius: 4px; font-size: 0.73rem; font-weight: 700; cursor: pointer; white-space: nowrap;">
-                  📥 Cargar Letra
-                </button>
-              </div>
-            `).join('');
-
-            songResultsList.querySelectorAll('.btn-select-song-result').forEach(btn => {
-              btn.addEventListener('click', (ev) => {
-                ev.preventDefault();
-                const idx = parseInt(btn.getAttribute('data-song-idx'));
-                const selectedSong = currentSearchResults[idx];
-                if (selectedSong) {
-                  if (this.inputShowTitle) this.inputShowTitle.value = selectedSong.title;
-                  if (this.inputShowText) this.inputShowText.value = selectedSong.lyrics;
-                  if (this.activeFilter && this.activeFilter !== 'all' && this.inputShowCategory) {
-                    this.inputShowCategory.value = this.activeFilter;
-                  }
-                  switchModalMode('manual');
-                }
-              });
-            });
-          }
-        }
+        renderCombinedSongResults(localMatches, currentSearchResults, q, false);
       } catch (err) {
-        if (songResultsList) {
-          songResultsList.innerHTML = `<div style="padding: 20px; text-align: center; color: #ef4444; font-size: 0.8rem;">⚠️ Error al realizar la búsqueda web: ${err.message}</div>`;
-        }
+        renderCombinedSongResults(localMatches, [], q, false);
       } finally {
         if (btnSongSearch) {
           btnSongSearch.disabled = false;
@@ -444,9 +667,26 @@ class ProPresenterApp {
     inputSongQuery?.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') handleSongSearch(e);
     });
+    inputSongQuery?.addEventListener('input', () => {
+      const q = inputSongQuery.value.trim();
+      if (!q) return;
+      const localMatches = (store.decks || []).filter(deck => this.deckMatchesQuery(deck, q));
+      if (localMatches.length > 0) {
+        renderCombinedSongResults(localMatches, currentSearchResults, q, false);
+      }
+    });
 
     const openModalShow = () => {
       this.closeAllModals();
+      this.editingDeckId = null;
+      this.originalEditLines = [];
+      const headerTitleEl = document.getElementById('modal-show-header-title');
+      if (headerTitleEl) headerTitleEl.textContent = "🎵 Agregar Nueva Canción o Presentación";
+      if (this.btnSaveShow) this.btnSaveShow.textContent = "💾 Guardar y Proyectar";
+      if (this.inputShowTitle) this.inputShowTitle.value = "";
+      if (this.inputShowText) this.inputShowText.value = "";
+      this.renderSongEditDiff();
+
       if (this.modalCreateShow) {
         this.modalCreateShow.classList.add('open');
         switchModalMode('manual');
@@ -458,7 +698,6 @@ class ProPresenterApp {
             `<option value="${t.id}" ${t.id === store.activeTemplateId ? 'selected' : ''}>${t.name}${t.maxLines > 0 ? ` (Máx. ${t.maxLines} renglones)` : ''}</option>`
           ).join('');
 
-          // Cuando cambia el template, actualizar visualmente maxLines por defecto si aplica
           const updateDefaultMaxLines = () => {
             const selectedTplId = this.inputShowTemplate.value;
             const tpl = templates.find(t => t.id === selectedTplId);
@@ -488,15 +727,18 @@ class ProPresenterApp {
           }
         }
 
-        this.inputShowTitle?.focus();
+        this.ensureModalInteractive(this.modalCreateShow, this.inputShowTitle);
       }
     };
 
     const closeModalShow = () => {
       if (this.modalCreateShow) {
         this.modalCreateShow.classList.remove('open');
+        this.editingDeckId = null;
+        this.originalEditLines = [];
         if (this.inputShowTitle) this.inputShowTitle.value = "";
         if (this.inputShowText) this.inputShowText.value = "";
+        this.renderSongEditDiff();
       }
     };
 
@@ -515,15 +757,26 @@ class ProPresenterApp {
       const maxLines = parseInt(this.inputShowMaxLines?.value || 0);
 
       if (!title || !text) {
-        alert("Por favor ingresa un título y el texto del show/canción.");
+        this.showToast("⚠️ Por favor ingresa un título y el texto del show/canción.", "warn");
+        this.ensureModalInteractive(this.modalCreateShow, !title ? this.inputShowTitle : this.inputShowText);
         return;
       }
 
-      store.createNewShow(title, category, text, {
-        templateId,
-        splitMode,
-        maxLines
-      });
+      if (this.editingDeckId) {
+        store.updateDeckContent(this.editingDeckId, title, category, text, {
+          templateId,
+          splitMode,
+          maxLines
+        });
+        this.showToast(`✅ Canción "${title}" actualizada correctamente.`, "success");
+      } else {
+        store.createNewShow(title, category, text, {
+          templateId,
+          splitMode,
+          maxLines
+        });
+        this.showToast(`✅ Canción "${title}" guardada y proyectada.`, "success");
+      }
       closeModalShow();
     });
 
@@ -531,7 +784,10 @@ class ProPresenterApp {
     const openModalReflow = () => {
       this.closeAllModals();
       const modalReflow = document.getElementById('modal-reflow-deck');
-      if (modalReflow) modalReflow.classList.add('open');
+      if (modalReflow) {
+        modalReflow.classList.add('open');
+        this.ensureModalInteractive(modalReflow, document.getElementById('input-reflow-lines'));
+      }
     };
 
     const closeModalReflow = () => {
@@ -598,7 +854,7 @@ class ProPresenterApp {
 
       if (this.modalUploadMedia) {
         this.modalUploadMedia.classList.add('open');
-        this.inputMediaName?.focus();
+        this.ensureModalInteractive(this.modalUploadMedia, this.inputMediaName);
       }
     };
 
@@ -704,7 +960,8 @@ class ProPresenterApp {
         return;
       }
 
-      alert("Por favor selecciona uno o más archivos de video/imagen o ingresa una URL.");
+      this.showToast("⚠️ Por favor selecciona uno o más archivos de video/imagen o ingresa una URL.", "warn");
+      this.ensureModalInteractive(this.modalUploadMedia, this.inputMediaUrl);
     });
 
     // Drag & Drop Directo sobre la biblioteca de Medios para carga por lotes (imágenes y videos)
@@ -757,7 +1014,7 @@ class ProPresenterApp {
       if (this.inputVirtualFolderName) this.inputVirtualFolderName.value = "";
       if (this.modalCreateFolder) {
         this.modalCreateFolder.classList.add('open');
-        this.inputVirtualFolderName?.focus();
+        this.ensureModalInteractive(this.modalCreateFolder, this.inputVirtualFolderName);
       }
     };
 
@@ -773,8 +1030,10 @@ class ProPresenterApp {
         store.addMediaFolder(folderName);
         this.selectedMediaFolder = folderName;
         closeModalFolder();
+        this.showToast(`📁 Carpeta virtual "${folderName}" creada.`, "success");
       } else {
-        alert("Por favor ingresa un nombre para la carpeta virtual.");
+        this.showToast("⚠️ Por favor ingresa un nombre para la carpeta virtual.", "warn");
+        this.ensureModalInteractive(this.modalCreateFolder, this.inputVirtualFolderName);
       }
     };
 
@@ -788,10 +1047,32 @@ class ProPresenterApp {
       }
     });
 
+    // Physical Folder Linking Handlers (Real-Time Disk Sync)
+    document.getElementById('btn-add-physical-folder')?.addEventListener('click', () => {
+      this.handleAddPhysicalFolder();
+    });
+    document.getElementById('btn-link-physical-folder-modal')?.addEventListener('click', () => {
+      closeModalFolder();
+      this.handleAddPhysicalFolder();
+    });
+    const physFallbackInput = document.getElementById('input-physical-folder-fallback');
+    physFallbackInput?.addEventListener('change', async (e) => {
+      const files = Array.from(e.target.files || []);
+      if (files.length === 0) return;
+      const firstPath = files[0].webkitRelativePath || '';
+      const folderName = firstPath.split('/')[0] || 'Carpeta Local';
+      const folderKey = `local-dir://${folderName}`;
+      const processed = await this.processMediaFiles(files, `💽 ${folderName}`);
+      store.addPhysicalMediaFolder(folderKey, folderName, processed);
+      this.selectedMediaFolder = `phys:${folderKey}`;
+      physFallbackInput.value = '';
+    });
+
     // 8.b. Slide Edit Modal Listeners
     const closeModalEditSlide = () => {
       if (this.modalEditSlide) this.modalEditSlide.classList.remove('open');
       this.pendingEditSlideTarget = null;
+      this.originalSlideEditLines = [];
     };
 
     const saveEditSlide = () => {
@@ -816,6 +1097,9 @@ class ProPresenterApp {
     this.btnCloseEditSlideModal?.addEventListener('click', closeModalEditSlide);
     this.btnCancelEditSlide?.addEventListener('click', closeModalEditSlide);
     this.btnSaveEditSlideConfirm?.addEventListener('click', saveEditSlide);
+    this.inputEditSlideText?.addEventListener('input', () => {
+      this.renderSlideEditDiff();
+    });
 
     // 8.c. Section Quick Chips in Create Show Modal
     document.querySelectorAll('.btn-chip-section').forEach(chip => {
@@ -833,6 +1117,7 @@ class ProPresenterApp {
         this.inputShowText.focus();
         const nextPos = start + insertText.length;
         this.inputShowText.setSelectionRange(nextPos, nextPos);
+        this.renderSongEditDiff();
       });
     });
 
@@ -1081,6 +1366,9 @@ class ProPresenterApp {
     const sectionEl = document.getElementById('ctx-action-section');
     if (sectionEl) sectionEl.style.display = target.type === 'slide' ? 'flex' : 'none';
 
+    const queueMediaEl = document.getElementById('ctx-action-queue-media');
+    if (queueMediaEl) queueMediaEl.style.display = target.type === 'media' ? 'flex' : 'none';
+
     const menu = document.getElementById('custom-context-menu');
     if (!menu) return;
 
@@ -1133,14 +1421,7 @@ class ProPresenterApp {
       if (!target) return;
 
       if (target.type === 'deck' || target.type === 'project-item') {
-        const deck = store.decks.find(d => d.id === target.id);
-        if (deck) {
-          if (this.inputShowTitle) this.inputShowTitle.value = deck.title;
-          if (this.inputShowCategory) this.inputShowCategory.value = deck.category || 'Alabanza';
-          const fullText = deck.groups.map(g => `${g.name}:\n` + g.slides.map(s => s.text).join('\n')).join('\n\n');
-          if (this.inputShowText) this.inputShowText.value = fullText;
-          if (this.modalCreateShow) this.modalCreateShow.classList.add('open');
-        }
+        this.openEditDeckModal(target.id);
       } else if (target.type === 'media') {
         document.getElementById('btn-open-media-modal')?.click();
       } else if (target.type === 'slide') {
@@ -1189,6 +1470,522 @@ class ProPresenterApp {
         canSplit: (groupObj?.slides?.length || 0) > 1 && target.slideIndex > 0
       });
     });
+
+    document.getElementById('ctx-action-queue-media')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const target = this.contextTarget;
+      this.hideContextMenu();
+      if (!target || target.type !== 'media') return;
+      store.enqueueMedia(target.id || target);
+    });
+  }
+
+  handleActiveVideoEnded() {
+    const now = Date.now();
+    if (this.lastQueueAdvanceTime && (now - this.lastQueueAdvanceTime < 750)) {
+      return;
+    }
+    if (Array.isArray(store.state.mediaQueue) && store.state.mediaQueue.length > 0) {
+      this.lastQueueAdvanceTime = now;
+      store.advanceMediaQueue();
+    }
+  }
+
+  getActiveOperatorVideo() {
+    const bgA = document.getElementById('operator-video-preview-a');
+    const bgB = document.getElementById('operator-video-preview-b');
+    const candidate = this.operatorActiveMediaLayer === 'A' ? bgA : bgB;
+    if (candidate && candidate.style.display !== 'none' && candidate.src) {
+      return candidate;
+    }
+    if (bgA && bgA.style.opacity === '1' && bgA.style.display !== 'none') return bgA;
+    if (bgB && bgB.style.opacity === '1' && bgB.style.display !== 'none') return bgB;
+    return candidate || bgA;
+  }
+
+  formatMediaTime(seconds) {
+    if (typeof seconds !== 'number' || !isFinite(seconds) || seconds < 0) return '00:00';
+    const totalSec = Math.floor(seconds);
+    const mins = Math.floor(totalSec / 60);
+    const secs = totalSec % 60;
+    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  }
+
+  updateMediaTimelineUI(state = store.state) {
+    const panel = document.getElementById('media-timeline-panel');
+    if (!panel) return;
+
+    const iconEl = document.getElementById('lbl-timeline-media-icon');
+    const nameEl = document.getElementById('lbl-timeline-media-name');
+    const modeBadgeEl = document.getElementById('lbl-timeline-mode-badge');
+    const remEl = document.getElementById('lbl-timeline-remaining');
+    const curEl = document.getElementById('lbl-timeline-current');
+    const durEl = document.getElementById('lbl-timeline-duration');
+    const sliderEl = document.getElementById('input-media-timeline');
+    const btnPlayPause = document.getElementById('btn-timeline-play-pause');
+    const iconPlayPause = document.getElementById('icon-timeline-play-pause');
+    const btnRestart = document.getElementById('btn-timeline-restart');
+
+    const isCleared = !!state.isMediaCleared || !state.activeVideoUrl;
+    const isImage = !isCleared && (
+      (state.activeVideoType && state.activeVideoType.startsWith('image/')) ||
+      (state.activeVideoIsImage && !state.activeVideoType?.startsWith('video/')) ||
+      !!(state.activeVideoUrl && (state.activeVideoUrl.match(/\.(jpeg|jpg|gif|png|webp|svg|bmp)($|\?)/i) || state.activeVideoUrl.startsWith('data:image/')))
+    );
+
+    panel.classList.toggle('is-cleared', isCleared);
+    panel.classList.toggle('is-static-image', isImage);
+
+    const activeLibItem = state.mediaLibrary?.find(m => m.url === state.activeVideoUrl);
+    const activeTitle = state.activeVideoName || activeLibItem?.name || state.activeVideoTitle || 'Fondo Multimedia';
+
+    if (isCleared) {
+      if (iconEl) iconEl.textContent = '⬛';
+      if (nameEl) nameEl.textContent = 'Sin medio activo (Fondo Limpio)';
+      if (modeBadgeEl) {
+        modeBadgeEl.textContent = 'LIMPIO';
+        modeBadgeEl.className = 'media-timeline-mode-badge';
+      }
+      if (curEl) curEl.textContent = '00:00';
+      if (durEl) durEl.textContent = '00:00';
+      if (remEl) remEl.textContent = '-00:00';
+      if (sliderEl) {
+        sliderEl.value = '0';
+        sliderEl.disabled = true;
+        sliderEl.style.setProperty('--timeline-progress', '0%');
+      }
+      if (btnPlayPause) btnPlayPause.disabled = true;
+      if (btnRestart) btnRestart.disabled = true;
+      if (iconPlayPause) iconPlayPause.textContent = '▶';
+      return;
+    }
+
+    if (isImage) {
+      if (iconEl) iconEl.textContent = '🖼️';
+      if (nameEl) nameEl.textContent = activeTitle;
+      if (modeBadgeEl) {
+        modeBadgeEl.textContent = '🖼️ IMAGEN FIJA';
+        modeBadgeEl.className = 'media-timeline-mode-badge';
+      }
+      if (curEl) curEl.textContent = '--:--';
+      if (durEl) durEl.textContent = '--:--';
+      if (remEl) remEl.textContent = 'FIJO';
+      if (sliderEl) {
+        sliderEl.value = '1000';
+        sliderEl.disabled = true;
+        sliderEl.style.setProperty('--timeline-progress', '100%');
+      }
+      if (btnPlayPause) btnPlayPause.disabled = true;
+      if (btnRestart) btnRestart.disabled = true;
+      if (iconPlayPause) iconPlayPause.textContent = '⏸';
+      return;
+    }
+
+    // Active Video
+    const activeVid = this.getActiveOperatorVideo();
+    const queueLen = Array.isArray(state.mediaQueue) ? state.mediaQueue.length : 0;
+    const isPaused = activeVid ? activeVid.paused : !!state.isMediaPaused;
+
+    if (iconEl) iconEl.textContent = '🎬';
+    if (nameEl) nameEl.textContent = activeTitle;
+
+    if (modeBadgeEl) {
+      if (isPaused) {
+        modeBadgeEl.textContent = '⏸ EN PAUSA';
+        modeBadgeEl.className = 'media-timeline-mode-badge paused-mode';
+      } else if (queueLen > 0) {
+        modeBadgeEl.textContent = `⏭️ COLA (${queueLen})`;
+        modeBadgeEl.className = 'media-timeline-mode-badge queue-mode';
+      } else {
+        modeBadgeEl.textContent = '🔁 LOOP';
+        modeBadgeEl.className = 'media-timeline-mode-badge';
+      }
+    }
+
+    if (btnPlayPause) btnPlayPause.disabled = false;
+    if (btnRestart) btnRestart.disabled = false;
+    if (iconPlayPause) iconPlayPause.textContent = isPaused ? '▶' : '⏸';
+
+    const duration = (activeVid && isFinite(activeVid.duration) && activeVid.duration > 0) ? activeVid.duration : 0;
+    const currentTime = (activeVid && isFinite(activeVid.currentTime) && activeVid.currentTime >= 0) ? activeVid.currentTime : 0;
+    const remaining = Math.max(0, duration - currentTime);
+
+    if (durEl) durEl.textContent = this.formatMediaTime(duration);
+    if (!this.isScrubbingTimeline) {
+      if (curEl) curEl.textContent = this.formatMediaTime(currentTime);
+      if (remEl) remEl.textContent = `-${this.formatMediaTime(remaining)}`;
+      if (sliderEl) {
+        sliderEl.disabled = duration <= 0;
+        const permille = duration > 0 ? Math.min(1000, Math.round((currentTime / duration) * 1000)) : 0;
+        sliderEl.value = String(permille);
+        sliderEl.style.setProperty('--timeline-progress', `${(permille / 10).toFixed(1)}%`);
+      }
+    }
+  }
+
+  normalizeSearchText(str) {
+    if (!str) return '';
+    return String(str)
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .trim();
+  }
+
+  deckMatchesQuery(deck, query) {
+    if (!query) return true;
+    if (!deck) return false;
+    const normQuery = this.normalizeSearchText(query);
+    if (!normQuery) return true;
+
+    const terms = normQuery.split(/\s+/).filter(Boolean);
+    const titleNorm = this.normalizeSearchText(deck.title);
+    const catNorm = this.normalizeSearchText(deck.category || deck.type);
+    const lyricsNorm = this.normalizeSearchText(
+      (deck.groups || [])
+        .map(g => `${g.name || ''} ${(g.slides || []).map(s => (s.text || '').replace(/<[^>]+>/g, ' ')).join(' ')}`)
+        .join(' ')
+    );
+
+    const combined = `${titleNorm} ${catNorm} ${lyricsNorm}`;
+    return terms.every(term => combined.includes(term));
+  }
+
+  openEditDeckModal(deckId) {
+    const deck = store.decks.find(d => d.id === deckId) || store.activeDeck;
+    if (!deck) return;
+
+    this.closeAllModals();
+    this.editingDeckId = deck.id;
+
+    const headerTitleEl = document.getElementById('modal-show-header-title');
+    if (headerTitleEl) headerTitleEl.textContent = `✏️ Editando Canción: "${deck.title}"`;
+    if (this.btnSaveShow) this.btnSaveShow.textContent = "💾 Guardar Cambios en Canción";
+
+    if (this.inputShowTitle) this.inputShowTitle.value = deck.title;
+    if (this.inputShowCategory) this.inputShowCategory.value = deck.category || 'Alabanza';
+
+    if (this.inputShowTemplate) {
+      const templates = store.templates || [];
+      const selectedTpl = deck.templateId || store.activeTemplateId;
+      this.inputShowTemplate.innerHTML = templates.map(t =>
+        `<option value="${t.id}" ${t.id === selectedTpl ? 'selected' : ''}>${t.name}${t.maxLines > 0 ? ` (Máx. ${t.maxLines} renglones)` : ''}</option>`
+      ).join('');
+    }
+
+    const fullText = (deck.groups || [])
+      .map(g => `${g.name}:\n` + (g.slides || []).map(s => (s.text || '').replace(/<br\s*\/?>/gi, '\n')).join('\n\n'))
+      .join('\n\n');
+
+    this.originalEditLines = fullText
+      .split(/\r?\n/)
+      .map(l => l.trim())
+      .filter(Boolean);
+
+    if (this.inputShowText) {
+      this.inputShowText.value = fullText;
+    }
+
+    if (this.switchCreateModalMode) {
+      this.switchCreateModalMode('manual');
+    }
+
+    this.renderSongEditDiff();
+
+    if (this.modalCreateShow) {
+      this.modalCreateShow.classList.add('open');
+      this.ensureModalInteractive(this.modalCreateShow, this.inputShowText);
+    }
+  }
+
+  renderSongEditDiff() {
+    const diffPanel = document.getElementById('song-edit-diff-panel');
+    const diffList = document.getElementById('song-edit-diff-list');
+    const badgeKept = document.getElementById('badge-diff-kept');
+    const badgeDeleted = document.getElementById('badge-diff-deleted');
+
+    if (!diffPanel || !diffList) return;
+
+    const rawText = this.inputShowText?.value || '';
+    const currentLinesWithMeta = rawText
+      .split(/\r?\n/)
+      .map((line, rawIdx) => ({ text: line.trim(), rawIdx }))
+      .filter(item => item.text.length > 0);
+
+    const baseline = (Array.isArray(this.originalEditLines) && this.originalEditLines.length > 0)
+      ? this.originalEditLines
+      : currentLinesWithMeta.map(item => item.text);
+
+    if (currentLinesWithMeta.length === 0 && baseline.length === 0) {
+      diffPanel.style.display = 'none';
+      diffList.innerHTML = '';
+      return;
+    }
+
+    diffPanel.style.display = 'flex';
+
+    // Count remaining occurrences from current lines to detect which baseline lines were deleted
+    const remainingPool = [...currentLinesWithMeta.map(i => i.text)];
+    const diffItems = [];
+    let keptCount = 0;
+    let deletedCount = 0;
+
+    if (Array.isArray(this.originalEditLines) && this.originalEditLines.length > 0) {
+      // Show current lines + any deleted original lines in order
+      const usedCurrentIndices = new Set();
+      this.originalEditLines.forEach((origLine) => {
+        const matchIdx = currentLinesWithMeta.findIndex((c, idx) => !usedCurrentIndices.has(idx) && c.text === origLine);
+        if (matchIdx !== -1) {
+          usedCurrentIndices.add(matchIdx);
+          keptCount++;
+          diffItems.push({
+            status: 'kept',
+            text: origLine,
+            rawIdx: currentLinesWithMeta[matchIdx].rawIdx
+          });
+        } else {
+          deletedCount++;
+          diffItems.push({
+            status: 'deleted',
+            text: origLine
+          });
+        }
+      });
+
+      // Also include newly added lines
+      currentLinesWithMeta.forEach((c, idx) => {
+        if (!usedCurrentIndices.has(idx)) {
+          keptCount++;
+          diffItems.push({
+            status: 'kept',
+            isNew: true,
+            text: c.text,
+            rawIdx: c.rawIdx
+          });
+        }
+      });
+    } else {
+      // Creating a new song: establish baseline on first non-empty paste/edit or show active lines with delete button
+      currentLinesWithMeta.forEach(c => {
+        keptCount++;
+        diffItems.push({
+          status: 'kept',
+          text: c.text,
+          rawIdx: c.rawIdx
+        });
+      });
+    }
+
+    if (badgeKept) badgeKept.textContent = `✓ ${keptCount} se conservan`;
+    if (badgeDeleted) badgeDeleted.textContent = `🗑️ ${deletedCount} se borran`;
+
+    diffList.innerHTML = diffItems.map((item, idx) => {
+      const safeText = item.text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      if (item.status === 'deleted') {
+        return `
+          <div class="diff-line-item deleted">
+            <span class="diff-status-tag">SE BORRA</span>
+            <span class="diff-line-text" title="${safeText}">${safeText}</span>
+            <button type="button" class="btn-restore-line" data-restore-idx="${idx}" title="Restaurar esta línea al texto">↩ Restaurar</button>
+          </div>
+        `;
+      }
+      return `
+        <div class="diff-line-item kept">
+          <span class="diff-status-tag">${item.isNew ? 'NUEVO' : 'QUEDA'}</span>
+          <span class="diff-line-text" title="${safeText}">${safeText}</span>
+          <button type="button" class="btn-delete-line" data-raw-line-idx="${item.rawIdx}" title="Borrar esta línea de la canción">🗑️ Borrar</button>
+        </div>
+      `;
+    }).join('');
+
+    diffList.querySelectorAll('.btn-delete-line').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const rawIdx = parseInt(btn.getAttribute('data-raw-line-idx'));
+        if (isNaN(rawIdx) || !this.inputShowText) return;
+        if (!this.originalEditLines || this.originalEditLines.length === 0) {
+          this.originalEditLines = this.inputShowText.value
+            .split(/\r?\n/)
+            .map(l => l.trim())
+            .filter(Boolean);
+        }
+        const allLines = this.inputShowText.value.split(/\r?\n/);
+        allLines.splice(rawIdx, 1);
+        this.inputShowText.value = allLines.join('\n');
+        this.renderSongEditDiff();
+      });
+    });
+
+    diffList.querySelectorAll('.btn-restore-line').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const itemIdx = parseInt(btn.getAttribute('data-restore-idx'));
+        const item = diffItems[itemIdx];
+        if (!item || !this.inputShowText) return;
+        const cur = this.inputShowText.value.trim();
+        this.inputShowText.value = cur ? `${cur}\n${item.text}` : item.text;
+        this.renderSongEditDiff();
+      });
+    });
+  }
+
+  renderSlideEditDiff() {
+    const previewEl = document.getElementById('slide-edit-diff-preview');
+    if (!previewEl || !this.inputEditSlideText) return;
+
+    const currentLines = this.inputEditSlideText.value
+      .split(/\r?\n/)
+      .map(l => l.trim())
+      .filter(Boolean);
+    const origLines = Array.isArray(this.originalSlideEditLines) ? this.originalSlideEditLines : [];
+
+    if (origLines.length === 0 && currentLines.length === 0) {
+      previewEl.style.display = 'none';
+      return;
+    }
+
+    previewEl.style.display = 'flex';
+    const used = new Set();
+    const rows = [];
+
+    origLines.forEach(orig => {
+      const mIdx = currentLines.findIndex((c, idx) => !used.has(idx) && c === orig);
+      if (mIdx !== -1) {
+        used.add(mIdx);
+        rows.push({ status: 'kept', text: orig });
+      } else {
+        rows.push({ status: 'deleted', text: orig });
+      }
+    });
+
+    currentLines.forEach((c, idx) => {
+      if (!used.has(idx)) {
+        rows.push({ status: 'kept', isNew: true, text: c });
+      }
+    });
+
+    previewEl.innerHTML = rows.map(r => {
+      const safe = r.text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      if (r.status === 'deleted') {
+        return `<div class="diff-line-item deleted"><span class="diff-status-tag">SE BORRA</span><span class="diff-line-text">${safe}</span></div>`;
+      }
+      return `<div class="diff-line-item kept"><span class="diff-status-tag">${r.isNew ? 'NUEVO' : 'QUEDA'}</span><span class="diff-line-text">${safe}</span></div>`;
+    }).join('');
+  }
+
+  async initPhysicalFoldersSync() {
+    if (!window.electronAPI) return;
+
+    if (window.electronAPI.onPhysicalFolderUpdated) {
+      window.electronAPI.onPhysicalFolderUpdated((payload) => {
+        const folderPath = payload?.path || payload?.folderPath;
+        const folderName = payload?.name || payload?.folderName;
+        if (folderPath) {
+          store.syncPhysicalFolderItems(folderPath, folderName, payload.files || []);
+        }
+      });
+    }
+
+    const savedFolders = store.state.physicalMediaFolders || [];
+    if (savedFolders.length > 0 && window.electronAPI.syncPhysicalFolders) {
+      try {
+        const paths = savedFolders.map(f => f.path).filter(p => p && !p.startsWith('local-dir://'));
+        if (paths.length > 0) {
+          const synced = await window.electronAPI.syncPhysicalFolders(paths);
+          const syncedList = Array.isArray(synced) ? synced : Object.values(synced || {});
+          syncedList.forEach(folderData => {
+            const fPath = folderData?.path || folderData?.folderPath;
+            const fName = folderData?.name || folderData?.folderName;
+            if (fPath) {
+              store.syncPhysicalFolderItems(fPath, fName, folderData.files || []);
+            }
+          });
+        }
+      } catch (err) {
+        console.warn("Error al sincronizar carpetas físicas al iniciar:", err);
+      }
+    }
+  }
+
+  async handleAddPhysicalFolder() {
+    if (window.electronAPI && window.electronAPI.selectPhysicalFolder) {
+      try {
+        const res = await window.electronAPI.selectPhysicalFolder();
+        const folderPath = res?.path || res?.folderPath;
+        const folderName = res?.name || res?.folderName;
+        if (folderPath) {
+          store.addPhysicalMediaFolder(folderPath, folderName, res.files || []);
+          this.selectedMediaFolder = `phys:${folderPath}`;
+          const mediaTabBtn = document.querySelector('.res-tab[data-res="media"]');
+          if (mediaTabBtn && !mediaTabBtn.classList.contains('active')) {
+            mediaTabBtn.click();
+          }
+          this.showToast(`💽 Carpeta física "${folderName}" vinculada en tiempo real.`, "success");
+        }
+      } catch (err) {
+        console.warn("Error al vincular carpeta física:", err);
+      }
+    } else {
+      document.getElementById('input-physical-folder-fallback')?.click();
+    }
+  }
+
+  showToast(message, type = 'info') {
+    if (!message) return;
+    const container = document.getElementById('app-toast-container');
+    if (!container) return;
+
+    const toast = document.createElement('div');
+    toast.className = `app-toast ${type === 'warn' ? 'toast-warn' : (type === 'success' ? 'toast-success' : '')}`;
+    toast.textContent = message;
+    container.appendChild(toast);
+
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transition = 'opacity 0.25s ease';
+      setTimeout(() => toast.remove(), 260);
+    }, 3200);
+  }
+
+  ensureModalInteractive(modalEl, focusTargetEl = null) {
+    // Clear any residual drag/resizer lock on body
+    if (document.body) {
+      document.body.style.userSelect = '';
+      document.body.style.pointerEvents = '';
+      document.body.style.cursor = '';
+    }
+
+    // Restore OS/Electron webContents focus if stolen by secondary window or native dialog
+    try {
+      if (window.electronAPI && typeof window.electronAPI.focusMainWindow === 'function') {
+        window.electronAPI.focusMainWindow();
+      }
+      window.focus();
+    } catch (e) {}
+
+    if (modalEl) {
+      modalEl.style.pointerEvents = 'auto';
+      const card = modalEl.querySelector('.modal-card');
+      if (card) card.style.pointerEvents = 'auto';
+    }
+
+    if (focusTargetEl) {
+      requestAnimationFrame(() => {
+        try {
+          focusTargetEl.disabled = false;
+          focusTargetEl.readOnly = false;
+          focusTargetEl.focus();
+        } catch (e) {}
+        setTimeout(() => {
+          try {
+            if (document.activeElement !== focusTargetEl && modalEl?.classList.contains('open')) {
+              focusTargetEl.focus();
+            }
+          } catch (e) {}
+        }, 45);
+      });
+    }
   }
 
   openEditSlideModal(target) {
@@ -1199,8 +1996,12 @@ class ProPresenterApp {
     const inputArea = document.getElementById('input-edit-slide-text');
     const inputSec = document.getElementById('input-edit-slide-section');
 
+    const cleanSlideText = (target.text || '').replace(/<br\s*\/?>/gi, '\n');
+    this.originalSlideEditLines = cleanSlideText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+
     if (lblTarget) lblTarget.textContent = target.name || 'Diapositiva';
-    if (inputArea) inputArea.value = (target.text || '').replace(/<br\s*\/?>/gi, '\n');
+    if (inputArea) inputArea.value = cleanSlideText;
+    this.renderSlideEditDiff();
 
     if (inputSec) {
       const activeDeck = store.decks.find(d => d.id === target.deckId) || store.activeDeck;
@@ -1218,7 +2019,10 @@ class ProPresenterApp {
     const radioBase = document.querySelector('input[name="edit-slide-scope"][value="base"]');
     if (radioBase) radioBase.checked = true;
 
-    if (modal) modal.classList.add('open');
+    if (modal) {
+      modal.classList.add('open');
+      this.ensureModalInteractive(modal, inputArea);
+    }
   }
 
   openSectionPickerModal(target) {
@@ -1239,6 +2043,7 @@ class ProPresenterApp {
 
     if (this.modalSectionPicker) {
       this.modalSectionPicker.classList.add('open');
+      this.ensureModalInteractive(this.modalSectionPicker, this.inputCustomSectionName);
     }
   }
 
@@ -1281,6 +2086,30 @@ class ProPresenterApp {
           this.closeAllModals();
         }
       });
+
+      const card = modal.querySelector('.modal-card');
+      if (card) {
+        card.addEventListener('click', (e) => {
+          e.stopPropagation();
+        });
+
+        card.addEventListener('mousedown', (e) => {
+          e.stopPropagation();
+          const interactiveEl = e.target.closest('input, textarea, select');
+          if (interactiveEl && !interactiveEl.disabled) {
+            try {
+              if (window.electronAPI && typeof window.electronAPI.focusMainWindow === 'function') {
+                window.electronAPI.focusMainWindow();
+              }
+            } catch (err) {}
+            setTimeout(() => {
+              if (document.activeElement !== interactiveEl) {
+                try { interactiveEl.focus(); } catch (err) {}
+              }
+            }, 0);
+          }
+        });
+      }
     });
   }
 
@@ -1320,15 +2149,28 @@ class ProPresenterApp {
         this.contextTarget = null;
       }
     }
+    try {
+      window.electronAPI?.focusMainWindow?.();
+      window.focus();
+    } catch (e) {}
   }
 
   initKeyboardShortcuts() {
     window.addEventListener('keydown', (e) => {
-      // Ignore keybindings if user is typing in input or editor or modal, but allow Escape to close modal
-      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) {
+      const openModal = document.querySelector('.modal-overlay.open');
+      if (openModal) {
         if (e.code === 'Escape' || e.key === 'Escape') {
           e.preventDefault();
           this.closeAllModals();
+        }
+        return;
+      }
+
+      // Ignore keybindings if user is typing in input or editor
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) {
+        if (e.code === 'Escape' || e.key === 'Escape') {
+          e.preventDefault();
+          document.activeElement?.blur?.();
         }
         return;
       }
@@ -1491,15 +2333,15 @@ class ProPresenterApp {
   renderShowsDock(state, decks) {
     if (!this.showsGridEl) return;
 
+    const hasSearch = Boolean(this.searchQuery && this.searchQuery.trim().length > 0);
+
     const filteredDecks = decks.filter(deck => {
-      const matchesSearch = !this.searchQuery || 
-        deck.title.toLowerCase().includes(this.searchQuery) ||
-        (deck.category && deck.category.toLowerCase().includes(this.searchQuery));
+      const matchesSearch = !hasSearch || this.deckMatchesQuery(deck, this.searchQuery);
 
       let matchesFilter = true;
-      if (this.activeFilter && this.activeFilter !== 'all') {
-        const catLower = (deck.category || deck.type || '').toLowerCase();
-        const filterLower = this.activeFilter.toLowerCase();
+      if (!hasSearch && this.activeFilter && this.activeFilter !== 'all') {
+        const catLower = this.normalizeSearchText(deck.category || deck.type || '');
+        const filterLower = this.normalizeSearchText(this.activeFilter);
         matchesFilter = catLower.includes(filterLower) || filterLower.includes(catLower);
       }
 
@@ -1514,7 +2356,7 @@ class ProPresenterApp {
     if (projectBadge) projectBadge.textContent = decks.length;
     if (dockInfo) dockInfo.textContent = `${filteredDecks.length} de ${decks.length} textos`;
 
-    const showsCacheKey = JSON.stringify(filteredDecks.map(d => d.id + d.title + d.category)) + '|' + this.searchQuery + '|' + this.activeFilter;
+    const showsCacheKey = JSON.stringify(filteredDecks.map(d => d.id + d.title + d.category + (d.groups?.length || 0))) + '|' + this.searchQuery + '|' + this.activeFilter;
 
     if (this.lastShowsCacheKey !== showsCacheKey) {
       this.lastShowsCacheKey = showsCacheKey;
@@ -1522,7 +2364,7 @@ class ProPresenterApp {
       if (filteredDecks.length === 0) {
         this.showsGridEl.innerHTML = `
           <div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 20px; font-size: 0.78rem;">
-            No se encontraron resultados para "${this.searchQuery}".
+            No se encontraron canciones o textos para "${this.searchQuery}".
           </div>
         `;
       } else {
@@ -1542,6 +2384,9 @@ class ProPresenterApp {
               <div class="show-card-footer">
                 <span>${slideCount} Diapositivas</span>
                 <div style="display: flex; gap: 4px; align-items: center;">
+                  <button class="btn-edit-show-card" data-edit-id="${deck.id}" title="Editar canción (ver qué se borra y qué queda)">
+                    ✏️ Editar
+                  </button>
                   <button class="btn-toggle-project-show ${isInProject ? 'in-project' : ''}" data-project-id="${deck.id}" title="${isInProject ? 'Quitar del proyecto' : 'Agregar al proyecto'}">
                     ${isInProject ? '✓ Proyecto' : '+ Proyecto'}
                   </button>
@@ -1556,11 +2401,23 @@ class ProPresenterApp {
           const id = card.getAttribute('data-deck-id');
           const deckObj = decks.find(d => d.id === id);
           card.addEventListener('click', (e) => {
-            if (e.target.classList.contains('btn-delete-show') || e.target.classList.contains('btn-toggle-project-show')) return;
+            if (
+              e.target.classList.contains('btn-delete-show') ||
+              e.target.classList.contains('btn-toggle-project-show') ||
+              e.target.classList.contains('btn-edit-show-card')
+            ) return;
             store.setActiveDeck(id);
           });
           card.addEventListener('contextmenu', (e) => {
             if (deckObj) this.showContextMenu(e, { type: 'deck', id: deckObj.id, name: deckObj.title });
+          });
+        });
+
+        this.showsGridEl.querySelectorAll('.btn-edit-show-card').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const id = btn.getAttribute('data-edit-id');
+            if (id) this.openEditDeckModal(id);
           });
         });
 
@@ -1598,10 +2455,15 @@ class ProPresenterApp {
   renderMediaDock(state) {
     if (!this.mediaGridEl || !this.mediaFoldersListEl) return;
 
-    // 1. Render Virtual Folders list in Sub-sidebar (Memoized)
+    // 1. Render Virtual & Physical Folders in the exact same Sub-sidebar list
     const folders = state.mediaFolders || ["General"];
+    const physicalFolders = state.physicalMediaFolders || [];
     const allCount = state.mediaLibrary.length;
-    const folderCacheKey = JSON.stringify(folders) + '|' + allCount + '|' + this.selectedMediaFolder;
+    const physCountsKey = physicalFolders.map(pf => {
+      const c = state.mediaLibrary.filter(m => m.physicalFolderPath === pf.path).length;
+      return `${pf.path}:${c}`;
+    }).join(',');
+    const folderCacheKey = JSON.stringify(folders) + '|' + physCountsKey + '|' + allCount + '|' + this.selectedMediaFolder;
 
     if (this.lastFolderCacheKey !== folderCacheKey) {
       this.lastFolderCacheKey = folderCacheKey;
@@ -1611,15 +2473,30 @@ class ProPresenterApp {
           <span class="count">${allCount}</span>
         </div>
         ${folders.map(folder => {
-          const count = state.mediaLibrary.filter(m => m.folder === folder).length;
+          const count = state.mediaLibrary.filter(m => m.folder === folder && !m.isPhysicalFolderItem).length;
           const isActive = this.selectedMediaFolder === folder;
           const isGeneral = folder === 'General';
           return `
-            <div class="folder-item ${isActive ? 'active' : ''}" data-folder-name="${folder}">
-              <span>📁 ${folder}</span>
+            <div class="folder-item ${isActive ? 'active' : ''}" data-folder-name="${folder}" title="Carpeta Virtual: ${folder}">
+              <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">📁 ${folder}</span>
               <div style="display: flex; align-items: center; gap: 6px;">
                 <span class="count">${count}</span>
-                ${!isGeneral ? `<button class="btn-delete-folder" data-folder="${folder}" title="Eliminar carpeta" style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 0 4px; font-size: 0.8rem; opacity: 0.6; transition: opacity 0.2s;">🗑️</button>` : ''}
+                ${!isGeneral ? `<button class="btn-delete-folder" data-folder="${folder}" title="Eliminar carpeta virtual" style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 0 4px; font-size: 0.8rem; opacity: 0.6; transition: opacity 0.2s;">🗑️</button>` : ''}
+              </div>
+            </div>
+          `;
+        }).join('')}
+        ${physicalFolders.map(phys => {
+          const folderKey = `phys:${phys.path}`;
+          const count = state.mediaLibrary.filter(m => m.physicalFolderPath === phys.path).length;
+          const isActive = this.selectedMediaFolder === folderKey;
+          return `
+            <div class="folder-item physical-folder ${isActive ? 'active' : ''}" data-folder-name="${folderKey}" title="Carpeta Física en Tiempo Real: ${phys.path}">
+              <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">💽 ${phys.name}</span>
+              <div style="display: flex; align-items: center; gap: 5px;">
+                <span class="phys-live-badge" title="Sincronizada en tiempo real con el disco">LIVE</span>
+                <span class="count">${count}</span>
+                <button class="btn-delete-phys-folder" data-phys-path="${phys.path}" data-phys-name="${phys.name}" title="Desvincular carpeta física de la lista" style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 0 4px; font-size: 0.8rem; opacity: 0.7; transition: opacity 0.2s;">🗑️</button>
               </div>
             </div>
           `;
@@ -1628,7 +2505,7 @@ class ProPresenterApp {
 
       this.mediaFoldersListEl.querySelectorAll('.folder-item').forEach(item => {
         item.addEventListener('click', (e) => {
-          if (e.target.closest('.btn-delete-folder')) return;
+          if (e.target.closest('.btn-delete-folder') || e.target.closest('.btn-delete-phys-folder')) return;
           this.selectedMediaFolder = item.getAttribute('data-folder-name');
           this.renderMediaDock(state);
         });
@@ -1646,24 +2523,65 @@ class ProPresenterApp {
           }
         });
       });
+
+      this.mediaFoldersListEl.querySelectorAll('.btn-delete-phys-folder').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const physPath = btn.getAttribute('data-phys-path');
+          const physName = btn.getAttribute('data-phys-name');
+          if (confirm(`¿Deseas desvincular la carpeta física "${physName}" de la biblioteca? (Los archivos en tu disco duro no se borrarán).`)) {
+            if (this.selectedMediaFolder === `phys:${physPath}`) {
+              this.selectedMediaFolder = 'all';
+            }
+            if (window.electronAPI && window.electronAPI.unwatchPhysicalFolder) {
+              try {
+                await window.electronAPI.unwatchPhysicalFolder(physPath);
+              } catch (err) {}
+            }
+            store.removePhysicalMediaFolder(physPath);
+          }
+        });
+      });
     }
 
     // Update Dock Header Info
     const mediaInfo = document.getElementById('dock-media-info');
+    let selectedFolderLabel = 'Todas';
+    if (this.selectedMediaFolder && this.selectedMediaFolder !== 'all') {
+      if (this.selectedMediaFolder.startsWith('phys:')) {
+        const physPath = this.selectedMediaFolder.slice(5);
+        const foundPhys = physicalFolders.find(p => p.path === physPath);
+        selectedFolderLabel = foundPhys ? `💽 ${foundPhys.name} (En vivo)` : physPath;
+      } else {
+        selectedFolderLabel = this.selectedMediaFolder;
+      }
+    }
     if (mediaInfo) {
-      mediaInfo.textContent = `Carpeta: ${this.selectedMediaFolder === 'all' ? 'Todas' : this.selectedMediaFolder}`;
+      mediaInfo.textContent = `Carpeta: ${selectedFolderLabel}`;
     }
 
-    // 2. Filter media library by selected virtual folder & search query
+    // 2. Filter media library by selected folder (virtual or physical) & search query
+    const normMediaQuery = this.normalizeSearchText(this.searchQuery);
     const filteredMedia = state.mediaLibrary.filter(item => {
-      const matchesFolder = this.selectedMediaFolder === 'all' || item.folder === this.selectedMediaFolder;
-      const matchesSearch = !this.searchQuery || 
-        item.name.toLowerCase().includes(this.searchQuery) ||
-        (item.folder && item.folder.toLowerCase().includes(this.searchQuery));
+      let matchesFolder = false;
+      if (this.selectedMediaFolder === 'all') {
+        matchesFolder = true;
+      } else if (this.selectedMediaFolder && this.selectedMediaFolder.startsWith('phys:')) {
+        const targetPhysPath = this.selectedMediaFolder.slice(5);
+        matchesFolder = item.physicalFolderPath === targetPhysPath;
+      } else {
+        matchesFolder = item.folder === this.selectedMediaFolder && !item.isPhysicalFolderItem;
+      }
+
+      const matchesSearch = !normMediaQuery ||
+        this.normalizeSearchText(item.name).includes(normMediaQuery) ||
+        this.normalizeSearchText(item.folder || '').includes(normMediaQuery);
       return matchesFolder && matchesSearch;
     });
 
-    const mediaGridCacheKey = JSON.stringify(filteredMedia.map(m => m.id + m.name + m.url + m.folder + (m.thumbnail ? 'thumb' : 'none'))) + '|' + this.selectedMediaFolder + '|' + this.searchQuery;
+    const mediaQueue = Array.isArray(state.mediaQueue) ? state.mediaQueue : [];
+    const queueKeyPart = mediaQueue.map(q => q.queueId + q.id + q.url).join(',');
+    const mediaGridCacheKey = JSON.stringify(filteredMedia.map(m => m.id + m.name + m.url + m.folder + (m.thumbnail ? 'thumb' : 'none'))) + '|' + this.selectedMediaFolder + '|' + this.searchQuery + '|' + queueKeyPart;
 
     if (this.lastMediaGridCacheKey !== mediaGridCacheKey) {
       this.lastMediaGridCacheKey = mediaGridCacheKey;
@@ -1694,12 +2612,30 @@ class ProPresenterApp {
             ? `<span class="video-card-type-badge img-badge">🖼️ IMG</span>`
             : `<span class="video-card-type-badge vid-badge">🎬 VIDEO</span>`;
 
+          // Find positions of this item in the active mediaQueue
+          const queuePositions = [];
+          mediaQueue.forEach((qItem, qIdx) => {
+            if ((item.id && qItem.id === item.id) || qItem.url === item.url) {
+              queuePositions.push(`#${qIdx + 1}`);
+            }
+          });
+          const isQueued = queuePositions.length > 0;
+          const queueBadgeHTML = isQueued
+            ? `<span class="video-card-queue-badge" title="En cola de reproducción (${queuePositions.join(', ')})">⏭️ ${queuePositions.join(', ')}</span>`
+            : '';
+
           return `
-            <div class="video-card ${isActive ? 'active-video' : ''}" data-video-url="${item.url}" data-video-name="${item.name}" data-video-type="${item.type || ''}">
+            <div class="video-card ${isActive ? 'active-video' : ''} ${isQueued ? 'queued-video' : ''}" data-media-id="${item.id}" data-video-url="${item.url}" data-video-name="${item.name}" data-video-type="${item.type || ''}" title="Clic: Proyectar ahora • Alt + Clic: Agregar a la cola de reproducción">
               <div class="video-card-top-bar">
-                <span class="video-folder-tag">${item.folder || 'General'}</span>
-                ${typeBadge}
-                <button class="btn-delete-media" data-media-id="${item.id}" title="Eliminar este elemento">&times;</button>
+                <div style="display: flex; align-items: center; gap: 4px; overflow: hidden;">
+                  <span class="video-folder-tag">${item.folder || 'General'}</span>
+                  ${typeBadge}
+                  ${queueBadgeHTML}
+                </div>
+                <div style="display: flex; align-items: center; gap: 4px;">
+                  <button type="button" class="btn-queue-media-card" data-queue-media-id="${item.id}" title="Sumar a la cola (Alt + Click)">+Cola</button>
+                  <button class="btn-delete-media" data-media-id="${item.id}" title="Eliminar este elemento">&times;</button>
+                </div>
               </div>
               ${mediaTag}
               <div class="video-card-overlay">
@@ -1748,7 +2684,7 @@ class ProPresenterApp {
           });
         }, { root: this.mediaGridEl.parentElement, rootMargin: '150px' });
 
-        // Bind media click, delete click, mouseenter/mouseleave hover play
+        // Bind media click, Alt+Click queue, delete click, mouseenter/mouseleave hover play
         this.mediaGridEl.querySelectorAll('.video-card').forEach(card => {
           const video = card.querySelector('video');
           this.mediaIntersectionObserver.observe(card);
@@ -1765,19 +2701,33 @@ class ProPresenterApp {
             });
           }
 
-          const mediaId = card.querySelector('.btn-delete-media')?.getAttribute('data-media-id');
+          const mediaId = card.getAttribute('data-media-id') || card.querySelector('.btn-delete-media')?.getAttribute('data-media-id');
           const mediaItem = state.mediaLibrary.find(m => m.id === mediaId);
           card.addEventListener('click', (e) => {
-            if (e.target.classList.contains('btn-delete-media')) return;
+            if (e.target.closest('.btn-delete-media') || e.target.closest('.btn-queue-media-card')) return;
             const url = card.getAttribute('data-video-url');
             const name = card.getAttribute('data-video-name');
             const type = card.getAttribute('data-video-type') || (mediaItem ? mediaItem.type : '');
+            if (e.altKey) {
+              e.preventDefault();
+              e.stopPropagation();
+              store.enqueueMedia(mediaItem || { id: mediaId, name, url, type });
+              return;
+            }
             store.setActiveVideo(url, name, type);
           });
           card.addEventListener('contextmenu', (e) => {
             if (mediaItem) {
-              this.showContextMenu(e, { type: 'media', id: mediaItem.id, name: mediaItem.name });
+              this.showContextMenu(e, { type: 'media', id: mediaItem.id, name: mediaItem.name, url: mediaItem.url });
             }
+          });
+        });
+
+        this.mediaGridEl.querySelectorAll('.btn-queue-media-card').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const id = btn.getAttribute('data-queue-media-id');
+            store.enqueueMedia(id);
           });
         });
 
@@ -1798,6 +2748,100 @@ class ProPresenterApp {
       const url = card.getAttribute('data-video-url');
       const isActive = state.activeVideoUrl === url && !state.isMediaCleared;
       card.classList.toggle('active-video', isActive);
+    });
+
+    // 4. Render Right-Side Media Queue Panels
+    this.renderMediaQueuePanels(state);
+  }
+
+  renderMediaQueuePanels(state) {
+    const queue = Array.isArray(state.mediaQueue) ? state.mediaQueue : [];
+    const dockPanel = document.getElementById('media-dock-queue-panel');
+    const sidebarBox = document.getElementById('right-sidebar-queue-box');
+
+    if (queue.length === 0) {
+      if (dockPanel) dockPanel.style.display = 'none';
+      if (sidebarBox) sidebarBox.style.display = 'none';
+      return;
+    }
+
+    if (dockPanel) dockPanel.style.display = 'flex';
+    if (sidebarBox) sidebarBox.style.display = 'flex';
+
+    const dockCountEl = document.getElementById('dock-queue-count');
+    const sidebarCountEl = document.getElementById('sidebar-queue-count');
+    if (dockCountEl) dockCountEl.textContent = String(queue.length);
+    if (sidebarCountEl) sidebarCountEl.textContent = String(queue.length);
+
+    const activeMediaObj = state.mediaLibrary?.find(m => m.url === state.activeVideoUrl);
+    const currentPlayingName = (!state.isMediaCleared && state.activeVideoUrl)
+      ? (state.activeVideoName || activeMediaObj?.name || state.activeVideoTitle || 'Video Activo')
+      : 'Sin reproducción activa';
+
+    const nextItemName = queue[0]?.name || '#1';
+    const currentBannerHTML = `🎬 En curso: <strong title="${currentPlayingName}">${currentPlayingName}</strong> <span>(Al finalizar ➔ ${nextItemName})</span>`;
+
+    const dockCurrentBanner = document.getElementById('dock-queue-current-info');
+    const sidebarCurrentBanner = document.getElementById('sidebar-queue-current-info');
+    if (dockCurrentBanner) dockCurrentBanner.innerHTML = currentBannerHTML;
+    if (sidebarCurrentBanner) sidebarCurrentBanner.innerHTML = currentBannerHTML;
+
+    const buildQueueItemsHTML = () => queue.map((item, idx) => {
+      const libMatch = state.mediaLibrary?.find(m => (item.id && m.id === item.id) || m.url === item.url);
+      const thumb = item.thumbnail || libMatch?.thumbnail || '';
+      const isImg = (item.type && item.type.startsWith('image/')) || (item.url && item.url.match(/\.(jpeg|jpg|gif|png|webp|svg|bmp)($|\?)/i));
+      const thumbEl = thumb
+        ? `<img class="media-queue-thumb" src="${thumb}" alt="${item.name}" />`
+        : (isImg
+            ? `<img class="media-queue-thumb" src="${item.url}" alt="${item.name}" />`
+            : `<div class="media-queue-thumb" style="display:flex;align-items:center;justify-content:center;font-size:0.7rem;">🎬</div>`);
+
+      const statusLabel = idx === 0 ? '⚡ Siguiente al terminar actual' : `En espera (Posición #${idx + 1})`;
+
+      return `
+        <div class="media-queue-item" data-queue-id="${item.queueId}" data-queue-idx="${idx}">
+          <span class="media-queue-order-badge">#${idx + 1}</span>
+          ${thumbEl}
+          <div class="media-queue-info">
+            <span class="media-queue-name" title="${item.name}">${item.name}</span>
+            <span class="media-queue-sub">${statusLabel} • ${item.folder || 'General'}</span>
+          </div>
+          <div class="media-queue-item-controls">
+            <button type="button" class="btn-queue-item-ctrl play-now" data-q-action="play" data-q-id="${item.queueId}" title="Reproducir ahora mismo">▶</button>
+            ${idx > 0 ? `<button type="button" class="btn-queue-item-ctrl" data-q-action="up" data-q-idx="${idx}" title="Subir posición">↑</button>` : ''}
+            ${idx < queue.length - 1 ? `<button type="button" class="btn-queue-item-ctrl" data-q-action="down" data-q-idx="${idx}" title="Bajar posición">↓</button>` : ''}
+            <button type="button" class="btn-queue-item-ctrl remove-item" data-q-action="remove" data-q-id="${item.queueId}" title="Quitar de la cola">&times;</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    const itemsHTML = buildQueueItemsHTML();
+    const dockListEl = document.getElementById('dock-media-queue-list');
+    const sidebarListEl = document.getElementById('sidebar-media-queue-list');
+
+    [dockListEl, sidebarListEl].forEach(listContainer => {
+      if (!listContainer) return;
+      listContainer.innerHTML = itemsHTML;
+
+      listContainer.querySelectorAll('.btn-queue-item-ctrl').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const action = btn.getAttribute('data-q-action');
+          const qId = btn.getAttribute('data-q-id');
+          const qIdx = parseInt(btn.getAttribute('data-q-idx'));
+
+          if (action === 'play' && qId) {
+            store.playQueueItemNow(qId);
+          } else if (action === 'remove' && qId) {
+            store.removeFromMediaQueue(qId);
+          } else if (action === 'up' && !isNaN(qIdx)) {
+            store.moveMediaQueueItem(qIdx, qIdx - 1);
+          } else if (action === 'down' && !isNaN(qIdx)) {
+            store.moveMediaQueueItem(qIdx, qIdx + 1);
+          }
+        });
+      });
     });
   }
 
@@ -2028,7 +3072,7 @@ class ProPresenterApp {
       if (this.inputTemplateName) this.inputTemplateName.value = "";
       if (this.modalCreateTemplate) {
         this.modalCreateTemplate.classList.add('open');
-        this.inputTemplateName?.focus();
+        this.ensureModalInteractive(this.modalCreateTemplate, this.inputTemplateName);
       }
     };
 
@@ -2061,8 +3105,10 @@ class ProPresenterApp {
         store.saveTemplate(newTpl);
         this.populateTemplateForm(newTpl);
         closeModalTemplate();
+        this.showToast(`🎨 Plantilla "${tplName}" creada.`, "success");
       } else {
-        alert("Por favor ingresa un nombre para la plantilla.");
+        this.showToast("⚠️ Por favor ingresa un nombre para la plantilla.", "warn");
+        this.ensureModalInteractive(this.modalCreateTemplate, this.inputTemplateName);
       }
     };
 
@@ -2291,7 +3337,7 @@ class ProPresenterApp {
         const todayStr = new Date().toISOString().split('T')[0];
         if (inputDate && !inputDate.value) inputDate.value = todayStr;
         if (inputTime && !inputTime.value) inputTime.value = "19:00";
-        inputTitle?.focus();
+        this.ensureModalInteractive(modalEvt, inputTitle);
       }
     };
 
@@ -2316,12 +3362,14 @@ class ProPresenterApp {
       const notes = inputNotes?.value.trim();
 
       if (!title) {
-        alert("Por favor ingresa un título para el evento.");
+        this.showToast("⚠️ Por favor ingresa un título para el evento.", "warn");
+        this.ensureModalInteractive(modalEvt, inputTitle);
         return;
       }
 
       calendarManager.addEvent(title, date, time, category, notes);
       closeModalEvt();
+      this.showToast(`📅 Evento "${title}" guardado en el calendario.`, "success");
     });
 
     document.getElementById('btn-cal-prev-month')?.addEventListener('click', () => calendarManager.changeMonth(-1));
@@ -2354,7 +3402,10 @@ class ProPresenterApp {
 
     const openModal = () => {
       this.closeAllModals();
-      if (modal) modal.classList.add('open');
+      if (modal) {
+        modal.classList.add('open');
+        this.ensureModalInteractive(modal, inputUrl);
+      }
       if (statusEl) statusEl.style.display = 'none';
       loadedFileJSON = null;
       if (fileLabel) fileLabel.textContent = 'Ningún archivo seleccionado';
@@ -2413,7 +3464,8 @@ class ProPresenterApp {
         } else if (url) {
           newBible = await fetchAndLoadBibleFromUrl(url);
         } else {
-          alert("Por favor ingresa una URL o selecciona un archivo JSON de Biblia.");
+          this.showToast("⚠️ Por favor ingresa una URL o selecciona un archivo JSON de Biblia.", "warn");
+          this.ensureModalInteractive(modal, inputUrl);
           return;
         }
 
@@ -2422,7 +3474,7 @@ class ProPresenterApp {
           this.renderScriptureSubSidebar();
           this.renderScripture3ColView();
           closeModal();
-          alert(`✨ Biblia "${newBible.name}" cargada y seleccionada exitosamente.`);
+          this.showToast(`✨ Biblia "${newBible.name}" cargada y seleccionada exitosamente.`, "success");
         }
       } catch (err) {
         if (statusEl) {
@@ -2561,35 +3613,60 @@ class ProPresenterApp {
 
       const rawPassageText = passageBlocks.join('\n\n');
       store.createNewShow(title, "Lectura", rawPassageText);
-      alert(`✨ Se ha creado el show "${title}" con ${passageBlocks.length} diapositivas adaptadas.`);
+      this.showToast(`✨ Se ha creado el show "${title}" con ${passageBlocks.length} diapositivas adaptadas.`, "success");
     });
   }
 
   renderUI(state, decks) {
-    // 1. Sidebar Project Decks
-    const projectDecks = store.projectDecks;
-    const projectBadge = document.querySelector('.project-count-badge');
-    if (projectBadge) projectBadge.textContent = projectDecks.length;
+    // 1. Sidebar Project Decks (con búsqueda instantánea en toda la biblioteca descargada)
+    const hasProjSearch = Boolean(this.projectSearchQuery && this.projectSearchQuery.trim().length > 0);
+    const baseSidebarDecks = hasProjSearch ? decks : store.projectDecks;
+    const filteredSidebarDecks = hasProjSearch
+      ? baseSidebarDecks.filter(deck => this.deckMatchesQuery(deck, this.projectSearchQuery))
+      : baseSidebarDecks;
 
-    this.deckListEl.innerHTML = projectDecks.map(deck => `
-      <div class="deck-item ${deck.id === store.activeDeckId ? 'active' : ''}" data-deck-id="${deck.id}">
-        <span class="deck-item-title" style="flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${deck.title}</span>
-        <div style="display: flex; align-items: center; gap: 4px;">
-          <span class="deck-item-tag">${deck.category || deck.type}</span>
-          <button class="btn-remove-project-item" data-remove-id="${deck.id}" title="Quitar del proyecto (mantener en biblioteca)">&times;</button>
+    const projectBadge = document.querySelector('.project-count-badge');
+    if (projectBadge) projectBadge.textContent = filteredSidebarDecks.length;
+
+    if (filteredSidebarDecks.length === 0 && hasProjSearch) {
+      this.deckListEl.innerHTML = `
+        <div style="padding: 12px 8px; text-align: center; color: var(--text-muted); font-size: 0.73rem;">
+          Sin coincidencias para "${this.projectSearchQuery}"
         </div>
-      </div>
-    `).join('');
+      `;
+    } else {
+      this.deckListEl.innerHTML = filteredSidebarDecks.map(deck => {
+        const isInProject = store.projectDeckIds.includes(deck.id);
+        return `
+          <div class="deck-item ${deck.id === store.activeDeckId ? 'active' : ''}" data-deck-id="${deck.id}">
+            <span class="deck-item-title" style="flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${deck.title}">${deck.title}</span>
+            <div style="display: flex; align-items: center; gap: 4px;">
+              <span class="deck-item-tag">${deck.category || deck.type}</span>
+              <button class="btn-edit-project-item" data-edit-id="${deck.id}" title="Editar canción" style="background: none; border: none; color: #7dd3fc; cursor: pointer; font-size: 0.72rem; padding: 0 2px;">✏️</button>
+              ${isInProject ? `<button class="btn-remove-project-item" data-remove-id="${deck.id}" title="Quitar del proyecto (mantener en biblioteca)">&times;</button>` : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
 
     this.deckListEl.querySelectorAll('.deck-item').forEach(el => {
       const id = el.getAttribute('data-deck-id');
       const deckObj = decks.find(d => d.id === id);
       el.addEventListener('click', (e) => {
-        if (e.target.classList.contains('btn-remove-project-item')) return;
+        if (e.target.classList.contains('btn-remove-project-item') || e.target.classList.contains('btn-edit-project-item')) return;
         store.setActiveDeck(id);
       });
       el.addEventListener('contextmenu', (e) => {
         if (deckObj) this.showContextMenu(e, { type: 'project-item', id: deckObj.id, name: deckObj.title });
+      });
+    });
+
+    this.deckListEl.querySelectorAll('.btn-edit-project-item').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = btn.getAttribute('data-edit-id');
+        if (id) this.openEditDeckModal(id);
       });
     });
 
@@ -2636,6 +3713,7 @@ class ProPresenterApp {
             else if (badgeClass.includes('instrumental')) icon = '🎸';
             else if (badgeClass.includes('outro')) icon = '🏁';
             else if (badgeClass.includes('sermon')) icon = '💬';
+            else if (badgeClass.includes('lowerthird')) icon = '👤';
 
             return `
               <button type="button" class="btn-section-nav ${badgeClass} ${isGroupLive ? 'active-live-section' : ''}" data-gidx="${gIdx}" title="Saltar a ${group.name} (${slideCount} filminas)">
@@ -2669,7 +3747,10 @@ class ProPresenterApp {
       let globalIndex = 1;
       const allCardsHTML = activeDeck.groups.flatMap((group, gIdx) => {
         return group.slides.map((slide, sIdx) => {
-          const isLive = state.liveSlideId === slide.id && !state.isTextCleared;
+          const isLtSlide = slide.isLowerThird || (group.badge === 'badge-lowerthird');
+          const isLive = isLtSlide
+            ? (state.isLowerThirdActive && !state.isOverlayCleared && state.lowerThirdText === (slide.text.split('\n')[0] || ''))
+            : (state.liveSlideId === slide.id && !state.isTextCleared);
           const cardIdx = globalIndex++;
           const tpl = state.activeTemplate || {};
 
@@ -2701,12 +3782,14 @@ class ProPresenterApp {
           ].join('; ');
 
           const activeMediaUrl = (!state.isMediaCleared && state.activeVideoUrl) ? state.activeVideoUrl : '';
+          const activeMediaItem = activeMediaUrl ? state.mediaLibrary?.find(m => m.url === activeMediaUrl) : null;
+          const activeMediaThumb = activeMediaItem?.thumbnail || '';
           const isImg = (state.activeVideoType && state.activeVideoType.startsWith('image/')) || (state.activeVideoIsImage && !state.activeVideoType?.startsWith('video/')) || (activeMediaUrl && !activeMediaUrl.startsWith('blob:') && !!activeMediaUrl.match(/\.(jpeg|jpg|gif|png|webp|svg)($|\?)/i));
           
           let cardBgHTML = '';
           if (activeMediaUrl) {
-            if (isImg) {
-              cardBgHTML = `<img src="${activeMediaUrl}" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.55; z-index: 0; pointer-events: none;" />`;
+            if (isImg || activeMediaThumb) {
+              cardBgHTML = `<img src="${activeMediaThumb || activeMediaUrl}" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.55; z-index: 0; pointer-events: none;" />`;
             } else {
               cardBgHTML = `<video src="${activeMediaUrl}" muted preload="metadata" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.55; z-index: 0; pointer-events: none;"></video>`;
             }
@@ -2816,11 +3899,15 @@ class ProPresenterApp {
     if (bgA && bgB) {
       const shouldOperatorMute = this.isAudienceOpen || !!state.isMediaAudioMuted;
       const operatorVolume = typeof state.mediaAudioVolume === 'number' ? state.mediaAudioVolume : 1.0;
+      const hasQueue = Array.isArray(state.mediaQueue) && state.mediaQueue.length > 0;
+      const shouldLoop = !hasQueue;
 
       bgA.muted = shouldOperatorMute;
       bgB.muted = shouldOperatorMute;
       bgA.volume = operatorVolume;
       bgB.volume = operatorVolume;
+      bgA.loop = shouldLoop;
+      bgB.loop = shouldLoop;
 
       if (state.isMediaCleared || !state.activeVideoUrl) {
         if (mediaMode === 'cut') {
@@ -2841,8 +3928,10 @@ class ProPresenterApp {
         bgA.pause();
         bgB.pause();
         this.operatorVideoUrl = "";
-      } else if (this.operatorVideoUrl !== state.activeVideoUrl) {
+        this.operatorMediaPlayId = 0;
+      } else if (this.operatorVideoUrl !== state.activeVideoUrl || (state.activeMediaPlayId && this.operatorMediaPlayId !== state.activeMediaPlayId)) {
         this.operatorVideoUrl = state.activeVideoUrl;
+        this.operatorMediaPlayId = state.activeMediaPlayId || 0;
 
         const isImage = (state.activeVideoType && state.activeVideoType.startsWith('image/')) || (state.activeVideoIsImage && !state.activeVideoType?.startsWith('video/')) || isMediaImage(state.activeVideoUrl, state.activeVideoType);
         const incomingMedia = this.operatorActiveMediaLayer === 'A' ? { video: bgB, img: imgB } : { video: bgA, img: imgA };
@@ -2862,6 +3951,7 @@ class ProPresenterApp {
         } else if (incomingMedia.video) {
           incomingMedia.video.src = state.activeVideoUrl;
           incomingMedia.video.currentTime = 0;
+          incomingMedia.video.loop = shouldLoop;
           incomingMedia.video.muted = shouldOperatorMute;
           incomingMedia.video.volume = operatorVolume;
           incomingMedia.video.style.display = 'block';
@@ -2907,6 +3997,9 @@ class ProPresenterApp {
         }
       }
     }
+
+    // Update Interactive Media Timeline UI
+    this.updateMediaTimelineUI(state);
 
 
     // 5. Text & Stage Previews (Escalado equivalente e idéntico a la pantalla de Audiencia)
@@ -2978,6 +4071,22 @@ class ProPresenterApp {
       } else {
         this.liveTextEl.style.display = 'block';
         this.liveTextEl.style.overflow = 'visible';
+      }
+    }
+
+    // 5.b. Operator Monitor Lower Third Overlay Synchronization
+    const opLtBanner = document.getElementById('operator-lower-third-banner');
+    const opLtTitle = document.getElementById('operator-lower-third-title');
+    const opLtSub = document.getElementById('operator-lower-third-subtitle');
+    if (opLtBanner) {
+      if (!state.isOverlayCleared && state.isLowerThirdActive) {
+        if (opLtTitle) opLtTitle.textContent = state.lowerThirdText || "";
+        if (opLtSub) opLtSub.textContent = state.lowerThirdSubtext || "";
+        opLtBanner.style.transform = 'translateX(0)';
+        opLtBanner.style.opacity = '1';
+      } else {
+        opLtBanner.style.transform = 'translateX(-120%)';
+        opLtBanner.style.opacity = '0';
       }
     }
 
@@ -3054,6 +4163,20 @@ class ProPresenterApp {
     // Status bar updates
     const statusDot = document.getElementById('status-dot');
     const statusText = document.getElementById('status-text');
+    const statusBgLayer = document.getElementById('status-bg-layer');
+    if (statusBgLayer) {
+      const qLen = Array.isArray(state.mediaQueue) ? state.mediaQueue.length : 0;
+      if (state.isMediaCleared || !state.activeVideoUrl) {
+        statusBgLayer.textContent = "LIMPIO";
+        statusBgLayer.style.color = "var(--text-muted)";
+      } else if (qLen > 0) {
+        statusBgLayer.textContent = `COLA ACTIVA (${qLen} en espera)`;
+        statusBgLayer.style.color = "#fbbf24";
+      } else {
+        statusBgLayer.textContent = "VIDEO LOOP";
+        statusBgLayer.style.color = "var(--accent-cyan)";
+      }
+    }
     if (!state.isTextCleared && state.liveText) {
       statusDot?.classList.add('live');
       if (statusText) statusText.textContent = "PROYECTANDO EN VIVO • Sincronización OK";

@@ -4,9 +4,33 @@ Este archivo registra el control de versiones, cambios granulares, mejoras y cor
 
 ---
 
-## 📌 Versión Actual: `v1.3.3` (Build 20261015.1)
+## 📌 Versión Actual: `v1.5.0` (Build 20261105.1)
 
 ### 🗓️ Registro de Cambios (Changelog Histórico)
+
+### [1.5.0] - 2026-11-05
+#### 🆕 Nuevas Funcionalidades & Mejoras
+- **🔍 Buscador de Canciones ya Descargadas Omnipresente:**
+  - Búsqueda insensible a mayúsculas y acentos (`normalizeSearchText` / `deckMatchesQuery`) en título, categoría, secciones y letra completa en el dock de shows, panel de proyectos lateral y pestaña de búsqueda web con sección prioritaria "📚 En tu Biblioteca Local (Ya descargadas)".
+- **👁️ Control de Edición Visual (Qué se Mantiene y Qué se Borra):**
+  - Panel comparador en tiempo real (`#song-edit-diff-panel` y `#slide-edit-diff-preview`) mostrando líneas activas en verde (`QUEDA` / `NUEVO`) y líneas eliminadas en rojo tachado (`SE BORRA`) con botón de restauración rápida (`↩ Restaurar`).
+  - Edición in-place de canciones sin duplicación mediante `store.updateDeckContent`.
+- **💽 Carpetas Físicas de Disco en Tiempo Real:**
+  - Monitoreo en vivo de carpetas de disco en la misma lista (`#media-folders-list`) junto a carpetas virtuales con el ícono `💽`, badge `LIVE` y sincronización instantánea al agregar/quitar videos e imágenes en Windows.
+- **⏱️ Línea de Tiempo Manejable y Dock de Audiencia de Doble Ancho:**
+  - Ampliación del dock de audiencia al doble de ancho e integración de línea de tiempo con seek slider, play/pause, reinicio y visualización de tiempo total y restante.
+- **🛡️ Corrección Definitiva del Bug de Modales Inactivos en Electron:**
+  - Desacoplamiento de modales fuera del grid CSS de `#app`, eliminación de conflictos GPU por `enable-zero-copy` y `backdrop-filter`, reemplazo de `alert()` bloqueantes por notificaciones Toast y restauración activa de foco con `ensureModalInteractive`.
+
+### [1.3.4] - 2026-11-04
+#### 🆕 Nuevas Funcionalidades & Mejoras
+- **⏭️ Cola de Reproducción Multimedia con `Alt + Click` y Auto-Avance al Finalizar (`enqueueMedia` & `advanceMediaQueue`):**
+  - Mientras la cola está vacía, los videos mantienen su reproducción en bucle (`loop = true`). Al agregar uno o más elementos a la cola, el video activo desactiva su bucle infinito (`loop = false`) y, al terminar su reproducción (`ended`), pasa automáticamente al siguiente elemento marcado en la cola (respetando la transición Cut/Fade configurada).
+  - Encolado rápido haciendo `Alt + Click` sobre cualquier tarjeta de medio en el dock, mediante el botón rápido `+Cola` en la tarjeta o desde el menú contextual de clic derecho (`⏭️ Agregar a la Cola`).
+  - Indicador visual de posición en cola (`⏭️ #1`, `#2`) sobre las tarjetas de la biblioteca multimedia y en la barra de estado inferior (`COLA ACTIVA`).
+- **📋 Panel Lateral Derecho de Cola de Reproducción (`#media-dock-queue-panel` & `#right-sidebar-queue-box`):**
+  - Al crearse una cola, se despliega automáticamente una lista a la derecha (tanto a la derecha de la grilla en la pestaña `Media` como en la columna derecha bajo el monitor `LIVE PROGRAM`) mostrando qué elemento está en curso y la lista ordenada de los elementos que siguen (`#1`, `#2`, `#3`...).
+  - Controles interactivos por elemento y globales: reproducir inmediatamente (`▶`), saltar al siguiente ahora (`⏭️ Pasar`), reordenar prioridades (`↑` / `↓`), quitar un elemento (`×`) o vaciar toda la cola (`🗑️ Vaciar`).
 
 ### [1.3.3] - 2026-10-15
 #### 🆕 Nuevas Funcionalidades & Mejoras
