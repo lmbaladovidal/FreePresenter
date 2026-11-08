@@ -535,6 +535,70 @@ test('RF-58: Creación, etiquetado y activación de overlays / lower-thirds pers
   store.clearLowerThird();
 });
 
+console.log('\n▶️ Grupo 13: Editor de Canción en Pantalla Completa (RF-59)');
+
+test('RF-59: Edición de canción en vista de pantalla completa con 3 columnas y manipulación de filminas y estilos', () => {
+  const store = new Store();
+  const deck = store.createNewShow(
+    "Himno de Gracia",
+    "Adoración",
+    "Sublime gracia del Señor\nQue a un pecador salvó\n\nFui ciego mas hoy veo yo"
+  );
+
+  if (!deck || deck.groups.length !== 2) {
+    throw new Error('No se inicializó el show de prueba correctamente');
+  }
+
+  // 1. Agregar nueva filmina en grupo 0
+  const addResult = store.addSlideToDeck(deck.id, 0, "Nueva línea agregada en lienzo");
+  if (!addResult || deck.groups[0].slides.length !== 2) {
+    throw new Error('addSlideToDeck no agregó la filmina al grupo');
+  }
+  if (deck.groups[0].slides[1].text !== "Nueva línea agregada en lienzo") {
+    throw new Error('El texto de la nueva filmina agregada es incorrecto');
+  }
+
+  // 2. Reordenar filminas (moveSlide)
+  store.moveSlide(deck.id, 0, 1, 'up');
+  if (deck.groups[0].slides[0].text !== "Nueva línea agregada en lienzo") {
+    throw new Error('moveSlide up no subió la filmina a la primera posición');
+  }
+
+  // 3. Actualizar estilo del deck (updateDeckStyle)
+  const customStyle = {
+    fontFamily: "CMGSans",
+    fontSize: 72,
+    color: "#ffffff",
+    fontWeight: "700",
+    shadowEnable: true,
+    shadowBlur: 16,
+    textAlign: "center"
+  };
+  store.updateDeckStyle(deck.id, customStyle);
+
+  if (!deck.style || deck.style.fontFamily !== "CMGSans" || deck.style.fontSize !== 72) {
+    throw new Error('updateDeckStyle no guardó las propiedades de estilo en el deck');
+  }
+
+  // 4. Edición de texto directo de diapositiva (updateSlideText)
+  store.updateSlideText(deck.id, 0, 0, "Texto editado directamente en lienzo WYSIWYG");
+  if (deck.groups[0].slides[0].text !== "Texto editado directamente en lienzo WYSIWYG") {
+    throw new Error('updateSlideText no reflejó la edición directa del lienzo');
+  }
+
+  // 5. Duplicar y eliminar filmina
+  const countBeforeDup = deck.groups[0].slides.length;
+  store.duplicateSlide(deck.id, 0, 0);
+  if (deck.groups[0].slides.length !== countBeforeDup + 1) {
+    throw new Error('duplicateSlide no incrementó la cantidad de filminas');
+  }
+
+  store.deleteSlide(deck.id, 0, 1);
+  if (deck.groups[0].slides.length !== countBeforeDup) {
+    throw new Error('deleteSlide no eliminó la filmina');
+  }
+});
+
 
 // ----------------------------------------------------
 // RESUMEN FINAL

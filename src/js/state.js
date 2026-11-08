@@ -975,6 +975,77 @@ export class Store {
     this.notify();
   }
 
+  addSlideToDeck(deckId, groupIndex = null, text = "Nueva filmina", isLowerThird = false) {
+    const deck = this.decks.find(d => d.id === deckId);
+    if (!deck) return null;
+
+    if (!Array.isArray(deck.groups) || deck.groups.length === 0) {
+      deck.groups = [{
+        name: isLowerThird ? "Presentador" : "Estrofa 1",
+        badge: isLowerThird ? "badge-lowerthird" : "badge-verse",
+        slides: []
+      }];
+    }
+
+    let targetGIdx = typeof groupIndex === 'number' && groupIndex >= 0 && groupIndex < deck.groups.length
+      ? groupIndex
+      : deck.groups.length - 1;
+
+    const group = deck.groups[targetGIdx];
+    const newSlide = {
+      id: `slide-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      text: text || "Texto de diapositiva",
+      isLowerThird: !!isLowerThird || group.badge === "badge-lowerthird" || deck.type === "lowerthird"
+    };
+
+    group.slides.push(newSlide);
+    this.notify();
+    return { groupIndex: targetGIdx, slideIndex: group.slides.length - 1, slide: newSlide };
+  }
+
+  moveSlide(deckId, fromGroupIndex, fromSlideIndex, direction) {
+    const deck = this.decks.find(d => d.id === deckId);
+    if (!deck || !deck.groups[fromGroupIndex] || !deck.groups[fromGroupIndex].slides[fromSlideIndex]) return false;
+
+    const currentGroup = deck.groups[fromGroupIndex];
+    const [slide] = currentGroup.slides.splice(fromSlideIndex, 1);
+
+    if (direction === 'up') {
+      if (fromSlideIndex > 0) {
+        currentGroup.slides.splice(fromSlideIndex - 1, 0, slide);
+      } else if (fromGroupIndex > 0) {
+        const prevGroup = deck.groups[fromGroupIndex - 1];
+        prevGroup.slides.push(slide);
+      } else {
+        currentGroup.slides.unshift(slide);
+      }
+    } else if (direction === 'down') {
+      if (fromSlideIndex < currentGroup.slides.length) {
+        currentGroup.slides.splice(fromSlideIndex + 1, 0, slide);
+      } else if (fromGroupIndex < deck.groups.length - 1) {
+        const nextGroup = deck.groups[fromGroupIndex + 1];
+        nextGroup.slides.unshift(slide);
+      } else {
+        currentGroup.slides.push(slide);
+      }
+    }
+
+    this.notify();
+    return true;
+  }
+
+  updateDeckStyle(deckId, styleUpdates) {
+    const deck = this.decks.find(d => d.id === deckId);
+    if (!deck || typeof styleUpdates !== 'object') return;
+
+    deck.style = { ...(deck.style || {}), ...styleUpdates };
+    if (deck.id === this.activeDeckId && this.state.activeTemplate) {
+      this.state.activeTemplate = { ...this.state.activeTemplate, ...styleUpdates };
+    }
+    this.notify();
+    return deck.style;
+  }
+
   deleteDeck(deckId) {
     if (this.decks.length <= 1) return;
     this.decks = this.decks.filter(d => d.id !== deckId);

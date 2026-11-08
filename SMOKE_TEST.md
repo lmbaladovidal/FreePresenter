@@ -155,6 +155,14 @@ npm test
 
 ---
 
+### 🖥️ Módulo 17: Editor de Canción y Diapositivas en Pantalla Completa (3 Columnas)
+| ID | Caso de Prueba | Pasos de Verificación | Resultado Esperado | Cobertura RF |
+| :--- | :--- | :--- | :--- | :--- |
+| **ST-48** | Editor de Canción en Pantalla Completa | Presionar `✏️ Editar Canción` o pestaña `[Edit]`. Verificar lista de filminas a la izquierda, lienzo central con Bounding Box editable y opciones de estilo a la derecha. Agregar filmina, editar texto directamente en el lienzo, cambiar fuente/sombra/alineación y guardar. | La aplicación no abre ningún modal; transiciona a la vista full-screen de 3 columnas estilo FreeShow; el texto se edita directamente en el lienzo con actualización en tiempo real; los cambios de estilo se aplican y persisten al volver a Show. | RF-59 |
+
+
+---
+
 ## 🎯 Criterios de Aprobación (Pass Criteria)
 
 1. **Cero Crashes / Errores de Consola:** No deben existir excepciones no capturadas al realizar cambios de filminas o pantallas.

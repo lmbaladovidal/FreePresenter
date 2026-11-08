@@ -4,6 +4,48 @@ Todas las novedades, mejoras y correcciones de errores importantes de **ProPrese
 
 ---
 
+## 🚀 Versión 1.6.0 (Editor de Canción en Pantalla Completa Estilo FreeShow & Overlays Personalizados) — *8 de Noviembre, 2026*
+
+Esta versión transforma por completo la experiencia de edición de canciones, sustituyendo los modales flotantes por una **vista inmersiva de pantalla completa en 3 columnas** inspirada en los estándares de producción profesional (FreeShow), junto con el soporte integral para creación y proyección de Overlays / Lower Thirds personalizados.
+
+### ✨ Novedades y Funcionalidades Principales
+
+#### 🖥️ Editor de Canción en Pantalla Completa (3 Columnas)
+Al editar una canción completa (`✏️ Editar Canción`, pestaña superior `[Edit]` o menú contextual), la aplicación transiciona suavemente a la vista de edición full-screen:
+
+1. **Columna Izquierda (Lista de Filminas):**
+   - Vista vertical de todas las diapositivas de la canción en tarjetas miniatura de relación de aspecto 16:9.
+   - Numeración ordinal, badge de sección (`Estrofa 1`, `Coro`, `Puente`, etc.) y previsualización tipográfica en miniatura.
+   - Resaltado visual activo con borde magenta (`#ec4899`).
+   - Acciones directas por tarjeta al pasar el cursor: reordenar hacia arriba (`↑`), reordenar hacia abajo (`↓`), duplicar (`📑`) y eliminar (`×`).
+   - Botón `+ Nueva Filmina` al pie y control deslizante de zoom para personalizar el tamaño de las miniaturas.
+
+2. **Columna Central (Lienzo 16:9 y Filmina Seleccionada):**
+   - Lienzo central 16:9 con fondo de previsualización (fondo de video/imagen activo o degradado cinematográfico).
+   - **Bounding Box Interactivo (Estilo FreeShow):**
+     - Recuadro de selección con borde magenta y 8 handles de redimensionamiento (esquinas y puntos medios) más stalk superior de arrastre.
+     - Edición directa de texto en tiempo real (`contenteditable` WYSIWYG): haz clic directo en el recuadro y escribe; el texto se actualiza instantáneamente en la diapositiva, en la miniatura de la izquierda y en la proyección en vivo si la filmina está activa.
+   - Barra superior del lienzo: selector de sección con chips desplegables, renombrado de sección, navegación rápida (`‹ Anterior` • `Filmina X de Y` • `Siguiente ›`), división de filmina en cursor (`✂️`), duplicar y borrar.
+   - Barra inferior: atajos rápidos y controles de zoom (`-`, `+`, `Ajustar`).
+   - Pestaña alternativa `Texto Completo`: permite editar la letra completa en un textarea con comparador visual (Diff) de líneas añadidas y borradas.
+
+3. **Columna Derecha (Inspector de Estilos y Propiedades):**
+   - **Tipografía y Fuente:** Selector de familias tipográficas (`CMGSans`, `Inter`, `Montserrat`, `Roboto`, `Poppins`, `Oswald`, `Arial`, `Georgia`, `Playfair Display`), selector numérico de tamaño y slider continuo (16px a 220px), selector de auto-size (`None`, `Shrink`, `Fit Box`), selector de color y previsualización Hex.
+   - **Formato Rápido:** Botones de un clic para **B** (Negrita), *I* (Cursiva), <u>U</u> (Subrayado), <s>S</s> (Tachado) y TT (Mayúsculas).
+   - **Alineación (Align):** Botones de alineación horizontal (Izquierda, Centro, Derecha, Justificado) y alineación vertical (Arriba, Centro, Abajo).
+   - **Párrafos y Espaciado (Text):** Ajuste de interlineado (Line height) y espaciado entre letras (Letter spacing).
+   - **Renglones (Lines):** Límite de renglones máximos por filmina con botón de re-división automática.
+   - **Contorno de Texto (Outline):** Activación/desactivación, selector de color y control de grosor de trazo en píxeles.
+   - **Sombra de Texto (Shadow):** Activación/desactivación, selector de color, desenfoque (blur) y desplazamiento vertical (offset Y).
+   - **Caja de Fondo y Bordes:** Activación de caja semitransparente detrás del texto, selector de color, opacidad (0% a 100%), padding interno y redondez de bordes.
+   - **Ámbito de Aplicación:** Selector para aplicar los cambios a *Toda la Canción* o *Solo a esta filmina*.
+
+#### 👤 Creación y Proyección de Overlays / Lower Thirds Personalizados
+- Categoría dedicada `Overlays Stream / Lower Thirds` y reconocimiento de etiquetas `[Overlay]` y `[Lower-Third]`.
+- Proyección simultánea del banner de zócalo inferior tanto en la pantalla de Audiencia como en la vista previa del operador (`#operator-lower-third-banner`) sin borrar ni reemplazar la capa de texto principal.
+
+---
+
 ## 🚀 Versión 1.5.0 (Buscador Global de Descargas, Control Visual de Edición, Carpetas Físicas en Vivo y Corrección Definitiva de Modales) — *5 de Noviembre, 2026*
 
 Esta versión incluye la resolución definitiva a la falta de respuesta en modales de carga de canciones, la búsqueda inteligente de canciones ya descargadas, control visual en tiempo real de cambios al editar letras y vinculación de carpetas físicas del disco en la misma lista multimedia.

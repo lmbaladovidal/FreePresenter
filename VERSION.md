@@ -4,9 +4,22 @@ Este archivo registra el control de versiones, cambios granulares, mejoras y cor
 
 ---
 
-## 📌 Versión Actual: `v1.5.0` (Build 20261105.1)
+## 📌 Versión Actual: `v1.6.0` (Build 20261108.1)
 
 ### 🗓️ Registro de Cambios (Changelog Histórico)
+
+### [1.6.0] - 2026-11-08
+#### 🆕 Nuevas Funcionalidades & Mejoras
+- **🖥️ Editor de Canción y Diapositivas en Pantalla Completa (Estilo FreeShow):**
+  - Al editar una canción completa (`✏️ Editar Canción`, pestaña superior `[Edit]` o menú contextual), el sistema ya no abre una ventana modal flotante; en su lugar, se despliega una vista completa de 3 columnas:
+    - **Columna Izquierda (Filminas):** Lista vertical de todas las diapositivas con previsualización en miniatura 16:9, numeración, badges de sección y acciones directas (subir, bajar, duplicar, eliminar y botón `+ Nueva Filmina`).
+    - **Columna Central (Lienzo / Canvas):** Lienzo 16:9 con recuadro Bounding Box interactivo (borde magenta y 8 handles de redimensionamiento estilo FreeShow) que permite hacer clic y editar el texto directamente en tiempo real (WYSIWYG), selector de sección, barra de navegación y atajos.
+    - **Columna Derecha (Inspector de Estilos):** Panel de opciones de diseño con selector de familia tipográfica (`CMGSans`, `Inter`, `Montserrat`, `Roboto`, `Oswald`, etc.), tamaño de fuente (input + slider), color de texto y swatches, barra de formato rápido (**B**, *I*, <u>U</u>, <s>S</s>, TT), paneles colapsables de alineación horizontal y vertical, interlineado, espaciado entre letras, renglones máximos (`maxLines`), contorno de texto (`outline`), sombra (`shadow`), caja de fondo semitransparente (`bgColor`) y selector de ámbito (aplicar a toda la canción o solo a la diapositiva actual).
+  - Pestaña alternativa `Texto Completo` con editor de letra y comparador visual en vivo (Diff).
+  - Atajos de teclado: `Escape` para volver al modo Show, `Ctrl+S` / `Cmd+S` para guardar rápidamente.
+- **👤 Soporte Completo para Creación de Overlays / Lower Thirds Independientes:**
+  - Categoría dedicada `Overlays Stream / Lower Thirds` en el creador de shows y etiquetas de sección `[Overlay]`.
+  - Proyección simultánea del banner de zócalo inferior tanto en la pantalla de Audiencia como en la consola del operador sin interferir con la capa de texto principal.
 
 ### [1.5.0] - 2026-11-05
 #### 🆕 Nuevas Funcionalidades & Mejoras

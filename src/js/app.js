@@ -189,18 +189,22 @@ class ProPresenterApp {
     // 1. Output Launchers & Mode Switching
     document.querySelectorAll('.mode-tab').forEach(tab => {
       tab.addEventListener('click', () => {
-        document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
-        tab.classList.add('active');
         const mode = tab.getAttribute('data-mode');
-        if (mode === 'edit' && store.activeDeckId) {
-          this.openEditDeckModal(store.activeDeckId);
+        if (mode === 'edit') {
+          if (store.activeDeckId) {
+            this.openFullScreenSongEditor(store.activeDeckId);
+          } else {
+            this.showToast("⚠️ Selecciona una canción para editar en pantalla completa.", "warn");
+          }
+        } else if (mode === 'show') {
+          this.closeFullScreenSongEditor();
         }
       });
     });
 
     document.getElementById('btn-edit-active-deck')?.addEventListener('click', () => {
       if (store.activeDeckId) {
-        this.openEditDeckModal(store.activeDeckId);
+        this.openFullScreenSongEditor(store.activeDeckId);
       }
     });
 
@@ -1652,50 +1656,892 @@ class ProPresenterApp {
   }
 
   openEditDeckModal(deckId) {
+    this.openFullScreenSongEditor(deckId);
+  }
+
+  // =========================================================================
+  // VISTA DE PANTALLA COMPLETA: EDITOR DE CANCIÓN Y DIAPOSITIVAS (ESTILO FREESHOW)
+  // =========================================================================
+  openFullScreenSongEditor(deckId, groupIndex = 0, slideIndex = 0) {
     const deck = store.decks.find(d => d.id === deckId) || store.activeDeck;
     if (!deck) return;
 
     this.closeAllModals();
-    this.editingDeckId = deck.id;
+    this.currentEditorDeckId = deck.id;
+    this.currentEditorGroupIndex = Math.max(0, groupIndex);
+    this.currentEditorSlideIndex = Math.max(0, slideIndex);
+    this.currentEditorSubTab = 'canvas';
+    this.currentEditorScope = 'all';
 
-    const headerTitleEl = document.getElementById('modal-show-header-title');
-    if (headerTitleEl) headerTitleEl.textContent = `✏️ Editando Canción: "${deck.title}"`;
-    if (this.btnSaveShow) this.btnSaveShow.textContent = "💾 Guardar Cambios en Canción";
+    // 1. Activar Vista de Pantalla Completa
+    const appEl = document.getElementById('app');
+    if (appEl) appEl.classList.add('edit-mode-active');
 
-    if (this.inputShowTitle) this.inputShowTitle.value = deck.title;
-    if (this.inputShowCategory) this.inputShowCategory.value = deck.category || 'Alabanza';
+    // 2. Sincronizar Pestañas de Modo Superior
+    document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
+    document.querySelector('.mode-tab[data-mode="edit"]')?.classList.add('active');
 
-    if (this.inputShowTemplate) {
-      const templates = store.templates || [];
-      const selectedTpl = deck.templateId || store.activeTemplateId;
-      this.inputShowTemplate.innerHTML = templates.map(t =>
-        `<option value="${t.id}" ${t.id === selectedTpl ? 'selected' : ''}>${t.name}${t.maxLines > 0 ? ` (Máx. ${t.maxLines} renglones)` : ''}</option>`
+    // 3. Renderizar Componentes del Editor
+    this.renderEditorHeader(deck);
+    this.renderEditorSlidesList(deck);
+    this.renderEditorCenterCanvas(deck);
+    this.populateEditorInspector(deck);
+
+    // 4. Inicializar Listeners de Eventos del Editor
+    this.initFullScreenEditorEvents();
+  }
+
+  closeFullScreenSongEditor() {
+    this.saveCurrentEditorCanvasText();
+    const appEl = document.getElementById('app');
+    if (appEl) appEl.classList.remove('edit-mode-active');
+
+    // Restaurar Pestaña Show activa
+    document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
+    document.querySelector('.mode-tab[data-mode="show"]')?.classList.add('active');
+
+    if (this.currentEditorDeckId) {
+      store.setActiveDeck(this.currentEditorDeckId);
+    }
+    this.renderUI(store.state, store.decks);
+  }
+
+  selectEditorSlide(groupIndex, slideIndex) {
+    this.saveCurrentEditorCanvasText();
+    const deck = store.decks.find(d => d.id === this.currentEditorDeckId);
+    if (!deck) return;
+
+    const gIdx = Math.max(0, Math.min(groupIndex, (deck.groups?.length || 1) - 1));
+    const maxSlide = (deck.groups[gIdx]?.slides?.length || 1) - 1;
+    const sIdx = Math.max(0, Math.min(slideIndex, maxSlide));
+
+    this.currentEditorGroupIndex = gIdx;
+    this.currentEditorSlideIndex = sIdx;
+
+    this.renderEditorSlidesList(deck);
+    this.renderEditorCenterCanvas(deck);
+    this.populateEditorInspector(deck);
+  }
+
+  saveCurrentEditorCanvasText() {
+    if (!this.currentEditorDeckId) return;
+    const deck = store.decks.find(d => d.id === this.currentEditorDeckId);
+    if (!deck) return;
+
+    if (this.currentEditorSubTab === 'lyrics') {
+      const textarea = document.getElementById('editor-lyrics-textarea');
+      if (textarea) {
+        store.updateDeckContent(deck.id, deck.title, deck.category, textarea.value);
+      }
+    } else {
+      const textbox = document.getElementById('editor-canvas-textbox');
+      if (textbox && deck.groups && deck.groups[this.currentEditorGroupIndex]?.slides[this.currentEditorSlideIndex]) {
+        const text = textbox.innerText.trim();
+        store.updateSlideText(deck.id, this.currentEditorGroupIndex, this.currentEditorSlideIndex, text);
+      }
+    }
+  }
+
+  renderEditorHeader(deck) {
+    const titleEl = document.getElementById('editor-deck-title');
+    const catEl = document.getElementById('editor-deck-category');
+    const totalSlides = (deck.groups || []).reduce((acc, g) => acc + (g.slides?.length || 0), 0);
+
+    if (titleEl) {
+      titleEl.innerText = deck.title || "Canción Sin Título";
+      titleEl.onblur = () => {
+        deck.title = titleEl.innerText.trim() || "Canción";
+        store.notify();
+      };
+    }
+    if (catEl) {
+      catEl.textContent = `${deck.category || 'Alabanza'} • ${totalSlides} Diapositiva${totalSlides === 1 ? '' : 's'}`;
+    }
+  }
+
+  getSlideEffectiveStyle(deck, slide = null) {
+    const tpl = store.templates.find(t => t.id === deck.templateId) || store.state.activeTemplate || DEFAULT_TEMPLATES[0] || {};
+    const deckStyle = deck.style || {};
+    const slideStyle = (slide && slide.style) ? slide.style : {};
+
+    const shadowEnable = slideStyle.shadowEnable !== undefined ? slideStyle.shadowEnable : (deckStyle.shadowEnable !== undefined ? deckStyle.shadowEnable : true);
+    const shadowColor = slideStyle.shadowColor || deckStyle.shadowColor || 'rgba(0,0,0,0.9)';
+    const shadowBlur = slideStyle.shadowBlur !== undefined ? slideStyle.shadowBlur : (deckStyle.shadowBlur !== undefined ? deckStyle.shadowBlur : 14);
+    const shadowOffsetY = slideStyle.shadowOffsetY !== undefined ? slideStyle.shadowOffsetY : (deckStyle.shadowOffsetY !== undefined ? deckStyle.shadowOffsetY : 4);
+
+    return {
+      fontFamily: slideStyle.fontFamily || deckStyle.fontFamily || tpl.fontFamily || 'Inter, sans-serif',
+      fontSize: slideStyle.fontSize || deckStyle.fontSize || tpl.fontSize || 56,
+      color: slideStyle.color || deckStyle.color || tpl.color || '#ffffff',
+      fontWeight: slideStyle.fontWeight || deckStyle.fontWeight || (tpl.fontWeight || '700'),
+      fontStyle: slideStyle.fontStyle || deckStyle.fontStyle || (tpl.fontStyle || 'normal'),
+      textDecoration: slideStyle.textDecoration || deckStyle.textDecoration || (tpl.textDecoration || 'none'),
+      textTransform: slideStyle.textTransform || deckStyle.textTransform || (tpl.textTransform || 'none'),
+      textAlign: slideStyle.textAlign || deckStyle.textAlign || tpl.textAlign || 'center',
+      verticalAlign: slideStyle.verticalAlign || deckStyle.verticalAlign || tpl.verticalAlign || 'center',
+      lineHeight: slideStyle.lineHeight || deckStyle.lineHeight || tpl.lineHeight || 1.25,
+      letterSpacing: slideStyle.letterSpacing !== undefined ? slideStyle.letterSpacing : (deckStyle.letterSpacing !== undefined ? deckStyle.letterSpacing : (tpl.letterSpacing || 0)),
+      outlineEnable: slideStyle.outlineEnable !== undefined ? slideStyle.outlineEnable : (deckStyle.outlineEnable !== undefined ? deckStyle.outlineEnable : false),
+      outlineColor: slideStyle.outlineColor || deckStyle.outlineColor || '#000000',
+      outlineWidth: slideStyle.outlineWidth || deckStyle.outlineWidth || 2,
+      shadowEnable,
+      shadowColor,
+      shadowBlur,
+      shadowOffsetY,
+      textShadow: shadowEnable ? `0 ${shadowOffsetY}px ${shadowBlur}px ${shadowColor}` : 'none',
+      bgBoxEnable: slideStyle.bgBoxEnable !== undefined ? slideStyle.bgBoxEnable : (deckStyle.bgBoxEnable !== undefined ? deckStyle.bgBoxEnable : false),
+      bgBoxColor: slideStyle.bgBoxColor || deckStyle.bgBoxColor || '#000000',
+      bgBoxOpacity: slideStyle.bgBoxOpacity !== undefined ? slideStyle.bgBoxOpacity : (deckStyle.bgBoxOpacity !== undefined ? deckStyle.bgBoxOpacity : 40),
+      bgBoxPadding: slideStyle.bgBoxPadding !== undefined ? slideStyle.bgBoxPadding : (deckStyle.bgBoxPadding !== undefined ? deckStyle.bgBoxPadding : 20),
+      bgBoxRadius: slideStyle.bgBoxRadius !== undefined ? slideStyle.bgBoxRadius : (deckStyle.bgBoxRadius !== undefined ? deckStyle.bgBoxRadius : 8),
+      maxLines: slideStyle.maxLines !== undefined ? slideStyle.maxLines : (deckStyle.maxLines !== undefined ? deckStyle.maxLines : (tpl.maxLines || 0))
+    };
+  }
+
+  renderEditorSlidesList(deck) {
+    const listEl = document.getElementById('editor-slides-list');
+    const countEl = document.getElementById('editor-slides-count');
+    if (!listEl) return;
+
+    const groups = deck.groups || [];
+    let globalSlideNum = 1;
+    let html = '';
+
+    groups.forEach((group, gIdx) => {
+      const slides = group.slides || [];
+      slides.forEach((slide, sIdx) => {
+        const isCurrent = gIdx === this.currentEditorGroupIndex && sIdx === this.currentEditorSlideIndex;
+        const textPreview = (slide.text || '').replace(/<[^>]*>/g, '');
+        const badgeClass = group.badge || 'badge-verse';
+        const sectionName = group.name || `Estrofa ${gIdx + 1}`;
+        const slideStyle = this.getSlideEffectiveStyle(deck, slide);
+
+        html += `
+          <div class="editor-slide-thumb-card ${isCurrent ? 'active' : ''}" data-gidx="${gIdx}" data-sidx="${sIdx}">
+            <div class="editor-slide-thumb-header">
+              <div class="editor-slide-thumb-meta">
+                <span class="editor-slide-num-badge">${globalSlideNum++}</span>
+                <span class="editor-slide-section-badge ${badgeClass}">${this.escapeHtml(sectionName)}</span>
+              </div>
+              <div class="editor-slide-thumb-actions">
+                <button type="button" class="btn-slide-thumb-action btn-move-slide-up" data-gidx="${gIdx}" data-sidx="${sIdx}" title="Subir">↑</button>
+                <button type="button" class="btn-slide-thumb-action btn-move-slide-down" data-gidx="${gIdx}" data-sidx="${sIdx}" title="Bajar">↓</button>
+                <button type="button" class="btn-slide-thumb-action btn-dup-slide-card" data-gidx="${gIdx}" data-sidx="${sIdx}" title="Duplicar">📑</button>
+                <button type="button" class="btn-slide-thumb-action btn-del-slide-card" data-gidx="${gIdx}" data-sidx="${sIdx}" title="Eliminar">&times;</button>
+              </div>
+            </div>
+            <div class="editor-slide-thumb-preview-box">
+              <div class="editor-slide-thumb-text" style="font-family: ${slideStyle.fontFamily}; color: ${slideStyle.color}; font-weight: ${slideStyle.fontWeight || '700'}; text-align: ${slideStyle.textAlign || 'center'}; text-shadow: ${slideStyle.textShadow || 'none'};">
+                ${this.escapeHtml(textPreview) || '<em style="opacity:0.4;">[Vacía]</em>'}
+              </div>
+            </div>
+          </div>
+        `;
+      });
+    });
+
+    listEl.innerHTML = html;
+    if (countEl) countEl.textContent = String(globalSlideNum - 1);
+
+    // Selección al hacer clic en tarjeta
+    listEl.querySelectorAll('.editor-slide-thumb-card').forEach(card => {
+      card.addEventListener('click', (e) => {
+        if (e.target.closest('.btn-slide-thumb-action')) return;
+        const gIdx = parseInt(card.getAttribute('data-gidx'));
+        const sIdx = parseInt(card.getAttribute('data-sidx'));
+        this.selectEditorSlide(gIdx, sIdx);
+      });
+    });
+
+    // Botones de acción en miniatura
+    listEl.querySelectorAll('.btn-move-slide-up').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const gIdx = parseInt(btn.getAttribute('data-gidx'));
+        const sIdx = parseInt(btn.getAttribute('data-sidx'));
+        store.moveSlide(deck.id, gIdx, sIdx, 'up');
+        this.renderEditorSlidesList(deck);
+      });
+    });
+
+    listEl.querySelectorAll('.btn-move-slide-down').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const gIdx = parseInt(btn.getAttribute('data-gidx'));
+        const sIdx = parseInt(btn.getAttribute('data-sidx'));
+        store.moveSlide(deck.id, gIdx, sIdx, 'down');
+        this.renderEditorSlidesList(deck);
+      });
+    });
+
+    listEl.querySelectorAll('.btn-dup-slide-card').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const gIdx = parseInt(btn.getAttribute('data-gidx'));
+        const sIdx = parseInt(btn.getAttribute('data-sidx'));
+        store.duplicateSlide(deck.id, gIdx, sIdx);
+        this.renderEditorSlidesList(deck);
+      });
+    });
+
+    listEl.querySelectorAll('.btn-del-slide-card').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const gIdx = parseInt(btn.getAttribute('data-gidx'));
+        const sIdx = parseInt(btn.getAttribute('data-sidx'));
+        store.deleteSlide(deck.id, gIdx, sIdx);
+        this.selectEditorSlide(0, 0);
+      });
+    });
+  }
+
+  renderEditorCenterCanvas(deck) {
+    if (!deck) return;
+    const gIdx = this.currentEditorGroupIndex;
+    const sIdx = this.currentEditorSlideIndex;
+    const group = deck.groups[gIdx] || deck.groups[0];
+    if (!group) return;
+    const slide = group.slides[sIdx] || group.slides[0];
+    if (!slide) return;
+
+    // 1. Etiqueta de navegación
+    const totalSlides = deck.groups.reduce((acc, g) => acc + (g.slides?.length || 0), 0);
+    let currentGlobalNum = 1;
+    for (let i = 0; i < gIdx; i++) currentGlobalNum += deck.groups[i].slides.length;
+    currentGlobalNum += sIdx;
+
+    const posLabel = document.getElementById('label-editor-slide-pos');
+    if (posLabel) posLabel.textContent = `Filmina ${currentGlobalNum} de ${totalSlides}`;
+
+    // 2. Sección actual
+    const secSelect = document.getElementById('select-editor-current-section');
+    const secNameInput = document.getElementById('input-editor-section-name');
+    if (secSelect) {
+      let matched = Array.from(secSelect.options).find(o => o.value.startsWith(group.badge || 'badge-verse'));
+      if (matched) secSelect.value = matched.value;
+    }
+    if (secNameInput) {
+      secNameInput.value = group.name || '';
+    }
+
+    // 3. Fondo opcional de lienzo
+    const bgEl = document.getElementById('editor-canvas-bg');
+    if (bgEl) {
+      if (store.state.activeVideoUrl && store.state.activeVideoIsImage) {
+        bgEl.style.backgroundImage = `url("${store.state.activeVideoUrl}")`;
+      } else {
+        bgEl.style.backgroundImage = 'none';
+      }
+    }
+
+    // 4. Textbox y Bounding Box (FreeShow)
+    const textbox = document.getElementById('editor-canvas-textbox');
+    const boundingBox = document.getElementById('editor-bounding-box');
+    const style = this.getSlideEffectiveStyle(deck, slide);
+
+    if (textbox) {
+      textbox.innerText = slide.text || '';
+      textbox.style.fontFamily = style.fontFamily;
+      textbox.style.fontSize = `${style.fontSize}px`;
+      textbox.style.color = style.color;
+      textbox.style.fontWeight = style.fontWeight;
+      textbox.style.fontStyle = style.fontStyle;
+      textbox.style.textDecoration = style.textDecoration;
+      textbox.style.textTransform = style.textTransform;
+      textbox.style.textAlign = style.textAlign;
+      textbox.style.lineHeight = String(style.lineHeight);
+      textbox.style.letterSpacing = `${style.letterSpacing}px`;
+
+      // Sombra
+      if (style.shadowEnable) {
+        textbox.style.textShadow = `0 ${style.shadowOffsetY}px ${style.shadowBlur}px ${style.shadowColor}`;
+      } else {
+        textbox.style.textShadow = 'none';
+      }
+
+      // Contorno
+      if (style.outlineEnable) {
+        textbox.style.webkitTextStroke = `${style.outlineWidth}px ${style.outlineColor}`;
+      } else {
+        textbox.style.webkitTextStroke = 'none';
+      }
+
+      // Caja de fondo
+      if (boundingBox) {
+        if (style.bgBoxEnable) {
+          const hex = (style.bgBoxColor || '#000000').replace('#', '');
+          const r = parseInt(hex.substring(0, 2), 16) || 0;
+          const g = parseInt(hex.substring(2, 4), 16) || 0;
+          const b = parseInt(hex.substring(4, 6), 16) || 0;
+          const a = (style.bgBoxOpacity || 40) / 100;
+          boundingBox.style.backgroundColor = `rgba(${r}, ${g}, ${b}, ${a})`;
+          boundingBox.style.padding = `${style.bgBoxPadding}px`;
+          boundingBox.style.borderRadius = `${style.bgBoxRadius}px`;
+        } else {
+          boundingBox.style.backgroundColor = 'transparent';
+          boundingBox.style.padding = '14px';
+          boundingBox.style.borderRadius = '4px';
+        }
+
+        // Posición vertical
+        if (style.verticalAlign === 'top') {
+          boundingBox.style.top = '18%';
+          boundingBox.style.bottom = 'auto';
+          boundingBox.style.transform = 'translateY(0%)';
+        } else if (style.verticalAlign === 'bottom') {
+          boundingBox.style.top = 'auto';
+          boundingBox.style.bottom = '12%';
+          boundingBox.style.transform = 'translateY(0%)';
+        } else {
+          boundingBox.style.top = '50%';
+          boundingBox.style.bottom = 'auto';
+          boundingBox.style.transform = 'translateY(-50%)';
+        }
+      }
+    }
+  }
+
+  populateEditorInspector(deck) {
+    if (!deck) return;
+    const group = deck.groups[this.currentEditorGroupIndex] || deck.groups[0];
+    const slide = group?.slides[this.currentEditorSlideIndex] || group?.slides[0];
+    const style = this.getSlideEffectiveStyle(deck, slide);
+
+    // Tipografía
+    const fontSelect = document.getElementById('ed-font-family');
+    if (fontSelect) fontSelect.value = style.fontFamily;
+
+    const colorInput = document.getElementById('ed-font-color');
+    const colorHex = document.getElementById('ed-font-color-hex');
+    if (colorInput) colorInput.value = style.color.startsWith('#') ? style.color : '#ffffff';
+    if (colorHex) colorHex.textContent = colorInput ? colorInput.value.toUpperCase() : '#FFF';
+
+    const sizeNum = document.getElementById('ed-font-size-num');
+    const sizeRange = document.getElementById('ed-font-size-range');
+    if (sizeNum) sizeNum.value = style.fontSize;
+    if (sizeRange) sizeRange.value = style.fontSize;
+
+    // Botones de Formato
+    document.getElementById('ed-btn-bold')?.classList.toggle('active', style.fontWeight === '700' || style.fontWeight === 'bold');
+    document.getElementById('ed-btn-italic')?.classList.toggle('active', style.fontStyle === 'italic');
+    document.getElementById('ed-btn-underline')?.classList.toggle('active', style.textDecoration === 'underline');
+    document.getElementById('ed-btn-strike')?.classList.toggle('active', style.textDecoration === 'line-through');
+    document.getElementById('ed-btn-uppercase')?.classList.toggle('active', style.textTransform === 'uppercase');
+
+    // Alineación Horizontal
+    document.querySelectorAll('.ed-align-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.getAttribute('data-align') === style.textAlign);
+    });
+
+    // Posición Vertical
+    document.querySelectorAll('.ed-valign-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.getAttribute('data-valign') === style.verticalAlign);
+    });
+
+    // Párrafos y Espaciado
+    const lhSelect = document.getElementById('ed-line-height');
+    if (lhSelect) lhSelect.value = String(style.lineHeight);
+
+    const lsInput = document.getElementById('ed-letter-spacing');
+    if (lsInput) lsInput.value = style.letterSpacing;
+
+    const mlSelect = document.getElementById('ed-max-lines');
+    if (mlSelect) mlSelect.value = String(style.maxLines || 0);
+
+    // Contorno
+    const outCheck = document.getElementById('ed-outline-enable');
+    const outColor = document.getElementById('ed-outline-color');
+    const outWidth = document.getElementById('ed-outline-width');
+    const valOutWidth = document.getElementById('val-ed-outline-width');
+    if (outCheck) outCheck.checked = !!style.outlineEnable;
+    if (outColor) outColor.value = style.outlineColor || '#000000';
+    if (outWidth) outWidth.value = style.outlineWidth || 2;
+    if (valOutWidth) valOutWidth.textContent = `${style.outlineWidth || 2}px`;
+
+    // Sombra
+    const shCheck = document.getElementById('ed-shadow-enable');
+    const shColor = document.getElementById('ed-shadow-color');
+    const shBlur = document.getElementById('ed-shadow-blur');
+    const valShBlur = document.getElementById('val-ed-shadow-blur');
+    const shOffY = document.getElementById('ed-shadow-offset-y');
+    const valShOffY = document.getElementById('val-ed-shadow-offset-y');
+    if (shCheck) shCheck.checked = !!style.shadowEnable;
+    if (shColor) shColor.value = style.shadowColor.startsWith('#') ? style.shadowColor : '#000000';
+    if (shBlur) shBlur.value = style.shadowBlur !== undefined ? style.shadowBlur : 14;
+    if (valShBlur) valShBlur.textContent = `${style.shadowBlur || 14}px`;
+    if (shOffY) shOffY.value = style.shadowOffsetY !== undefined ? style.shadowOffsetY : 4;
+    if (valShOffY) valShOffY.textContent = `${style.shadowOffsetY || 4}px`;
+
+    // Caja de Fondo
+    const bgCheck = document.getElementById('ed-bgbox-enable');
+    const bgColor = document.getElementById('ed-bgbox-color');
+    const bgOpacity = document.getElementById('ed-bgbox-opacity');
+    const valBgOpacity = document.getElementById('val-ed-bgbox-opacity');
+    const bgPadding = document.getElementById('ed-bgbox-padding');
+    const valBgPadding = document.getElementById('val-ed-bgbox-padding');
+    const bgRadius = document.getElementById('ed-bgbox-radius');
+    const valBgRadius = document.getElementById('val-ed-bgbox-radius');
+    if (bgCheck) bgCheck.checked = !!style.bgBoxEnable;
+    if (bgColor) bgColor.value = style.bgBoxColor.startsWith('#') ? style.bgBoxColor : '#000000';
+    if (bgOpacity) bgOpacity.value = style.bgBoxOpacity || 40;
+    if (valBgOpacity) valBgOpacity.textContent = `${style.bgBoxOpacity || 40}%`;
+    if (bgPadding) bgPadding.value = style.bgBoxPadding || 20;
+    if (valBgPadding) valBgPadding.textContent = `${style.bgBoxPadding || 20}px`;
+    if (bgRadius) bgRadius.value = style.bgBoxRadius || 8;
+    if (valBgRadius) valBgRadius.textContent = `${style.bgBoxRadius || 8}px`;
+
+    // Plantillas
+    const tplSelect = document.getElementById('ed-deck-template');
+    if (tplSelect) {
+      tplSelect.innerHTML = (store.templates || []).map(t =>
+        `<option value="${t.id}" ${t.id === (deck.templateId || store.activeTemplateId) ? 'selected' : ''}>${t.name}</option>`
       ).join('');
     }
 
-    const fullText = (deck.groups || [])
-      .map(g => `${g.name}:\n` + (g.slides || []).map(s => (s.text || '').replace(/<br\s*\/?>/gi, '\n')).join('\n\n'))
-      .join('\n\n');
+    // Categoría
+    const catSelect = document.getElementById('ed-deck-category-select');
+    if (catSelect) catSelect.value = deck.category || 'Alabanza';
+  }
 
-    this.originalEditLines = fullText
-      .split(/\r?\n/)
-      .map(l => l.trim())
-      .filter(Boolean);
+  applyEditorInspectorChanges() {
+    if (!this.currentEditorDeckId) return;
+    const deck = store.decks.find(d => d.id === this.currentEditorDeckId);
+    if (!deck) return;
 
-    if (this.inputShowText) {
-      this.inputShowText.value = fullText;
+    const group = deck.groups[this.currentEditorGroupIndex];
+    const slide = group?.slides[this.currentEditorSlideIndex];
+    if (!slide) return;
+
+    const scope = document.querySelector('input[name="ed-scope"]:checked')?.value || 'all';
+    this.currentEditorScope = scope;
+
+    // Recolectar valores actuales
+    const fontFamily = document.getElementById('ed-font-family')?.value || 'Inter, sans-serif';
+    const color = document.getElementById('ed-font-color')?.value || '#ffffff';
+    const fontSize = parseInt(document.getElementById('ed-font-size-num')?.value || 56);
+    const fontWeight = document.getElementById('ed-btn-bold')?.classList.contains('active') ? '700' : '400';
+    const fontStyle = document.getElementById('ed-btn-italic')?.classList.contains('active') ? 'italic' : 'normal';
+    const textDecoration = document.getElementById('ed-btn-underline')?.classList.contains('active')
+      ? 'underline'
+      : (document.getElementById('ed-btn-strike')?.classList.contains('active') ? 'line-through' : 'none');
+    const textTransform = document.getElementById('ed-btn-uppercase')?.classList.contains('active') ? 'uppercase' : 'none';
+
+    const activeAlignBtn = document.querySelector('.ed-align-btn.active');
+    const textAlign = activeAlignBtn ? activeAlignBtn.getAttribute('data-align') : 'center';
+
+    const activeValignBtn = document.querySelector('.ed-valign-btn.active');
+    const verticalAlign = activeValignBtn ? activeValignBtn.getAttribute('data-valign') : 'center';
+
+    const lineHeight = parseFloat(document.getElementById('ed-line-height')?.value || 1.25);
+    const letterSpacing = parseFloat(document.getElementById('ed-letter-spacing')?.value || 0);
+    const maxLines = parseInt(document.getElementById('ed-max-lines')?.value || 0);
+
+    const outlineEnable = !!document.getElementById('ed-outline-enable')?.checked;
+    const outlineColor = document.getElementById('ed-outline-color')?.value || '#000000';
+    const outlineWidth = parseInt(document.getElementById('ed-outline-width')?.value || 2);
+
+    const shadowEnable = !!document.getElementById('ed-shadow-enable')?.checked;
+    const shadowColor = document.getElementById('ed-shadow-color')?.value || 'rgba(0,0,0,0.9)';
+    const shadowBlur = parseInt(document.getElementById('ed-shadow-blur')?.value || 14);
+    const shadowOffsetY = parseInt(document.getElementById('ed-shadow-offset-y')?.value || 4);
+
+    const bgBoxEnable = !!document.getElementById('ed-bgbox-enable')?.checked;
+    const bgBoxColor = document.getElementById('ed-bgbox-color')?.value || '#000000';
+    const bgBoxOpacity = parseInt(document.getElementById('ed-bgbox-opacity')?.value || 40);
+    const bgBoxPadding = parseInt(document.getElementById('ed-bgbox-padding')?.value || 20);
+    const bgBoxRadius = parseInt(document.getElementById('ed-bgbox-radius')?.value || 8);
+
+    const updatedStyle = {
+      fontFamily,
+      color,
+      fontSize,
+      fontWeight,
+      fontStyle,
+      textDecoration,
+      textTransform,
+      textAlign,
+      verticalAlign,
+      lineHeight,
+      letterSpacing,
+      maxLines,
+      outlineEnable,
+      outlineColor,
+      outlineWidth,
+      shadowEnable,
+      shadowColor,
+      shadowBlur,
+      shadowOffsetY,
+      bgBoxEnable,
+      bgBoxColor,
+      bgBoxOpacity,
+      bgBoxPadding,
+      bgBoxRadius
+    };
+
+    if (scope === 'all') {
+      store.updateDeckStyle(deck.id, updatedStyle);
+    } else {
+      slide.style = { ...(slide.style || {}), ...updatedStyle };
+      store.notify();
     }
 
-    if (this.switchCreateModalMode) {
-      this.switchCreateModalMode('manual');
+    // Actualizar hex y labels
+    const colorHex = document.getElementById('ed-font-color-hex');
+    if (colorHex) colorHex.textContent = color.toUpperCase();
+    const valOut = document.getElementById('val-ed-outline-width');
+    if (valOut) valOut.textContent = `${outlineWidth}px`;
+    const valBlur = document.getElementById('val-ed-shadow-blur');
+    if (valBlur) valBlur.textContent = `${shadowBlur}px`;
+    const valOffY = document.getElementById('val-ed-shadow-offset-y');
+    if (valOffY) valOffY.textContent = `${shadowOffsetY}px`;
+    const valBgOp = document.getElementById('val-ed-bgbox-opacity');
+    if (valBgOp) valBgOp.textContent = `${bgBoxOpacity}%`;
+    const valBgPad = document.getElementById('val-ed-bgbox-padding');
+    if (valBgPad) valBgPad.textContent = `${bgBoxPadding}px`;
+    const valBgRad = document.getElementById('val-ed-bgbox-radius');
+    if (valBgRad) valBgRad.textContent = `${bgBoxRadius}px`;
+
+    // Re-renderizar lienzo y miniaturas
+    this.renderEditorCenterCanvas(deck);
+    this.renderEditorSlidesList(deck);
+  }
+
+  renderEditorLyricsDiff() {
+    const diffContainer = document.getElementById('editor-lyrics-diff');
+    const textarea = document.getElementById('editor-lyrics-textarea');
+    if (!diffContainer || !textarea) return;
+
+    const currentText = textarea.value || '';
+    const currentLines = currentText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    const original = this.originalEditLines || [];
+
+    if (original.length === 0) {
+      diffContainer.innerHTML = currentLines.map(l =>
+        `<div style="color: #4ade80; padding: 2px 0;">+ ${this.escapeHtml(l)}</div>`
+      ).join('');
+      return;
     }
 
-    this.renderSongEditDiff();
+    const currentSet = new Set(currentLines);
+    const origSet = new Set(original);
 
-    if (this.modalCreateShow) {
-      this.modalCreateShow.classList.add('open');
-      this.ensureModalInteractive(this.modalCreateShow, this.inputShowText);
-    }
+    let html = '';
+    currentLines.forEach(l => {
+      if (origSet.has(l)) {
+        html += `<div style="color: #94a3b8; padding: 2px 0;">  ${this.escapeHtml(l)}</div>`;
+      } else {
+        html += `<div style="color: #4ade80; font-weight: 700; background: rgba(74, 222, 128, 0.1); padding: 2px 6px; border-radius: 3px;">+ ${this.escapeHtml(l)} (NUEVA)</div>`;
+      }
+    });
+
+    original.forEach(l => {
+      if (!currentSet.has(l)) {
+        html += `<div style="color: #f87171; text-decoration: line-through; background: rgba(239, 68, 68, 0.12); padding: 2px 6px; border-radius: 3px;">- ${this.escapeHtml(l)} (SE BORRA)</div>`;
+      }
+    });
+
+    diffContainer.innerHTML = html;
+  }
+
+  initFullScreenEditorEvents() {
+    if (this.fullScreenEditorInitialized) return;
+    this.fullScreenEditorInitialized = true;
+
+    // 1. Escritura directa en Lienzo (WYSIWYG en vivo)
+    const textbox = document.getElementById('editor-canvas-textbox');
+    textbox?.addEventListener('input', () => {
+      const text = textbox.innerText;
+      const deck = store.decks.find(d => d.id === this.currentEditorDeckId);
+      if (deck && deck.groups && deck.groups[this.currentEditorGroupIndex]?.slides[this.currentEditorSlideIndex]) {
+        deck.groups[this.currentEditorGroupIndex].slides[this.currentEditorSlideIndex].text = text;
+        const activeThumb = document.querySelector(`.editor-slide-thumb-card[data-gidx="${this.currentEditorGroupIndex}"][data-sidx="${this.currentEditorSlideIndex}"] .editor-slide-thumb-text`);
+        if (activeThumb) activeThumb.innerText = text || '[Vacía]';
+
+        if (store.state.liveSlideId === deck.groups[this.currentEditorGroupIndex].slides[this.currentEditorSlideIndex].id) {
+          store.state.liveText = text;
+          store.notify();
+        }
+      }
+    });
+
+    // 2. Guardar y Salir
+    const saveAndClose = () => {
+      this.closeFullScreenSongEditor();
+      this.showToast("💾 Cambios guardados exitosamente.", "success");
+    };
+
+    document.getElementById('btn-editor-save')?.addEventListener('click', saveAndClose);
+    document.getElementById('btn-editor-quick-save')?.addEventListener('click', saveAndClose);
+    document.getElementById('btn-editor-close')?.addEventListener('click', () => {
+      this.closeFullScreenSongEditor();
+    });
+
+    // 3. Sub-Pestañas del Editor (Lienzo vs Texto Completo)
+    document.querySelectorAll('#view-full-editor .editor-sub-tab').forEach(tabBtn => {
+      tabBtn.addEventListener('click', () => {
+        document.querySelectorAll('#view-full-editor .editor-sub-tab').forEach(b => b.classList.remove('active'));
+        tabBtn.classList.add('active');
+        const tab = tabBtn.getAttribute('data-ed-tab');
+        this.currentEditorSubTab = tab;
+
+        const canvasMode = document.getElementById('editor-view-canvas-mode');
+        const lyricsMode = document.getElementById('editor-view-lyrics-mode');
+        const deck = store.decks.find(d => d.id === this.currentEditorDeckId);
+
+        if (tab === 'lyrics') {
+          if (canvasMode) canvasMode.style.display = 'none';
+          if (lyricsMode) lyricsMode.style.display = 'block';
+
+          // Cargar texto completo
+          const textarea = document.getElementById('editor-lyrics-textarea');
+          if (textarea && deck) {
+            const fullText = (deck.groups || [])
+              .map(g => `${g.name}:\n` + (g.slides || []).map(s => (s.text || '').replace(/<br\s*\/?>/gi, '\n')).join('\n\n'))
+              .join('\n\n');
+            textarea.value = fullText;
+            this.originalEditLines = fullText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+            this.renderEditorLyricsDiff();
+          }
+        } else {
+          if (canvasMode) canvasMode.style.display = 'flex';
+          if (lyricsMode) lyricsMode.style.display = 'none';
+          if (deck) {
+            this.renderEditorSlidesList(deck);
+            this.renderEditorCenterCanvas(deck);
+          }
+        }
+      });
+    });
+
+    // Letras textarea input
+    document.getElementById('editor-lyrics-textarea')?.addEventListener('input', () => {
+      this.renderEditorLyricsDiff();
+    });
+
+    // 4. Navegación entre filminas
+    document.getElementById('btn-editor-prev-slide')?.addEventListener('click', () => {
+      const deck = store.decks.find(d => d.id === this.currentEditorDeckId);
+      if (!deck) return;
+      if (this.currentEditorSlideIndex > 0) {
+        this.selectEditorSlide(this.currentEditorGroupIndex, this.currentEditorSlideIndex - 1);
+      } else if (this.currentEditorGroupIndex > 0) {
+        const prevGroup = deck.groups[this.currentEditorGroupIndex - 1];
+        this.selectEditorSlide(this.currentEditorGroupIndex - 1, (prevGroup.slides?.length || 1) - 1);
+      }
+    });
+
+    document.getElementById('btn-editor-next-slide')?.addEventListener('click', () => {
+      const deck = store.decks.find(d => d.id === this.currentEditorDeckId);
+      if (!deck) return;
+      const curGroup = deck.groups[this.currentEditorGroupIndex];
+      if (this.currentEditorSlideIndex < (curGroup.slides?.length || 1) - 1) {
+        this.selectEditorSlide(this.currentEditorGroupIndex, this.currentEditorSlideIndex + 1);
+      } else if (this.currentEditorGroupIndex < (deck.groups?.length || 1) - 1) {
+        this.selectEditorSlide(this.currentEditorGroupIndex + 1, 0);
+      }
+    });
+
+    // 5. Botones de acción de filmina
+    const handleAddSlide = () => {
+      const deck = store.decks.find(d => d.id === this.currentEditorDeckId);
+      if (!deck) return;
+      const res = store.addSlideToDeck(deck.id, this.currentEditorGroupIndex, "Nueva diapositiva");
+      if (res) {
+        this.selectEditorSlide(res.groupIndex, res.slideIndex);
+      }
+    };
+    document.getElementById('btn-editor-add-slide')?.addEventListener('click', handleAddSlide);
+    document.getElementById('btn-editor-add-slide-top')?.addEventListener('click', handleAddSlide);
+
+    document.getElementById('btn-editor-dup-slide')?.addEventListener('click', () => {
+      const deck = store.decks.find(d => d.id === this.currentEditorDeckId);
+      if (!deck) return;
+      store.duplicateSlide(deck.id, this.currentEditorGroupIndex, this.currentEditorSlideIndex);
+      this.selectEditorSlide(this.currentEditorGroupIndex, this.currentEditorSlideIndex + 1);
+    });
+
+    document.getElementById('btn-editor-del-slide')?.addEventListener('click', () => {
+      const deck = store.decks.find(d => d.id === this.currentEditorDeckId);
+      if (!deck) return;
+      store.deleteSlide(deck.id, this.currentEditorGroupIndex, this.currentEditorSlideIndex);
+      this.selectEditorSlide(0, 0);
+    });
+
+    document.getElementById('btn-editor-split-slide')?.addEventListener('click', () => {
+      const deck = store.decks.find(d => d.id === this.currentEditorDeckId);
+      if (!deck) return;
+      const group = deck.groups[this.currentEditorGroupIndex];
+      const slide = group?.slides[this.currentEditorSlideIndex];
+      if (!slide || !slide.text) return;
+
+      const lines = slide.text.split('\n');
+      if (lines.length <= 1) {
+        this.showToast("La diapositiva contiene una sola línea, no es necesario dividir.", "info");
+        return;
+      }
+      const mid = Math.ceil(lines.length / 2);
+      const text1 = lines.slice(0, mid).join('\n');
+      const text2 = lines.slice(mid).join('\n');
+
+      slide.text = text1;
+      group.slides.splice(this.currentEditorSlideIndex + 1, 0, {
+        id: `slide-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+        text: text2,
+        isLowerThird: slide.isLowerThird || false
+      });
+      store.notify();
+      this.selectEditorSlide(this.currentEditorGroupIndex, this.currentEditorSlideIndex + 1);
+    });
+
+    // 6. Cambio de sección de filmina
+    document.getElementById('select-editor-current-section')?.addEventListener('change', (e) => {
+      const val = e.target.value;
+      const [badge, defaultName] = val.split('|');
+      const nameInput = document.getElementById('input-editor-section-name');
+      const name = nameInput?.value.trim() || defaultName;
+      store.setGroupSection(this.currentEditorDeckId, this.currentEditorGroupIndex, name, badge);
+      const deck = store.decks.find(d => d.id === this.currentEditorDeckId);
+      if (deck) {
+        this.renderEditorSlidesList(deck);
+      }
+    });
+
+    document.getElementById('input-editor-section-name')?.addEventListener('blur', (e) => {
+      const name = e.target.value.trim();
+      if (!name) return;
+      const secSelect = document.getElementById('select-editor-current-section');
+      const badge = secSelect ? secSelect.value.split('|')[0] : 'badge-verse';
+      store.setGroupSection(this.currentEditorDeckId, this.currentEditorGroupIndex, name, badge);
+      const deck = store.decks.find(d => d.id === this.currentEditorDeckId);
+      if (deck) {
+        this.renderEditorSlidesList(deck);
+      }
+    });
+
+    // 7. Inspector de Estilos: inputs y sliders
+    const inspectorInputs = [
+      'ed-font-family', 'ed-font-color', 'ed-font-size-num', 'ed-font-size-range',
+      'ed-line-height', 'ed-letter-spacing', 'ed-max-lines',
+      'ed-outline-enable', 'ed-outline-color', 'ed-outline-width',
+      'ed-shadow-enable', 'ed-shadow-color', 'ed-shadow-blur', 'ed-shadow-offset-y',
+      'ed-bgbox-enable', 'ed-bgbox-color', 'ed-bgbox-opacity', 'ed-bgbox-padding', 'ed-bgbox-radius'
+    ];
+
+    inspectorInputs.forEach(id => {
+      const el = document.getElementById(id);
+      el?.addEventListener('input', () => {
+        // Sincronizar font size num y range
+        if (id === 'ed-font-size-range') {
+          const num = document.getElementById('ed-font-size-num');
+          if (num) num.value = el.value;
+        } else if (id === 'ed-font-size-num') {
+          const range = document.getElementById('ed-font-size-range');
+          if (range) range.value = el.value;
+        }
+        this.applyEditorInspectorChanges();
+      });
+      el?.addEventListener('change', () => this.applyEditorInspectorChanges());
+    });
+
+    // Botones de formato rápido
+    ['ed-btn-bold', 'ed-btn-italic', 'ed-btn-underline', 'ed-btn-strike', 'ed-btn-uppercase'].forEach(id => {
+      document.getElementById(id)?.addEventListener('click', (e) => {
+        e.currentTarget.classList.toggle('active');
+        this.applyEditorInspectorChanges();
+      });
+    });
+
+    // Botones de alineación horizontal
+    document.querySelectorAll('.ed-align-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        document.querySelectorAll('.ed-align-btn').forEach(b => b.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+        this.applyEditorInspectorChanges();
+      });
+    });
+
+    // Botones de alineación vertical
+    document.querySelectorAll('.ed-valign-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        document.querySelectorAll('.ed-valign-btn').forEach(b => b.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+        this.applyEditorInspectorChanges();
+      });
+    });
+
+    // Pestañas del Inspector (Textbox vs Diapositiva)
+    document.querySelectorAll('.editor-insp-tab').forEach(tabBtn => {
+      tabBtn.addEventListener('click', () => {
+        document.querySelectorAll('.editor-insp-tab').forEach(b => b.classList.remove('active'));
+        tabBtn.classList.add('active');
+        const tab = tabBtn.getAttribute('data-insp-tab');
+        document.querySelectorAll('.insp-panel').forEach(p => p.classList.remove('active'));
+        if (tab === 'textbox') {
+          document.getElementById('insp-panel-textbox')?.classList.add('active');
+        } else {
+          document.getElementById('insp-panel-item')?.classList.add('active');
+        }
+      });
+    });
+
+    // Acordeones colapsables
+    document.querySelectorAll('.insp-accordion-header').forEach(header => {
+      header.addEventListener('click', () => {
+        header.closest('.insp-accordion')?.classList.toggle('open');
+      });
+    });
+
+    // Aplicar plantilla preset
+    document.getElementById('btn-ed-apply-template')?.addEventListener('click', () => {
+      const tplId = document.getElementById('ed-deck-template')?.value;
+      const tpl = store.templates.find(t => t.id === tplId);
+      if (tpl && this.currentEditorDeckId) {
+        const deck = store.decks.find(d => d.id === this.currentEditorDeckId);
+        if (deck) {
+          deck.templateId = tpl.id;
+          deck.style = { ...(deck.style || {}), ...tpl };
+          store.notify();
+          this.renderEditorCenterCanvas(deck);
+          this.renderEditorSlidesList(deck);
+          this.populateEditorInspector(deck);
+          this.showToast(`Plantilla "${tpl.name}" aplicada a la canción.`, "success");
+        }
+      }
+    });
+
+    // Categoría de la canción
+    document.getElementById('ed-deck-category-select')?.addEventListener('change', (e) => {
+      const deck = store.decks.find(d => d.id === this.currentEditorDeckId);
+      if (deck) {
+        deck.category = e.target.value;
+        store.notify();
+        this.renderEditorHeader(deck);
+      }
+    });
+
+    // Slider de zoom de miniaturas
+    document.getElementById('input-editor-thumb-size')?.addEventListener('input', (e) => {
+      const val = e.target.value;
+      const listEl = document.getElementById('editor-slides-list');
+      if (listEl) {
+        listEl.style.setProperty('--thumb-size', `${val}px`);
+      }
+    });
+
+    // Atajos de teclado en el editor
+    document.addEventListener('keydown', (e) => {
+      const appEl = document.getElementById('app');
+      if (!appEl || !appEl.classList.contains('edit-mode-active')) return;
+
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        this.closeFullScreenSongEditor();
+      } else if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) {
+        e.preventDefault();
+        this.saveCurrentEditorCanvasText();
+        this.showToast("💾 Cambios guardados correctamente.", "success");
+      }
+    });
   }
 
   renderSongEditDiff() {

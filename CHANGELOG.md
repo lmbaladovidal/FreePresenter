@@ -6,6 +6,19 @@ For detailed release notes in Spanish, please see [NOTAS_DE_VERSION.md](./NOTAS_
 
 ---
 
+## [1.6.0] - 2026-11-08
+
+### Added
+- **Full-Screen 3-Column Song & Slide Editor (FreeShow style):**
+  - Replaced floating modal dialogs on song edit (`✏️ Editar Canción`, top mode tab `[Edit]`, or context menu) with an immersive full-screen workspace layout:
+    - **Left Column:** Vertical thumbnail list of all slides in 16:9 preview cards with numbers, section badges, and quick reorder (`↑`/`↓`), duplicate, delete, and `+ Nueva Filmina` actions.
+    - **Center Column:** Interactive 16:9 presentation canvas with FreeShow-style Bounding Box (pink border and 8 resize/drag handles) for direct real-time in-canvas typing (WYSIWYG), section selector, slide navigation, and split-at-cursor tools.
+    - **Right Column:** Comprehensive style inspector featuring font family selection (`CMGSans`, `Inter`, `Montserrat`, `Roboto`, `Oswald`, etc.), font size, color swatch & hex picker, formatting toolbar (**B**, *I*, <u>U</u>, <s>S</s>, TT), collapsible accordions for horizontal & vertical alignment, line height, letter spacing, max lines per slide, text outline stroke, drop shadow, and background box styling.
+  - Dedicated `Texto Completo` tab with full lyrics editor and live visual diff panel.
+  - Keyboard shortcuts: `Escape` to return to Show mode, `Ctrl+S` / `Cmd+S` to save.
+- **Custom Overlays / Lower Thirds Shows & Banner Projection:**
+  - Full support for creating dedicated Lower Third shows using category `Overlays Stream / Lower Thirds` or section tags `[Overlay]`, projecting banners to Audience and Operator preview monitors simultaneously without replacing the primary text layer.
+
 ## [1.5.0] - 2026-11-05
 
 ### Added

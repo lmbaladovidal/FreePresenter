@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ProPresenter AI Studio - Production Control</title>
-  <script type="module" crossorigin src="./assets/main-_QlQBHc0.js"></script>
+  <title>ProPresenter AI Studio - Production Control</title>
+  <script type="module" crossorigin src="./assets/main-BXiREFGQ.js"></script>
   <link rel="modulepreload" crossorigin href="./assets/broadcast-BAs4ad2R.js">
-  <link rel="stylesheet" crossorigin href="./assets/main-BGQiaews.css">
+  <link rel="stylesheet" crossorigin href="./assets/main-Dbjzi0aN.css">
 </head>
 <body>
   <div id="app">
@@ -744,6 +744,467 @@
         </div>
       </div>
     </section>
+
+    <!-- Vista de Pantalla Completa: Editor de Canción y Diapositivas (Estilo FreeShow) -->
+    <div id="view-full-editor" class="full-editor-view" style="display: none;">
+      <!-- Sub-barra superior del Editor -->
+      <div class="editor-sub-header">
+        <div class="editor-title-box">
+          <span class="editor-badge-icon">✏️ EDIT</span>
+          <div class="editor-song-meta">
+            <h2 id="editor-deck-title" class="editor-deck-title" contenteditable="true" spellcheck="false" title="Haz clic para renombrar la canción">Cuan Grande Es Él</h2>
+            <span id="editor-deck-category" class="editor-deck-category">Alabanza • 8 Diapositivas</span>
+          </div>
+        </div>
+
+        <div class="editor-sub-tabs">
+          <button type="button" class="editor-sub-tab active" data-ed-tab="canvas">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+              <line x1="8" y1="21" x2="16" y2="21"></line>
+              <line x1="12" y1="17" x2="12" y2="21"></line>
+            </svg>
+            <span>Lienzo / Diapositivas</span>
+          </button>
+          <button type="button" class="editor-sub-tab" data-ed-tab="lyrics">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+              <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+            <span>Texto Completo</span>
+          </button>
+        </div>
+
+        <div class="editor-header-actions">
+          <button type="button" id="btn-editor-reflow" class="btn-editor-action" title="Dividir o compactar renglones por diapositiva">
+            <span>✂️ Re-dividir</span>
+          </button>
+          <button type="button" id="btn-editor-save" class="btn-editor-action btn-editor-save" title="Guardar cambios y volver a presentación (Ctrl+S)">
+            <span>💾 Guardar</span>
+          </button>
+          <button type="button" id="btn-editor-close" class="btn-editor-action btn-editor-close" title="Volver a la vista de proyección (Esc)">
+            <span>✕ Volver a Show</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Cuerpo del Editor en 3 Columnas (FreeShow) -->
+      <div class="editor-3col-body">
+        
+        <!-- 1. Columna Izquierda: Lista de Diapositivas / Filminas -->
+        <aside class="editor-left-sidebar">
+          <div class="editor-sidebar-header">
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="3" y1="9" x2="21" y2="9"></line>
+                <line x1="9" y1="21" x2="9" y2="9"></line>
+              </svg>
+              <span class="editor-col-title">FILMINAS (<span id="editor-slides-count">0</span>)</span>
+            </div>
+            <button type="button" id="btn-editor-add-slide-top" class="btn-editor-icon" title="Agregar filmina al final">+</button>
+          </div>
+
+          <!-- Contenedor scrollable de filminas miniatura -->
+          <div id="editor-slides-list" class="editor-slides-list">
+            <!-- Renderizado dinámico -->
+          </div>
+
+          <div class="editor-sidebar-footer">
+            <button type="button" id="btn-editor-add-slide" class="btn-editor-new-slide">
+              <span style="font-size: 1.1rem; line-height: 1;">+</span>
+              <span>Nueva Filmina</span>
+            </button>
+            <div class="editor-zoom-pill" title="Tamaño de las miniaturas">
+              <span style="font-size: 0.7rem; color: var(--text-muted);">🔍</span>
+              <input type="range" id="input-editor-thumb-size" min="90" max="220" step="10" value="130" />
+            </div>
+          </div>
+        </aside>
+
+        <!-- 2. Columna Central: Lienzo y Filmina Seleccionada para Editar -->
+        <section class="editor-center-canvas-col">
+          
+          <!-- Sub-vista A: Lienzo Visual (Default) -->
+          <div id="editor-view-canvas-mode" class="editor-center-mode-view active">
+            <!-- Barra superior del lienzo -->
+            <div class="editor-canvas-toolbar">
+              <div class="editor-canvas-toolbar-left">
+                <div class="editor-section-chip-dropdown">
+                  <span style="font-size: 0.72rem; color: var(--text-muted);">Sección:</span>
+                  <select id="select-editor-current-section" class="editor-section-select">
+                    <option value="badge-verse|Verso">📖 Verso</option>
+                    <option value="badge-chorus|Coro">🔥 Coro</option>
+                    <option value="badge-bridge|Puente">🌉 Puente</option>
+                    <option value="badge-prechorus|Pre-Coro">⚡ Pre-Coro</option>
+                    <option value="badge-intro|Intro">🎵 Intro</option>
+                    <option value="badge-instrumental|Solo">🎸 Instrumental</option>
+                    <option value="badge-outro|Final">🏁 Final</option>
+                    <option value="badge-sermon|Sermón">💬 Sermón</option>
+                    <option value="badge-lowerthird|Overlay">👤 Overlay / Zócalo</option>
+                  </select>
+                  <input type="text" id="input-editor-section-name" class="editor-section-name-input" placeholder="Nombre (ej. Coro 1)" />
+                </div>
+              </div>
+
+              <div class="editor-canvas-toolbar-center">
+                <button type="button" id="btn-editor-prev-slide" class="btn-editor-nav" title="Filmina anterior (Flecha Izq)">‹ Anterior</button>
+                <span id="label-editor-slide-pos" class="editor-slide-pos-label">Filmina 1 de 8</span>
+                <button type="button" id="btn-editor-next-slide" class="btn-editor-nav" title="Filmina siguiente (Flecha Der)">Siguiente ›</button>
+              </div>
+
+              <div class="editor-canvas-toolbar-right">
+                <button type="button" id="btn-editor-split-slide" class="btn-editor-canvas-action" title="Dividir el texto en dos filminas justo donde está el cursor">✂️ Dividir en Cursor</button>
+                <button type="button" id="btn-editor-dup-slide" class="btn-editor-canvas-action" title="Duplicar esta filmina">📑 Duplicar</button>
+                <button type="button" id="btn-editor-del-slide" class="btn-editor-canvas-action btn-danger" title="Eliminar esta filmina">🗑️ Borrar</button>
+              </div>
+            </div>
+
+            <!-- Contenedor del Lienzo 16:9 con Bounding Box Estilo FreeShow -->
+            <div class="editor-canvas-stage">
+              <div id="editor-canvas-viewport" class="editor-canvas-viewport">
+                <!-- Fondo de referencia opcional (video loop o fondo oscuro) -->
+                <div id="editor-canvas-bg" class="editor-canvas-bg"></div>
+
+                <!-- Recuadro Bounding Box interactivo con handles (estilo FreeShow) -->
+                <div id="editor-bounding-box" class="editor-bounding-box">
+                  <!-- Stalk superior con handle para arrastre -->
+                  <div class="bb-stalk"></div>
+                  <div class="bb-stalk-handle"></div>
+
+                  <!-- 8 Handles de redimensionamiento (corners y midpoints) -->
+                  <div class="bb-handle bb-handle-tl" data-handle="tl"></div>
+                  <div class="bb-handle bb-handle-tc" data-handle="tc"></div>
+                  <div class="bb-handle bb-handle-tr" data-handle="tr"></div>
+                  <div class="bb-handle bb-handle-ml" data-handle="ml"></div>
+                  <div class="bb-handle bb-handle-mr" data-handle="mr"></div>
+                  <div class="bb-handle bb-handle-bl" data-handle="bl"></div>
+                  <div class="bb-handle bb-handle-bc" data-handle="bc"></div>
+                  <div class="bb-handle bb-handle-br" data-handle="br"></div>
+
+                  <!-- Contenedor de texto editable directo (WYSIWYG en vivo) -->
+                  <div id="editor-canvas-textbox" class="editor-canvas-textbox" contenteditable="true" spellcheck="false" placeholder="Escribe el texto de la filmina aquí...">
+                    Welcome!
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Barra de zoom y atajos al pie del lienzo -->
+            <div class="editor-canvas-footer">
+              <div class="editor-canvas-hint">
+                <span>💡 Haz clic directo en el recuadro para editar el texto • Enter para nueva línea • <strong>Ctrl+S</strong> para guardar</span>
+              </div>
+              <div class="editor-canvas-zoom-controls">
+                <button type="button" id="btn-editor-zoom-out" class="btn-zoom-icon">-</button>
+                <span id="label-editor-canvas-zoom">100%</span>
+                <button type="button" id="btn-editor-zoom-in" class="btn-zoom-icon">+</button>
+                <button type="button" id="btn-editor-zoom-fit" class="btn-zoom-fit">Ajustar</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sub-vista B: Editor de Texto Completo con Diff Visual -->
+          <div id="editor-view-lyrics-mode" class="editor-center-mode-view" style="display: none;">
+            <div class="editor-lyrics-container">
+              <div class="editor-lyrics-left">
+                <div class="editor-lyrics-toolbar">
+                  <span>📝 Letra Completa de la Canción (Usa renglón en blanco para separar filminas)</span>
+                </div>
+                <textarea id="editor-lyrics-textarea" class="editor-lyrics-textarea" spellcheck="false" placeholder="Ingresa o edita la letra completa..."></textarea>
+              </div>
+              <div class="editor-lyrics-right">
+                <div class="editor-lyrics-toolbar">
+                  <span>🔍 Comparador Visual (Qué Queda y Qué se Borra)</span>
+                </div>
+                <div id="editor-lyrics-diff" class="editor-lyrics-diff-panel"></div>
+              </div>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- 3. Columna Derecha: Opciones de Estilo (Fuente, Sombra, Caracteres, Párrafos, etc.) -->
+        <aside class="editor-right-sidebar">
+          
+          <!-- Pestañas del Inspector de Estilo (Estilo FreeShow: Textbox | Item) -->
+          <div class="editor-inspector-tabs">
+            <button type="button" class="editor-insp-tab active" data-insp-tab="textbox">
+              <span>🔤 Textbox / Fuente</span>
+            </button>
+            <button type="button" class="editor-insp-tab" data-insp-tab="item">
+              <span>🎨 Diapositiva & Caja</span>
+            </button>
+          </div>
+
+          <div class="editor-inspector-content">
+            
+            <!-- PANEL 1: TEXTBOX Y TIPOGRAFÍA -->
+            <div id="insp-panel-textbox" class="insp-panel active">
+              
+              <!-- Familia Tipográfica y Color -->
+              <div class="insp-group">
+                <div class="insp-row" style="margin-bottom: 6px;">
+                  <label class="insp-label">Familia Tipográfica (Font Family):</label>
+                  <label class="insp-label-right">Color:</label>
+                </div>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                  <select id="ed-font-family" class="insp-select" style="flex: 1;">
+                    <option value="Inter, sans-serif">Inter (Moderna y Limpia)</option>
+                    <option value="'CMGSans', 'Montserrat', sans-serif">CMGSans / Montserrat</option>
+                    <option value="'Roboto', sans-serif">Roboto</option>
+                    <option value="'Poppins', sans-serif">Poppins</option>
+                    <option value="'Oswald', sans-serif">Oswald (Condensada)</option>
+                    <option value="'Outfit', sans-serif">Outfit (Display)</option>
+                    <option value="'Georgia', serif">Georgia (Elegante Clásica)</option>
+                    <option value="'Playfair Display', serif">Playfair Display</option>
+                    <option value="'Arial', sans-serif">Arial</option>
+                    <option value="'Courier New', monospace">Courier New</option>
+                  </select>
+                  <div class="color-picker-wrapper">
+                    <input type="color" id="ed-font-color" value="#ffffff" class="insp-color-input" />
+                    <span id="ed-font-color-hex" class="insp-color-hex">#FFF</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Tamaño de Fuente y Auto Size -->
+              <div class="insp-group">
+                <div class="insp-row">
+                  <div style="flex: 1;">
+                    <label class="insp-label">Tamaño de Fuente (Font size):</label>
+                    <div style="display: flex; gap: 6px; align-items: center; margin-top: 4px;">
+                      <input type="number" id="ed-font-size-num" min="16" max="220" value="72" class="insp-num-input" style="width: 65px;" />
+                      <input type="range" id="ed-font-size-range" min="16" max="220" value="72" class="insp-range-input" style="flex: 1;" />
+                    </div>
+                  </div>
+                  <div style="width: 105px;">
+                    <label class="insp-label">Auto size:</label>
+                    <select id="ed-auto-size" class="insp-select" style="margin-top: 4px;">
+                      <option value="none">None</option>
+                      <option value="shrink">Shrink</option>
+                      <option value="fit">Fit Box</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Barra de Formato Rápido (Negrita, Cursiva, Subrayado, Tachado, Mayúsculas) -->
+              <div class="insp-group">
+                <div class="insp-btn-toggle-row">
+                  <button type="button" id="ed-btn-bold" class="insp-btn-toggle" title="Negrita (Bold)"><strong>B</strong></button>
+                  <button type="button" id="ed-btn-italic" class="insp-btn-toggle" title="Cursiva (Italic)"><em>I</em></button>
+                  <button type="button" id="ed-btn-underline" class="insp-btn-toggle" title="Subrayado (Underline)"><u>U</u></button>
+                  <button type="button" id="ed-btn-strike" class="insp-btn-toggle" title="Tachado (Strikethrough)"><s>S</s></button>
+                  <button type="button" id="ed-btn-uppercase" class="insp-btn-toggle" title="Todo Mayúsculas">TT</button>
+                </div>
+              </div>
+
+              <!-- Acordeón 1: Alineación (Align) -->
+              <div class="insp-accordion open">
+                <div class="insp-accordion-header">
+                  <span>🟰 Alineación (Align)</span>
+                  <span class="acc-chevron">▾</span>
+                </div>
+                <div class="insp-accordion-body">
+                  <label class="insp-sublabel">Alineación Horizontal:</label>
+                  <div class="insp-btn-toggle-row" style="margin-bottom: 8px;">
+                    <button type="button" class="insp-btn-toggle ed-align-btn" data-align="left" title="Izquierda">◀ Izq</button>
+                    <button type="button" class="insp-btn-toggle ed-align-btn active" data-align="center" title="Centrado">■ Centro</button>
+                    <button type="button" class="insp-btn-toggle ed-align-btn" data-align="right" title="Derecha">▶ Der</button>
+                    <button type="button" class="insp-btn-toggle ed-align-btn" data-align="justify" title="Justificado">▤ Justif</button>
+                  </div>
+                  <label class="insp-sublabel">Posición Vertical:</label>
+                  <div class="insp-btn-toggle-row">
+                    <button type="button" class="insp-btn-toggle ed-valign-btn" data-valign="top" title="Arriba">⬆ Arriba</button>
+                    <button type="button" class="insp-btn-toggle ed-valign-btn active" data-valign="center" title="Medio / Centro">⬍ Centro</button>
+                    <button type="button" class="insp-btn-toggle ed-valign-btn" data-valign="bottom" title="Abajo">⬇ Abajo</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Acordeón 2: Caracteres y Párrafos (Text) -->
+              <div class="insp-accordion open">
+                <div class="insp-accordion-header">
+                  <span>Tt Caracteres y Párrafos (Text)</span>
+                  <span class="acc-chevron">▾</span>
+                </div>
+                <div class="insp-accordion-body">
+                  <div class="insp-row" style="margin-bottom: 8px;">
+                    <div style="flex: 1;">
+                      <label class="insp-sublabel">Interlineado (Line height):</label>
+                      <select id="ed-line-height" class="insp-select">
+                        <option value="1.0">1.0 (Compacto)</option>
+                        <option value="1.15">1.15</option>
+                        <option value="1.25" selected>1.25 (Estándar)</option>
+                        <option value="1.4">1.4 (Espacioso)</option>
+                        <option value="1.6">1.6</option>
+                        <option value="2.0">2.0 (Doble)</option>
+                      </select>
+                    </div>
+                    <div style="flex: 1;">
+                      <label class="insp-sublabel">Espacio Letras (Spacing):</label>
+                      <input type="number" id="ed-letter-spacing" value="0" min="-2" max="20" step="0.5" class="insp-num-input" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Acordeón 3: Renglones (Lines) -->
+              <div class="insp-accordion">
+                <div class="insp-accordion-header">
+                  <span>☰ Renglones por Diapositiva (Lines)</span>
+                  <span class="acc-chevron">▾</span>
+                </div>
+                <div class="insp-accordion-body">
+                  <label class="insp-sublabel">Máx. Renglones por filmina:</label>
+                  <select id="ed-max-lines" class="insp-select" style="margin-bottom: 8px;">
+                    <option value="0">Sin límite (Libre)</option>
+                    <option value="1">1 Renglón</option>
+                    <option value="2">2 Renglones</option>
+                    <option value="3">3 Renglones</option>
+                    <option value="4">4 Renglones</option>
+                  </select>
+                  <button type="button" id="btn-ed-apply-reflow" class="btn-insp-action">✂️ Re-dividir todas las filminas</button>
+                </div>
+              </div>
+
+              <!-- Acordeón 4: Contorno (Outline) -->
+              <div class="insp-accordion">
+                <div class="insp-accordion-header">
+                  <span>🔲 Contorno de Texto (Outline)</span>
+                  <span class="acc-chevron">▾</span>
+                </div>
+                <div class="insp-accordion-body">
+                  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                    <label class="insp-check-label">
+                      <input type="checkbox" id="ed-outline-enable" /> Habilitar Contorno
+                    </label>
+                    <input type="color" id="ed-outline-color" value="#000000" class="insp-color-input" />
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <label class="insp-sublabel" style="margin: 0; min-width: 80px;">Grosor:</label>
+                    <input type="range" id="ed-outline-width" min="1" max="10" value="2" class="insp-range-input" style="flex: 1;" />
+                    <span id="val-ed-outline-width" style="font-size: 0.72rem; color: #cbd5e1; width: 28px;">2px</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Acordeón 5: Sombra (Shadow) -->
+              <div class="insp-accordion open">
+                <div class="insp-accordion-header">
+                  <span>🔳 Sombra de Texto (Shadow)</span>
+                  <span class="acc-chevron">▾</span>
+                </div>
+                <div class="insp-accordion-body">
+                  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                    <label class="insp-check-label">
+                      <input type="checkbox" id="ed-shadow-enable" checked /> Habilitar Sombra
+                    </label>
+                    <input type="color" id="ed-shadow-color" value="#000000" class="insp-color-input" />
+                  </div>
+                  <div style="display: flex; flex-direction: column; gap: 6px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <label class="insp-sublabel" style="margin: 0; min-width: 70px;">Desenfoque:</label>
+                      <input type="range" id="ed-shadow-blur" min="0" max="30" value="12" class="insp-range-input" style="flex: 1;" />
+                      <span id="val-ed-shadow-blur" style="font-size: 0.72rem; color: #cbd5e1; width: 28px;">12px</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <label class="insp-sublabel" style="margin: 0; min-width: 70px;">Offset Y:</label>
+                      <input type="range" id="ed-shadow-offset-y" min="-20" max="30" value="4" class="insp-range-input" style="flex: 1;" />
+                      <span id="val-ed-shadow-offset-y" style="font-size: 0.72rem; color: #cbd5e1; width: 28px;">4px</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Ámbito de Aplicación -->
+              <div class="insp-group" style="margin-top: 10px; background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.25); border-radius: 6px; padding: 8px;">
+                <label class="insp-sublabel" style="color: #60a5fa; font-weight: 700;">Ámbito de aplicación del estilo:</label>
+                <div style="display: flex; gap: 12px; margin-top: 4px;">
+                  <label class="insp-radio-label">
+                    <input type="radio" name="ed-scope" value="all" checked /> Toda la Canción
+                  </label>
+                  <label class="insp-radio-label">
+                    <input type="radio" name="ed-scope" value="single" /> Solo esta filmina
+                  </label>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- PANEL 2: DIAPOSITIVA, CAJA Y PLANTILLA -->
+            <div id="insp-panel-item" class="insp-panel">
+              
+              <!-- Plantilla Preset Asignada -->
+              <div class="insp-group">
+                <label class="insp-label">Plantilla Preset para esta Canción:</label>
+                <select id="ed-deck-template" class="insp-select" style="margin-top: 4px;"></select>
+                <button type="button" id="btn-ed-apply-template" class="btn-insp-action" style="margin-top: 6px;">📄 Aplicar Plantilla a la Canción</button>
+              </div>
+
+              <!-- Caja de Fondo Semitransparente -->
+              <div class="insp-group">
+                <label class="insp-label">Caja de Fondo de Texto (Background Box):</label>
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 6px; margin-bottom: 8px;">
+                  <label class="insp-check-label">
+                    <input type="checkbox" id="ed-bgbox-enable" /> Habilitar Caja de Fondo
+                  </label>
+                  <input type="color" id="ed-bgbox-color" value="#000000" class="insp-color-input" />
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <label class="insp-sublabel" style="margin: 0; min-width: 70px;">Opacidad:</label>
+                    <input type="range" id="ed-bgbox-opacity" min="0" max="100" value="40" class="insp-range-input" style="flex: 1;" />
+                    <span id="val-ed-bgbox-opacity" style="font-size: 0.72rem; color: #cbd5e1; width: 28px;">40%</span>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <label class="insp-sublabel" style="margin: 0; min-width: 70px;">Padding:</label>
+                    <input type="range" id="ed-bgbox-padding" min="0" max="60" value="20" class="insp-range-input" style="flex: 1;" />
+                    <span id="val-ed-bgbox-padding" style="font-size: 0.72rem; color: #cbd5e1; width: 28px;">20px</span>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <label class="insp-sublabel" style="margin: 0; min-width: 70px;">Bordes:</label>
+                    <input type="range" id="ed-bgbox-radius" min="0" max="30" value="8" class="insp-range-input" style="flex: 1;" />
+                    <span id="val-ed-bgbox-radius" style="font-size: 0.72rem; color: #cbd5e1; width: 28px;">8px</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Metadatos de la Canción -->
+              <div class="insp-group">
+                <label class="insp-label">Metadatos de la Presentación:</label>
+                <div style="margin-top: 6px;">
+                  <label class="insp-sublabel">Categoría:</label>
+                  <select id="ed-deck-category-select" class="insp-select">
+                    <option value="Alabanza">Alabanza</option>
+                    <option value="Adoración">Adoración</option>
+                    <option value="Sermón">Sermón / Predicación</option>
+                    <option value="Lectura">Lectura Bíblica</option>
+                    <option value="Anuncio">Anuncios / Avisos</option>
+                    <option value="Overlays Stream">Overlays Stream / Lower Thirds</option>
+                  </select>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+
+          <!-- Footer del Inspector -->
+          <div class="editor-inspector-footer">
+            <button type="button" id="btn-editor-quick-save" class="btn-editor-action btn-editor-save" style="width: 100%; justify-content: center;">
+              💾 Guardar Canción y Volver a Show
+            </button>
+          </div>
+
+        </aside>
+
+      </div>
+    </div>
 
     <!-- Footer Status Bar -->
     <footer class="status-bar">

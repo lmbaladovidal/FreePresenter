@@ -144,6 +144,16 @@ Este documento especifica todos los **Requerimientos Funcionales (RF)** de **Pro
 * **RF-57 | Estabilidad e Interactividad Permanente de Modales:** Las ventanas modales (creación de canción, edición, medios, biblias, eventos) deben mantenerse inmunes a bloqueos de foco, pérdidas de hit-testing por aceleración de video o congelamientos por diálogos nativos, garantizando que los cuadros de texto y botones respondan instantáneamente al clic.
 * **RF-58 | Creación y Proyección de Overlays / Lower Thirds Personalizados:** La aplicación debe permitir crear libremente shows de tipo Lower Thirds seleccionando la categoría `Overlays Stream / Lower Thirds` o insertando etiquetas `[Overlay]`, asignando automáticamente la insignia `badge-lowerthird` y configurando el flag `isLowerThird = true` en sus diapositivas. Al proyectar una de estas diapositivas, debe emitirse la placa de zócalo inferior superpuesta tanto en la pantalla de Audiencia como en la vista previa del operador (`#operator-lower-third-banner`) sin limpiar ni sustituir la capa de texto principal.
 
+---
+
+## 🖥️ 17. Editor de Canción y Diapositivas en Pantalla Completa (Estilo FreeShow)
+
+* **RF-59 | Editor de Canción Completa en 3 Columnas sin Modales:** Al editar una canción completa (`✏️ Editar Canción`, pestaña `[Edit]` o menú contextual), la aplicación no debe abrir una ventana modal flotante, sino transicionar a una vista de pantalla completa de 3 columnas:
+  1. **Columna Izquierda (Filminas):** Lista vertical de todas las diapositivas de la canción en miniaturas 16:9 con numeración, badge de sección, botón `+ Nueva Filmina` y acciones de reordenamiento (`↑`/`↓`), duplicación y eliminación.
+  2. **Columna Central (Lienzo / Canvas):** Lienzo 16:9 interactivo con recuadro Bounding Box (borde magenta y 8 handles de redimensionamiento estilo FreeShow) para edición directa de texto en tiempo real (WYSIWYG), selector de sección, barra de navegación y herramientas de división de filmina en cursor.
+  3. **Columna Derecha (Inspector de Estilos):** Panel de opciones de diseño con selector de familia tipográfica (`CMGSans`, `Inter`, `Montserrat`, etc.), tamaño de fuente (input + slider), color de texto y hex swatch, barra de formato (**B**, *I*, <u>U</u>, <s>S</s>, TT), alineación horizontal y vertical, interlineado, espaciado entre letras, renglones máximos (`maxLines`), contorno de texto (`outline`), sombra (`shadow`), caja de fondo semitransparente (`bgColor`) y selector de ámbito (aplicar a toda la canción o a la diapositiva actual).
+
+
 
 
 
