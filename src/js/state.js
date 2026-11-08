@@ -512,15 +512,61 @@ export class Store {
     this.notify();
   }
 
+  buildEffectiveTemplateForSlide(deck, slide = null) {
+    const baseTpl = (deck && deck.templateId && this.templates.find(t => t.id === deck.templateId))
+      || this.templates.find(t => t.id === this.activeTemplateId)
+      || this.state.activeTemplate
+      || DEFAULT_TEMPLATES[0]
+      || {};
+    const deckStyle = (deck && deck.style) ? deck.style : {};
+    const slideStyle = (slide && slide.style) ? slide.style : {};
+    const merged = { ...baseTpl, ...deckStyle, ...slideStyle };
+
+    const shadowEnable = merged.shadowEnable !== undefined ? merged.shadowEnable : true;
+    const shadowColor = merged.shadowColor || 'rgba(0,0,0,0.9)';
+    const shadowBlur = merged.shadowBlur !== undefined ? merged.shadowBlur : 14;
+    const shadowOffsetY = merged.shadowOffsetY !== undefined ? merged.shadowOffsetY : 4;
+    merged.textShadow = shadowEnable ? `0 ${shadowOffsetY}px ${shadowBlur}px ${shadowColor}` : 'none';
+
+    if (merged.bgBoxEnable !== undefined) {
+      if (merged.bgBoxEnable) {
+        const hex = (merged.bgBoxColor || '#000000').replace('#', '');
+        const r = parseInt(hex.substring(0, 2), 16) || 0;
+        const g = parseInt(hex.substring(2, 4), 16) || 0;
+        const b = parseInt(hex.substring(4, 6), 16) || 0;
+        const a = (merged.bgBoxOpacity !== undefined ? merged.bgBoxOpacity : 40) / 100;
+        merged.bgColor = `rgba(${r}, ${g}, ${b}, ${a})`;
+        merged.padding = merged.bgBoxPadding !== undefined ? merged.bgBoxPadding : 20;
+        merged.borderRadius = merged.bgBoxRadius !== undefined ? merged.bgBoxRadius : 8;
+      } else {
+        merged.bgColor = 'transparent';
+        merged.padding = 0;
+        merged.borderRadius = 0;
+      }
+    }
+
+    if (merged.verticalAlign === 'top') merged.posY = 22;
+    else if (merged.verticalAlign === 'bottom') merged.posY = 82;
+    else if (merged.verticalAlign === 'center') merged.posY = 50;
+
+    merged.webkitTextStroke = merged.outlineEnable
+      ? `${merged.outlineWidth || 2}px ${merged.outlineColor || '#000000'}`
+      : 'none';
+
+    return merged;
+  }
+
   setActiveDeck(deckId) {
     this.activeDeckId = deckId;
     const deck = this.activeDeck;
-    if (deck && deck.templateId) {
-      const tpl = this.templates.find(t => t.id === deck.templateId);
-      if (tpl) {
-        this.activeTemplateId = tpl.id;
-        this.state.activeTemplate = tpl;
+    if (deck) {
+      if (deck.templateId) {
+        const tpl = this.templates.find(t => t.id === deck.templateId);
+        if (tpl) {
+          this.activeTemplateId = tpl.id;
+        }
       }
+      this.state.activeTemplate = this.buildEffectiveTemplateForSlide(deck, null);
     }
     this.notify();
   }
@@ -605,6 +651,7 @@ export class Store {
       this.state.liveGroupIndex = groupIndex;
       this.state.liveSlideIndex = slideIndex;
       this.state.isTextCleared = false;
+      this.state.activeTemplate = this.buildEffectiveTemplateForSlide(deck, slide);
 
       let nextText = "";
       if (slideIndex + 1 < group.slides.length) {
@@ -1039,8 +1086,23 @@ export class Store {
     if (!deck || typeof styleUpdates !== 'object') return;
 
     deck.style = { ...(deck.style || {}), ...styleUpdates };
-    if (deck.id === this.activeDeckId && this.state.activeTemplate) {
-      this.state.activeTemplate = { ...this.state.activeTemplate, ...styleUpdates };
+    // Limpiar overrides individuales de las claves actualizadas cuando se aplica a toda la canción
+    const updatedKeys = Object.keys(styleUpdates);
+    if (Array.isArray(deck.groups)) {
+      deck.groups.forEach(group => {
+        (group.slides || []).forEach(slide => {
+          if (slide && slide.style) {
+            updatedKeys.forEach(k => {
+              delete slide.style[k];
+            });
+          }
+        });
+      });
+    }
+    if (deck.id === this.activeDeckId) {
+      const activeGroup = deck.groups?.[this.state.liveGroupIndex] || deck.groups?.[0];
+      const activeSlide = activeGroup?.slides?.[this.state.liveSlideIndex] || null;
+      this.state.activeTemplate = this.buildEffectiveTemplateForSlide(deck, activeSlide);
     }
     this.notify();
     return deck.style;

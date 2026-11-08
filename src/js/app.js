@@ -2,7 +2,7 @@
  * ProPresenter AI Studio - Main Application Controller
  */
 
-import { store } from './state.js';
+import { store, DEFAULT_TEMPLATES, parseAndSplitText } from './state.js';
 import { sync } from './broadcast.js';
 import { stageManager } from './stage-manager.js';
 import { BIBLE_BOOKS, BIBLE_VERSIONS, getAllBibleVersions, getChapterVerses, splitVerseText, fetchAndLoadBibleFromUrl, parseAndAddCustomBible, deleteCustomBible } from './bible-data.js';
@@ -207,6 +207,9 @@ class ProPresenterApp {
         this.openFullScreenSongEditor(store.activeDeckId);
       }
     });
+
+    // Inicializar listeners del editor de pantalla completa desde el arranque
+    this.initFullScreenEditorEvents();
 
     document.getElementById('btn-open-audience')?.addEventListener('click', () => {
       if (window.electronAPI && window.electronAPI.openAudienceWindow) {
@@ -1627,6 +1630,15 @@ class ProPresenterApp {
     }
   }
 
+  escapeHtml(str) {
+    return String(str ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
   normalizeSearchText(str) {
     if (!str) return '';
     return String(str)
@@ -1663,15 +1675,40 @@ class ProPresenterApp {
   // VISTA DE PANTALLA COMPLETA: EDITOR DE CANCIÓN Y DIAPOSITIVAS (ESTILO FREESHOW)
   // =========================================================================
   openFullScreenSongEditor(deckId, groupIndex = 0, slideIndex = 0) {
-    const deck = store.decks.find(d => d.id === deckId) || store.activeDeck;
+    const deck = store.decks.find(d => d.id === deckId) || store.activeDeck || store.decks[0];
     if (!deck) return;
 
     this.closeAllModals();
+    store.setActiveDeck(deck.id);
+
+    // Garantizar que la canción tenga al menos un grupo y una filmina
+    if (!Array.isArray(deck.groups) || deck.groups.length === 0) {
+      deck.groups = [{
+        name: 'Verso 1',
+        badge: 'badge-verse',
+        slides: [{ id: `slide-${Date.now()}`, text: '' }]
+      }];
+    } else if (!Array.isArray(deck.groups[0].slides) || deck.groups[0].slides.length === 0) {
+      deck.groups[0].slides = [{ id: `slide-${Date.now()}`, text: '' }];
+    }
+
     this.currentEditorDeckId = deck.id;
-    this.currentEditorGroupIndex = Math.max(0, groupIndex);
-    this.currentEditorSlideIndex = Math.max(0, slideIndex);
+    const validGIdx = Math.max(0, Math.min(groupIndex, deck.groups.length - 1));
+    const maxSIdx = Math.max(0, (deck.groups[validGIdx]?.slides?.length || 1) - 1);
+    this.currentEditorGroupIndex = validGIdx;
+    this.currentEditorSlideIndex = Math.max(0, Math.min(slideIndex, maxSIdx));
     this.currentEditorSubTab = 'canvas';
     this.currentEditorScope = 'all';
+    this.currentEditorZoom = 100;
+
+    // Asegurar que la sub-pestaña Lienzo esté activa al abrir
+    document.querySelectorAll('#view-full-editor .editor-sub-tab').forEach(b => {
+      b.classList.toggle('active', b.getAttribute('data-ed-tab') === 'canvas');
+    });
+    const canvasMode = document.getElementById('editor-view-canvas-mode');
+    const lyricsMode = document.getElementById('editor-view-lyrics-mode');
+    if (canvasMode) canvasMode.style.display = 'flex';
+    if (lyricsMode) lyricsMode.style.display = 'none';
 
     // 1. Activar Vista de Pantalla Completa
     const appEl = document.getElementById('app');
@@ -1681,14 +1718,14 @@ class ProPresenterApp {
     document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
     document.querySelector('.mode-tab[data-mode="edit"]')?.classList.add('active');
 
-    // 3. Renderizar Componentes del Editor
+    // 3. Inicializar Listeners de Eventos del Editor antes o junto al renderizado
+    this.initFullScreenEditorEvents();
+
+    // 4. Renderizar Componentes del Editor
     this.renderEditorHeader(deck);
     this.renderEditorSlidesList(deck);
     this.renderEditorCenterCanvas(deck);
     this.populateEditorInspector(deck);
-
-    // 4. Inicializar Listeners de Eventos del Editor
-    this.initFullScreenEditorEvents();
   }
 
   closeFullScreenSongEditor() {
@@ -1760,8 +1797,12 @@ class ProPresenterApp {
   }
 
   getSlideEffectiveStyle(deck, slide = null) {
-    const tpl = store.templates.find(t => t.id === deck.templateId) || store.state.activeTemplate || DEFAULT_TEMPLATES[0] || {};
-    const deckStyle = deck.style || {};
+    const safeDeck = deck || {};
+    const tpl = (store.templates || []).find(t => t.id === safeDeck.templateId)
+      || store.state?.activeTemplate
+      || (typeof DEFAULT_TEMPLATES !== 'undefined' && DEFAULT_TEMPLATES[0])
+      || {};
+    const deckStyle = safeDeck.style || {};
     const slideStyle = (slide && slide.style) ? slide.style : {};
 
     const shadowEnable = slideStyle.shadowEnable !== undefined ? slideStyle.shadowEnable : (deckStyle.shadowEnable !== undefined ? deckStyle.shadowEnable : true);
@@ -1769,31 +1810,74 @@ class ProPresenterApp {
     const shadowBlur = slideStyle.shadowBlur !== undefined ? slideStyle.shadowBlur : (deckStyle.shadowBlur !== undefined ? deckStyle.shadowBlur : 14);
     const shadowOffsetY = slideStyle.shadowOffsetY !== undefined ? slideStyle.shadowOffsetY : (deckStyle.shadowOffsetY !== undefined ? deckStyle.shadowOffsetY : 4);
 
+    const outlineEnable = slideStyle.outlineEnable !== undefined ? slideStyle.outlineEnable : (deckStyle.outlineEnable !== undefined ? deckStyle.outlineEnable : false);
+    const outlineColor = slideStyle.outlineColor || deckStyle.outlineColor || '#000000';
+    const outlineWidth = slideStyle.outlineWidth !== undefined ? slideStyle.outlineWidth : (deckStyle.outlineWidth !== undefined ? deckStyle.outlineWidth : 2);
+
+    const bgBoxEnable = slideStyle.bgBoxEnable !== undefined ? slideStyle.bgBoxEnable : (deckStyle.bgBoxEnable !== undefined ? deckStyle.bgBoxEnable : false);
+    const bgBoxColor = slideStyle.bgBoxColor || deckStyle.bgBoxColor || '#000000';
+    const bgBoxOpacity = slideStyle.bgBoxOpacity !== undefined ? slideStyle.bgBoxOpacity : (deckStyle.bgBoxOpacity !== undefined ? deckStyle.bgBoxOpacity : 40);
+    const bgBoxPadding = slideStyle.bgBoxPadding !== undefined ? slideStyle.bgBoxPadding : (deckStyle.bgBoxPadding !== undefined ? deckStyle.bgBoxPadding : 20);
+    const bgBoxRadius = slideStyle.bgBoxRadius !== undefined ? slideStyle.bgBoxRadius : (deckStyle.bgBoxRadius !== undefined ? deckStyle.bgBoxRadius : 8);
+
+    let bgColor = tpl.bgColor || 'transparent';
+    let padding = tpl.padding || 16;
+    let borderRadius = tpl.borderRadius || 6;
+
+    if (slideStyle.bgBoxEnable !== undefined || deckStyle.bgBoxEnable !== undefined) {
+      if (bgBoxEnable) {
+        const hex = bgBoxColor.replace('#', '');
+        const r = parseInt(hex.substring(0, 2), 16) || 0;
+        const g = parseInt(hex.substring(2, 4), 16) || 0;
+        const b = parseInt(hex.substring(4, 6), 16) || 0;
+        const a = bgBoxOpacity / 100;
+        bgColor = `rgba(${r}, ${g}, ${b}, ${a})`;
+        padding = bgBoxPadding;
+        borderRadius = bgBoxRadius;
+      } else {
+        bgColor = 'transparent';
+        padding = 0;
+        borderRadius = 0;
+      }
+    }
+
+    const verticalAlign = slideStyle.verticalAlign || deckStyle.verticalAlign || tpl.verticalAlign || 'center';
+    let posY = tpl.posY !== undefined ? tpl.posY : 50;
+    if (verticalAlign === 'top') posY = 22;
+    else if (verticalAlign === 'bottom') posY = 82;
+    else if (verticalAlign === 'center') posY = 50;
+
     return {
       fontFamily: slideStyle.fontFamily || deckStyle.fontFamily || tpl.fontFamily || 'Inter, sans-serif',
       fontSize: slideStyle.fontSize || deckStyle.fontSize || tpl.fontSize || 56,
+      autoSize: slideStyle.autoSize || deckStyle.autoSize || 'none',
       color: slideStyle.color || deckStyle.color || tpl.color || '#ffffff',
-      fontWeight: slideStyle.fontWeight || deckStyle.fontWeight || (tpl.fontWeight || '700'),
-      fontStyle: slideStyle.fontStyle || deckStyle.fontStyle || (tpl.fontStyle || 'normal'),
-      textDecoration: slideStyle.textDecoration || deckStyle.textDecoration || (tpl.textDecoration || 'none'),
-      textTransform: slideStyle.textTransform || deckStyle.textTransform || (tpl.textTransform || 'none'),
+      fontWeight: slideStyle.fontWeight || deckStyle.fontWeight || tpl.fontWeight || '700',
+      fontStyle: slideStyle.fontStyle || deckStyle.fontStyle || tpl.fontStyle || 'normal',
+      textDecoration: slideStyle.textDecoration || deckStyle.textDecoration || tpl.textDecoration || 'none',
+      textTransform: slideStyle.textTransform || deckStyle.textTransform || tpl.textTransform || 'none',
       textAlign: slideStyle.textAlign || deckStyle.textAlign || tpl.textAlign || 'center',
-      verticalAlign: slideStyle.verticalAlign || deckStyle.verticalAlign || tpl.verticalAlign || 'center',
+      verticalAlign,
+      posY,
       lineHeight: slideStyle.lineHeight || deckStyle.lineHeight || tpl.lineHeight || 1.25,
       letterSpacing: slideStyle.letterSpacing !== undefined ? slideStyle.letterSpacing : (deckStyle.letterSpacing !== undefined ? deckStyle.letterSpacing : (tpl.letterSpacing || 0)),
-      outlineEnable: slideStyle.outlineEnable !== undefined ? slideStyle.outlineEnable : (deckStyle.outlineEnable !== undefined ? deckStyle.outlineEnable : false),
-      outlineColor: slideStyle.outlineColor || deckStyle.outlineColor || '#000000',
-      outlineWidth: slideStyle.outlineWidth || deckStyle.outlineWidth || 2,
+      outlineEnable,
+      outlineColor,
+      outlineWidth,
+      webkitTextStroke: outlineEnable ? `${outlineWidth}px ${outlineColor}` : 'none',
       shadowEnable,
       shadowColor,
       shadowBlur,
       shadowOffsetY,
       textShadow: shadowEnable ? `0 ${shadowOffsetY}px ${shadowBlur}px ${shadowColor}` : 'none',
-      bgBoxEnable: slideStyle.bgBoxEnable !== undefined ? slideStyle.bgBoxEnable : (deckStyle.bgBoxEnable !== undefined ? deckStyle.bgBoxEnable : false),
-      bgBoxColor: slideStyle.bgBoxColor || deckStyle.bgBoxColor || '#000000',
-      bgBoxOpacity: slideStyle.bgBoxOpacity !== undefined ? slideStyle.bgBoxOpacity : (deckStyle.bgBoxOpacity !== undefined ? deckStyle.bgBoxOpacity : 40),
-      bgBoxPadding: slideStyle.bgBoxPadding !== undefined ? slideStyle.bgBoxPadding : (deckStyle.bgBoxPadding !== undefined ? deckStyle.bgBoxPadding : 20),
-      bgBoxRadius: slideStyle.bgBoxRadius !== undefined ? slideStyle.bgBoxRadius : (deckStyle.bgBoxRadius !== undefined ? deckStyle.bgBoxRadius : 8),
+      bgBoxEnable,
+      bgBoxColor,
+      bgBoxOpacity,
+      bgBoxPadding,
+      bgBoxRadius,
+      bgColor,
+      padding,
+      borderRadius,
       maxLines: slideStyle.maxLines !== undefined ? slideStyle.maxLines : (deckStyle.maxLines !== undefined ? deckStyle.maxLines : (tpl.maxLines || 0))
     };
   }
@@ -1830,8 +1914,8 @@ class ProPresenterApp {
                 <button type="button" class="btn-slide-thumb-action btn-del-slide-card" data-gidx="${gIdx}" data-sidx="${sIdx}" title="Eliminar">&times;</button>
               </div>
             </div>
-            <div class="editor-slide-thumb-preview-box">
-              <div class="editor-slide-thumb-text" style="font-family: ${slideStyle.fontFamily}; color: ${slideStyle.color}; font-weight: ${slideStyle.fontWeight || '700'}; text-align: ${slideStyle.textAlign || 'center'}; text-shadow: ${slideStyle.textShadow || 'none'};">
+            <div class="editor-slide-thumb-preview-box" style="align-items: ${slideStyle.verticalAlign === 'top' ? 'flex-start' : (slideStyle.verticalAlign === 'bottom' ? 'flex-end' : 'center')};">
+              <div class="editor-slide-thumb-text" style="font-family: ${slideStyle.fontFamily}; color: ${slideStyle.color}; font-weight: ${slideStyle.fontWeight || '700'}; font-style: ${slideStyle.fontStyle || 'normal'}; text-decoration: ${slideStyle.textDecoration || 'none'}; text-transform: ${slideStyle.textTransform || 'none'}; text-align: ${slideStyle.textAlign || 'center'}; text-shadow: ${slideStyle.textShadow || 'none'}; -webkit-text-stroke: ${slideStyle.webkitTextStroke || 'none'}; background-color: ${slideStyle.bgColor || 'transparent'}; border-radius: ${Math.min(8, slideStyle.borderRadius || 0)}px; padding: ${slideStyle.bgBoxEnable ? '3px 6px' : '0'}; width: 100%;">
                 ${this.escapeHtml(textPreview) || '<em style="opacity:0.4;">[Vacía]</em>'}
               </div>
             </div>
@@ -1940,9 +2024,24 @@ class ProPresenterApp {
     const style = this.getSlideEffectiveStyle(deck, slide);
 
     if (textbox) {
-      textbox.innerText = slide.text || '';
+      if (document.activeElement !== textbox) {
+        textbox.innerText = slide.text || '';
+      }
+      let effectiveFontSize = Number(style.fontSize) || 56;
+      const charCount = (slide.text || '').length;
+      const lineCount = (slide.text || '').split('\n').length;
+      if (style.autoSize === 'shrink' && (charCount > 110 || lineCount > 4)) {
+        effectiveFontSize = Math.max(22, Math.round(effectiveFontSize * Math.min(110 / charCount, 4 / lineCount)));
+      } else if (style.autoSize === 'fit') {
+        if (charCount > 0 && charCount < 40 && lineCount <= 2) {
+          effectiveFontSize = Math.min(110, Math.round(effectiveFontSize * 1.25));
+        } else if (charCount > 100 || lineCount > 4) {
+          effectiveFontSize = Math.max(22, Math.round(effectiveFontSize * 0.78));
+        }
+      }
+
       textbox.style.fontFamily = style.fontFamily;
-      textbox.style.fontSize = `${style.fontSize}px`;
+      textbox.style.fontSize = `${effectiveFontSize}px`;
       textbox.style.color = style.color;
       textbox.style.fontWeight = style.fontWeight;
       textbox.style.fontStyle = style.fontStyle;
@@ -2020,6 +2119,9 @@ class ProPresenterApp {
     const sizeRange = document.getElementById('ed-font-size-range');
     if (sizeNum) sizeNum.value = style.fontSize;
     if (sizeRange) sizeRange.value = style.fontSize;
+
+    const autoSizeSelect = document.getElementById('ed-auto-size');
+    if (autoSizeSelect) autoSizeSelect.value = style.autoSize || 'none';
 
     // Botones de Formato
     document.getElementById('ed-btn-bold')?.classList.toggle('active', style.fontWeight === '700' || style.fontWeight === 'bold');
@@ -2119,6 +2221,7 @@ class ProPresenterApp {
     const fontFamily = document.getElementById('ed-font-family')?.value || 'Inter, sans-serif';
     const color = document.getElementById('ed-font-color')?.value || '#ffffff';
     const fontSize = parseInt(document.getElementById('ed-font-size-num')?.value || 56);
+    const autoSize = document.getElementById('ed-auto-size')?.value || 'none';
     const fontWeight = document.getElementById('ed-btn-bold')?.classList.contains('active') ? '700' : '400';
     const fontStyle = document.getElementById('ed-btn-italic')?.classList.contains('active') ? 'italic' : 'normal';
     const textDecoration = document.getElementById('ed-btn-underline')?.classList.contains('active')
@@ -2155,6 +2258,7 @@ class ProPresenterApp {
       fontFamily,
       color,
       fontSize,
+      autoSize,
       fontWeight,
       fontStyle,
       textDecoration,
@@ -2182,6 +2286,9 @@ class ProPresenterApp {
       store.updateDeckStyle(deck.id, updatedStyle);
     } else {
       slide.style = { ...(slide.style || {}), ...updatedStyle };
+      if (store.state.liveSlideId === slide.id) {
+        store.state.activeTemplate = store.buildEffectiveTemplateForSlide(deck, slide);
+      }
       store.notify();
     }
 
@@ -2314,8 +2421,17 @@ class ProPresenterApp {
     });
 
     // Letras textarea input
-    document.getElementById('editor-lyrics-textarea')?.addEventListener('input', () => {
+    document.getElementById('editor-lyrics-textarea')?.addEventListener('input', (e) => {
       this.renderEditorLyricsDiff();
+      const deck = store.decks.find(d => d.id === this.currentEditorDeckId);
+      if (deck) {
+        const parsedGroups = parseAndSplitText(e.target.value || '');
+        if (parsedGroups && parsedGroups.length > 0) {
+          deck.groups = parsedGroups;
+          this.renderEditorHeader(deck);
+          this.renderEditorSlidesList(deck);
+        }
+      }
     });
 
     // 4. Navegación entre filminas
@@ -2420,7 +2536,7 @@ class ProPresenterApp {
 
     // 7. Inspector de Estilos: inputs y sliders
     const inspectorInputs = [
-      'ed-font-family', 'ed-font-color', 'ed-font-size-num', 'ed-font-size-range',
+      'ed-font-family', 'ed-font-color', 'ed-font-size-num', 'ed-font-size-range', 'ed-auto-size',
       'ed-line-height', 'ed-letter-spacing', 'ed-max-lines',
       'ed-outline-enable', 'ed-outline-color', 'ed-outline-width',
       'ed-shadow-enable', 'ed-shadow-color', 'ed-shadow-blur', 'ed-shadow-offset-y',
@@ -2443,12 +2559,68 @@ class ProPresenterApp {
       el?.addEventListener('change', () => this.applyEditorInspectorChanges());
     });
 
-    // Botones de formato rápido
+    // Radios de alcance (Toda la Canción vs Solo esta Filmina)
+    document.querySelectorAll('input[name="ed-scope"]').forEach(radio => {
+      radio.addEventListener('change', () => {
+        this.currentEditorScope = radio.value;
+        const deck = store.decks.find(d => d.id === this.currentEditorDeckId);
+        if (deck) this.populateEditorInspector(deck);
+      });
+    });
+
+    // Botones de formato rápido (Negrita, Cursiva, Subrayado, Tachado, Mayúsculas)
     ['ed-btn-bold', 'ed-btn-italic', 'ed-btn-underline', 'ed-btn-strike', 'ed-btn-uppercase'].forEach(id => {
       document.getElementById(id)?.addEventListener('click', (e) => {
-        e.currentTarget.classList.toggle('active');
+        const btn = e.currentTarget;
+        if (id === 'ed-btn-underline' && !btn.classList.contains('active')) {
+          document.getElementById('ed-btn-strike')?.classList.remove('active');
+        } else if (id === 'ed-btn-strike' && !btn.classList.contains('active')) {
+          document.getElementById('ed-btn-underline')?.classList.remove('active');
+        }
+        btn.classList.toggle('active');
         this.applyEditorInspectorChanges();
       });
+    });
+
+    // Botones de Re-dividir / Reflow de Filminas
+    const handleEditorReflow = () => {
+      const deck = store.decks.find(d => d.id === this.currentEditorDeckId);
+      if (!deck) return;
+      const maxLinesSelect = document.getElementById('ed-max-lines');
+      let maxLines = parseInt(maxLinesSelect?.value || 0);
+      if (!maxLines || maxLines <= 0) {
+        maxLines = 4;
+        if (maxLinesSelect) maxLinesSelect.value = '4';
+      }
+      store.reflowDeckSlides(deck.id, maxLines);
+      this.selectEditorSlide(0, 0);
+      this.renderEditorHeader(deck);
+      this.showToast(`📐 Filminas re-divididas a máximo ${maxLines} líneas por diapositiva.`, "success");
+    };
+    document.getElementById('btn-editor-reflow')?.addEventListener('click', handleEditorReflow);
+    document.getElementById('btn-ed-apply-reflow')?.addEventListener('click', handleEditorReflow);
+
+    // Controles de Zoom del Lienzo Central
+    const applyCanvasZoom = (zoomPct) => {
+      this.currentEditorZoom = Math.max(50, Math.min(150, zoomPct));
+      const viewport = document.getElementById('editor-canvas-viewport');
+      const zoomLabel = document.getElementById('label-editor-canvas-zoom');
+      if (viewport) {
+        viewport.style.transform = `scale(${this.currentEditorZoom / 100})`;
+        viewport.style.transformOrigin = 'center center';
+      }
+      if (zoomLabel) {
+        zoomLabel.textContent = `${this.currentEditorZoom}%`;
+      }
+    };
+    document.getElementById('btn-editor-zoom-out')?.addEventListener('click', () => {
+      applyCanvasZoom((this.currentEditorZoom || 100) - 10);
+    });
+    document.getElementById('btn-editor-zoom-in')?.addEventListener('click', () => {
+      applyCanvasZoom((this.currentEditorZoom || 100) + 10);
+    });
+    document.getElementById('btn-editor-zoom-fit')?.addEventListener('click', () => {
+      applyCanvasZoom(100);
     });
 
     // Botones de alineación horizontal
@@ -4598,7 +4770,7 @@ class ProPresenterApp {
             ? (state.isLowerThirdActive && !state.isOverlayCleared && state.lowerThirdText === (slide.text.split('\n')[0] || ''))
             : (state.liveSlideId === slide.id && !state.isTextCleared);
           const cardIdx = globalIndex++;
-          const tpl = state.activeTemplate || {};
+          const tpl = this.getSlideEffectiveStyle(activeDeck, slide);
 
           const posY = tpl.posY !== undefined ? tpl.posY : 50;
           const textAlign = tpl.textAlign || 'center';
@@ -4611,7 +4783,11 @@ class ProPresenterApp {
           const tplStyles = [
             `font-family: ${tpl.fontFamily || 'Inter, sans-serif'}`,
             `font-size: calc(${baseFontSize} * 0.0521cqw)`,
-            `font-weight: 700`,
+            `font-weight: ${tpl.fontWeight || '700'}`,
+            `font-style: ${tpl.fontStyle || 'normal'}`,
+            `text-decoration: ${tpl.textDecoration || 'none'}`,
+            `text-transform: ${tpl.textTransform || 'none'}`,
+            `-webkit-text-stroke: ${tpl.webkitTextStroke || 'none'}`,
             `letter-spacing: calc(${baseLetterSpacing} * 0.0521cqw)`,
             `line-height: ${tpl.lineHeight || 1.25}`,
             `color: ${tpl.color || '#ffffff'}`,
@@ -4896,7 +5072,11 @@ class ProPresenterApp {
 
       this.liveTextEl.style.fontFamily = tpl.fontFamily || 'Inter, sans-serif';
       this.liveTextEl.style.fontSize = `calc(${baseFontSize} * 0.0521cqw)`;
-      this.liveTextEl.style.fontWeight = '700';
+      this.liveTextEl.style.fontWeight = tpl.fontWeight || '700';
+      this.liveTextEl.style.fontStyle = tpl.fontStyle || 'normal';
+      this.liveTextEl.style.textDecoration = tpl.textDecoration || 'none';
+      this.liveTextEl.style.textTransform = tpl.textTransform || 'none';
+      this.liveTextEl.style.webkitTextStroke = tpl.webkitTextStroke || (tpl.outlineEnable ? `${tpl.outlineWidth || 2}px ${tpl.outlineColor || '#000'}` : 'none');
       this.liveTextEl.style.letterSpacing = `calc(${baseLetterSpacing} * 0.0521cqw)`;
       this.liveTextEl.style.lineHeight = tpl.lineHeight || 1.25;
       this.liveTextEl.style.color = tpl.color || '#ffffff';

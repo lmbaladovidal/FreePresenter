@@ -206,6 +206,11 @@
         const tpl = state.activeTemplate;
         textEl.style.fontFamily = tpl.fontFamily || 'Inter, sans-serif';
         textEl.style.fontSize = (tpl.fontSize || 52) + 'px';
+        textEl.style.fontWeight = tpl.fontWeight || '700';
+        textEl.style.fontStyle = tpl.fontStyle || 'normal';
+        textEl.style.textDecoration = tpl.textDecoration || 'none';
+        textEl.style.textTransform = tpl.textTransform || 'none';
+        textEl.style.webkitTextStroke = tpl.webkitTextStroke || (tpl.outlineEnable ? `${tpl.outlineWidth || 2}px ${tpl.outlineColor || '#000000'}` : 'none');
         textEl.style.letterSpacing = (tpl.letterSpacing || 0) + 'px';
         textEl.style.lineHeight = tpl.lineHeight || 1.25;
         textEl.style.color = tpl.color || '#ffffff';
