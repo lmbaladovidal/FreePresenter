@@ -339,6 +339,7 @@ export class Store {
       activeVideoName: "Space Stars Motion",
       activeMediaPlayId: 1,
       liveText: "",
+      liveDeckId: null,
       liveSlideId: null,
       liveGroupIndex: null,
       liveSlideIndex: null,
@@ -515,7 +516,7 @@ export class Store {
   buildEffectiveTemplateForSlide(deck, slide = null) {
     const baseTpl = (deck && deck.templateId && this.templates.find(t => t.id === deck.templateId))
       || this.templates.find(t => t.id === this.activeTemplateId)
-      || this.state.activeTemplate
+      || this.templates[0]
       || DEFAULT_TEMPLATES[0]
       || {};
     const deckStyle = (deck && deck.style) ? deck.style : {};
@@ -558,16 +559,8 @@ export class Store {
 
   setActiveDeck(deckId) {
     this.activeDeckId = deckId;
-    const deck = this.activeDeck;
-    if (deck) {
-      if (deck.templateId) {
-        const tpl = this.templates.find(t => t.id === deck.templateId);
-        if (tpl) {
-          this.activeTemplateId = tpl.id;
-        }
-      }
-      this.state.activeTemplate = this.buildEffectiveTemplateForSlide(deck, null);
-    }
+    // Importante: seleccionar otra canción en el proyecto o biblioteca NO debe alterar
+    // el estilo (activeTemplate) de la diapositiva que ya se encuentra proyectándose en vivo.
     this.notify();
   }
 
@@ -647,6 +640,7 @@ export class Store {
       this.state.isOverlayCleared = false;
     } else {
       this.state.liveText = slide.text;
+      this.state.liveDeckId = deck.id;
       this.state.liveSlideId = slide.id;
       this.state.liveGroupIndex = groupIndex;
       this.state.liveSlideIndex = slideIndex;
@@ -1099,7 +1093,7 @@ export class Store {
         });
       });
     }
-    if (deck.id === this.activeDeckId) {
+    if (deck.id === this.state.liveDeckId) {
       const activeGroup = deck.groups?.[this.state.liveGroupIndex] || deck.groups?.[0];
       const activeSlide = activeGroup?.slides?.[this.state.liveSlideIndex] || null;
       this.state.activeTemplate = this.buildEffectiveTemplateForSlide(deck, activeSlide);

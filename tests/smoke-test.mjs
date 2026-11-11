@@ -597,6 +597,23 @@ test('RF-59: Edición de canción en vista de pantalla completa con 3 columnas y
   if (deck.groups[0].slides.length !== countBeforeDup) {
     throw new Error('deleteSlide no eliminó la filmina');
   }
+
+  // 6. Verificar que seleccionar otra canción (setActiveDeck) NO cambia el estilo del slide proyectándose en vivo
+  const otherDeck = store.createNewShow("Canción 2 con otro estilo", "Alabanza", "Letra canción 2");
+  store.updateDeckStyle(otherDeck.id, { fontFamily: "Georgia, serif", fontSize: 96, color: "#00ff00" });
+
+  // Proyectar una filmina de la primera canción (deck)
+  store.setActiveDeck(deck.id);
+  store.setLiveSlide(0, 0);
+  if (store.state.activeTemplate.fontFamily !== "CMGSans" || store.state.activeTemplate.fontSize !== 72) {
+    throw new Error('El slide proyectado no tomó el estilo de su propia canción');
+  }
+
+  // Seleccionar la segunda canción en el proyecto sin proyectar ninguna filmina de ella
+  store.setActiveDeck(otherDeck.id);
+  if (store.state.activeTemplate.fontFamily !== "CMGSans" || store.state.activeTemplate.fontSize !== 72) {
+    throw new Error('Seleccionar otra canción en el proyecto alteró indebidamente el estilo del slide en proyección');
+  }
 });
 
 

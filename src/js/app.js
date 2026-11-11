@@ -128,7 +128,7 @@ class ProPresenterApp {
 
     // Virtual Media Elements
     this.mediaFoldersListEl = document.getElementById('media-folders-list');
-    this.selectedMediaFolder = "all";
+    this.selectedMediaFolder = "General";
 
     // Modals
     this.modalCreateShow = document.getElementById('modal-create-show');
@@ -1799,7 +1799,8 @@ class ProPresenterApp {
   getSlideEffectiveStyle(deck, slide = null) {
     const safeDeck = deck || {};
     const tpl = (store.templates || []).find(t => t.id === safeDeck.templateId)
-      || store.state?.activeTemplate
+      || (store.templates || []).find(t => t.id === store.activeTemplateId)
+      || (store.templates || [])[0]
       || (typeof DEFAULT_TEMPLATES !== 'undefined' && DEFAULT_TEMPLATES[0])
       || {};
     const deckStyle = safeDeck.style || {};
@@ -1914,9 +1915,9 @@ class ProPresenterApp {
                 <button type="button" class="btn-slide-thumb-action btn-del-slide-card" data-gidx="${gIdx}" data-sidx="${sIdx}" title="Eliminar">&times;</button>
               </div>
             </div>
-            <div class="editor-slide-thumb-preview-box" style="align-items: ${slideStyle.verticalAlign === 'top' ? 'flex-start' : (slideStyle.verticalAlign === 'bottom' ? 'flex-end' : 'center')};">
-              <div class="editor-slide-thumb-text" style="font-family: ${slideStyle.fontFamily}; color: ${slideStyle.color}; font-weight: ${slideStyle.fontWeight || '700'}; font-style: ${slideStyle.fontStyle || 'normal'}; text-decoration: ${slideStyle.textDecoration || 'none'}; text-transform: ${slideStyle.textTransform || 'none'}; text-align: ${slideStyle.textAlign || 'center'}; text-shadow: ${slideStyle.textShadow || 'none'}; -webkit-text-stroke: ${slideStyle.webkitTextStroke || 'none'}; background-color: ${slideStyle.bgColor || 'transparent'}; border-radius: ${Math.min(8, slideStyle.borderRadius || 0)}px; padding: ${slideStyle.bgBoxEnable ? '3px 6px' : '0'}; width: 100%;">
-                ${this.escapeHtml(textPreview) || '<em style="opacity:0.4;">[Vacía]</em>'}
+            <div class="editor-slide-thumb-preview-box">
+              <div style="position: absolute; left: 5%; right: 5%; top: ${slideStyle.posY !== undefined ? slideStyle.posY : 50}%; transform: translateY(-50%); text-align: ${slideStyle.textAlign || 'center'}; pointer-events: none; z-index: 2;">
+                <div class="editor-slide-thumb-text" style="font-family: ${slideStyle.fontFamily || 'Inter, sans-serif'}; font-size: calc(${slideStyle.fontSize || 52} * 0.0521cqw); letter-spacing: calc(${slideStyle.letterSpacing || 0} * 0.0521cqw); line-height: ${slideStyle.lineHeight || 1.25}; color: ${slideStyle.color || '#ffffff'}; font-weight: ${slideStyle.fontWeight || '700'}; font-style: ${slideStyle.fontStyle || 'normal'}; text-decoration: ${slideStyle.textDecoration || 'none'}; text-transform: ${slideStyle.textTransform || 'none'}; text-align: ${slideStyle.textAlign || 'center'}; text-shadow: ${slideStyle.textShadow || 'none'}; -webkit-text-stroke: ${slideStyle.webkitTextStroke || 'none'}; background-color: ${slideStyle.bgColor || 'transparent'}; padding: calc(${slideStyle.padding || 16} * 0.025cqw) calc(${slideStyle.padding || 16} * 0.045cqw); border-radius: calc(${slideStyle.borderRadius || 6} * 0.04cqw); box-sizing: border-box; white-space: pre-wrap; word-break: normal; overflow-wrap: normal; ${slideStyle.maxLines > 0 ? `display: -webkit-box; -webkit-line-clamp: ${slideStyle.maxLines}; -webkit-box-orient: vertical; overflow: hidden;` : 'display: inline-block;'}">${textPreview ? this.escapeHtml(textPreview).replace(/\n/g, '<br/>') : '<em style="opacity:0.4;">[Vacía]</em>'}</div>
               </div>
             </div>
           </div>
@@ -2040,8 +2041,11 @@ class ProPresenterApp {
         }
       }
 
+      const basePadding = style.padding !== undefined ? style.padding : 16;
+      const baseRadius = style.borderRadius !== undefined ? style.borderRadius : 6;
+
       textbox.style.fontFamily = style.fontFamily;
-      textbox.style.fontSize = `${effectiveFontSize}px`;
+      textbox.style.fontSize = `calc(${effectiveFontSize} * 0.0521cqw)`;
       textbox.style.color = style.color;
       textbox.style.fontWeight = style.fontWeight;
       textbox.style.fontStyle = style.fontStyle;
@@ -2049,7 +2053,10 @@ class ProPresenterApp {
       textbox.style.textTransform = style.textTransform;
       textbox.style.textAlign = style.textAlign;
       textbox.style.lineHeight = String(style.lineHeight);
-      textbox.style.letterSpacing = `${style.letterSpacing}px`;
+      textbox.style.letterSpacing = `calc(${style.letterSpacing || 0} * 0.0521cqw)`;
+      textbox.style.backgroundColor = style.bgColor || 'transparent';
+      textbox.style.padding = `calc(${basePadding} * 0.025cqw) calc(${basePadding} * 0.045cqw)`;
+      textbox.style.borderRadius = `calc(${baseRadius} * 0.04cqw)`;
 
       // Sombra
       if (style.shadowEnable) {
@@ -2065,37 +2072,16 @@ class ProPresenterApp {
         textbox.style.webkitTextStroke = 'none';
       }
 
-      // Caja de fondo
+      // Caja contenedora (Bounding Box al 90% del ancho de pantalla: left 5%, right 5%)
       if (boundingBox) {
-        if (style.bgBoxEnable) {
-          const hex = (style.bgBoxColor || '#000000').replace('#', '');
-          const r = parseInt(hex.substring(0, 2), 16) || 0;
-          const g = parseInt(hex.substring(2, 4), 16) || 0;
-          const b = parseInt(hex.substring(4, 6), 16) || 0;
-          const a = (style.bgBoxOpacity || 40) / 100;
-          boundingBox.style.backgroundColor = `rgba(${r}, ${g}, ${b}, ${a})`;
-          boundingBox.style.padding = `${style.bgBoxPadding}px`;
-          boundingBox.style.borderRadius = `${style.bgBoxRadius}px`;
-        } else {
-          boundingBox.style.backgroundColor = 'transparent';
-          boundingBox.style.padding = '14px';
-          boundingBox.style.borderRadius = '4px';
-        }
-
-        // Posición vertical
-        if (style.verticalAlign === 'top') {
-          boundingBox.style.top = '18%';
-          boundingBox.style.bottom = 'auto';
-          boundingBox.style.transform = 'translateY(0%)';
-        } else if (style.verticalAlign === 'bottom') {
-          boundingBox.style.top = 'auto';
-          boundingBox.style.bottom = '12%';
-          boundingBox.style.transform = 'translateY(0%)';
-        } else {
-          boundingBox.style.top = '50%';
-          boundingBox.style.bottom = 'auto';
-          boundingBox.style.transform = 'translateY(-50%)';
-        }
+        boundingBox.style.left = '5%';
+        boundingBox.style.right = '5%';
+        boundingBox.style.padding = '0';
+        boundingBox.style.backgroundColor = 'transparent';
+        boundingBox.style.borderRadius = '4px';
+        boundingBox.style.top = `${style.posY !== undefined ? style.posY : 50}%`;
+        boundingBox.style.bottom = 'auto';
+        boundingBox.style.transform = 'translateY(-50%)';
       }
     }
   }
@@ -2362,7 +2348,9 @@ class ProPresenterApp {
       if (deck && deck.groups && deck.groups[this.currentEditorGroupIndex]?.slides[this.currentEditorSlideIndex]) {
         deck.groups[this.currentEditorGroupIndex].slides[this.currentEditorSlideIndex].text = text;
         const activeThumb = document.querySelector(`.editor-slide-thumb-card[data-gidx="${this.currentEditorGroupIndex}"][data-sidx="${this.currentEditorSlideIndex}"] .editor-slide-thumb-text`);
-        if (activeThumb) activeThumb.innerText = text || '[Vacía]';
+        if (activeThumb) {
+          activeThumb.innerHTML = text ? this.escapeHtml(text).replace(/\n/g, '<br/>') : '<em style="opacity:0.4;">[Vacía]</em>';
+        }
 
         if (store.state.liveSlideId === deck.groups[this.currentEditorGroupIndex].slides[this.currentEditorSlideIndex].id) {
           store.state.liveText = text;
@@ -3473,9 +3461,21 @@ class ProPresenterApp {
   renderMediaDock(state) {
     if (!this.mediaGridEl || !this.mediaFoldersListEl) return;
 
-    // 1. Render Virtual & Physical Folders in the exact same Sub-sidebar list
+    // 1. Render Virtual & Physical Folders in the exact same Sub-sidebar list (sin "Todos los Medios")
     const folders = state.mediaFolders || ["General"];
     const physicalFolders = state.physicalMediaFolders || [];
+    const defaultFolder = folders[0] || (physicalFolders[0] ? `phys:${physicalFolders[0].path}` : "General");
+    if (!this.selectedMediaFolder || this.selectedMediaFolder === 'all') {
+      this.selectedMediaFolder = defaultFolder;
+    } else if (this.selectedMediaFolder.startsWith('phys:')) {
+      const physPath = this.selectedMediaFolder.slice(5);
+      if (!physicalFolders.some(pf => pf.path === physPath)) {
+        this.selectedMediaFolder = defaultFolder;
+      }
+    } else if (!folders.includes(this.selectedMediaFolder)) {
+      this.selectedMediaFolder = defaultFolder;
+    }
+
     const allCount = state.mediaLibrary.length;
     const physCountsKey = physicalFolders.map(pf => {
       const c = state.mediaLibrary.filter(m => m.physicalFolderPath === pf.path).length;
@@ -3486,10 +3486,6 @@ class ProPresenterApp {
     if (this.lastFolderCacheKey !== folderCacheKey) {
       this.lastFolderCacheKey = folderCacheKey;
       this.mediaFoldersListEl.innerHTML = `
-        <div class="folder-item ${this.selectedMediaFolder === 'all' ? 'active' : ''}" data-folder-name="all">
-          <span>📁 Todos los Medios</span>
-          <span class="count">${allCount}</span>
-        </div>
         ${folders.map(folder => {
           const count = state.mediaLibrary.filter(m => m.folder === folder && !m.isPhysicalFolderItem).length;
           const isActive = this.selectedMediaFolder === folder;
@@ -3535,7 +3531,7 @@ class ProPresenterApp {
           const folderToDelete = btn.getAttribute('data-folder');
           if (confirm(`¿Estás seguro de eliminar la carpeta virtual "${folderToDelete}"? Los medios asignados pasarán a la carpeta General.`)) {
             if (this.selectedMediaFolder === folderToDelete) {
-              this.selectedMediaFolder = 'all';
+              this.selectedMediaFolder = 'General';
             }
             store.deleteMediaFolder(folderToDelete);
           }
@@ -3549,7 +3545,7 @@ class ProPresenterApp {
           const physName = btn.getAttribute('data-phys-name');
           if (confirm(`¿Deseas desvincular la carpeta física "${physName}" de la biblioteca? (Los archivos en tu disco duro no se borrarán).`)) {
             if (this.selectedMediaFolder === `phys:${physPath}`) {
-              this.selectedMediaFolder = 'all';
+              this.selectedMediaFolder = 'General';
             }
             if (window.electronAPI && window.electronAPI.unwatchPhysicalFolder) {
               try {
@@ -3564,8 +3560,8 @@ class ProPresenterApp {
 
     // Update Dock Header Info
     const mediaInfo = document.getElementById('dock-media-info');
-    let selectedFolderLabel = 'Todas';
-    if (this.selectedMediaFolder && this.selectedMediaFolder !== 'all') {
+    let selectedFolderLabel = 'General';
+    if (this.selectedMediaFolder) {
       if (this.selectedMediaFolder.startsWith('phys:')) {
         const physPath = this.selectedMediaFolder.slice(5);
         const foundPhys = physicalFolders.find(p => p.path === physPath);
@@ -3582,9 +3578,7 @@ class ProPresenterApp {
     const normMediaQuery = this.normalizeSearchText(this.searchQuery);
     const filteredMedia = state.mediaLibrary.filter(item => {
       let matchesFolder = false;
-      if (this.selectedMediaFolder === 'all') {
-        matchesFolder = true;
-      } else if (this.selectedMediaFolder && this.selectedMediaFolder.startsWith('phys:')) {
+      if (this.selectedMediaFolder && this.selectedMediaFolder.startsWith('phys:')) {
         const targetPhysPath = this.selectedMediaFolder.slice(5);
         matchesFolder = item.physicalFolderPath === targetPhysPath;
       } else {
@@ -3611,7 +3605,7 @@ class ProPresenterApp {
       if (filteredMedia.length === 0) {
         this.mediaGridEl.innerHTML = `
           <div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 20px; font-size: 0.78rem;">
-            No hay videos o imágenes en la carpeta "${this.selectedMediaFolder === 'all' ? 'Todas' : this.selectedMediaFolder}".
+            No hay videos o imágenes en la carpeta "${selectedFolderLabel}".
           </div>
         `;
       } else {

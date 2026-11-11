@@ -47,9 +47,11 @@
     }
 
     #slide-text-container {
-      position: relative;
+      position: absolute;
+      left: 5%;
+      right: 5%;
       z-index: 2;
-      max-width: 85%;
+      max-width: none;
       text-align: center;
       font-size: 3.8rem;
       font-weight: 800;
@@ -58,6 +60,9 @@
       color: #ffffff;
       text-shadow: 0 4px 20px rgba(0, 0, 0, 0.9), 0 2px 4px rgba(0, 0, 0, 0.8);
       white-space: pre-wrap;
+      word-break: normal;
+      overflow-wrap: normal;
+      box-sizing: border-box;
       transition: opacity 0.25s ease, transform 0.25s ease;
     }
 
@@ -204,21 +209,26 @@
       // 0. Active Template Typography & Layout Styles
       if (state.activeTemplate) {
         const tpl = state.activeTemplate;
+        const baseFontSize = tpl.fontSize || 52;
+        const baseLetterSpacing = tpl.letterSpacing || 0;
+        const basePadding = tpl.padding || 0;
+        const baseRadius = tpl.borderRadius || 0;
+
         textEl.style.fontFamily = tpl.fontFamily || 'Inter, sans-serif';
-        textEl.style.fontSize = (tpl.fontSize || 52) + 'px';
+        textEl.style.fontSize = `calc(${baseFontSize} * 0.0521vw)`;
         textEl.style.fontWeight = tpl.fontWeight || '700';
         textEl.style.fontStyle = tpl.fontStyle || 'normal';
         textEl.style.textDecoration = tpl.textDecoration || 'none';
         textEl.style.textTransform = tpl.textTransform || 'none';
         textEl.style.webkitTextStroke = tpl.webkitTextStroke || (tpl.outlineEnable ? `${tpl.outlineWidth || 2}px ${tpl.outlineColor || '#000000'}` : 'none');
-        textEl.style.letterSpacing = (tpl.letterSpacing || 0) + 'px';
+        textEl.style.letterSpacing = `calc(${baseLetterSpacing} * 0.0521vw)`;
         textEl.style.lineHeight = tpl.lineHeight || 1.25;
         textEl.style.color = tpl.color || '#ffffff';
         textEl.style.textShadow = tpl.textShadow || '0 4px 16px rgba(0,0,0,0.8)';
         textEl.style.textAlign = tpl.textAlign || 'center';
         textEl.style.backgroundColor = tpl.bgColor || 'transparent';
-        textEl.style.padding = (tpl.padding || 0) + 'px';
-        textEl.style.borderRadius = (tpl.borderRadius || 0) + 'px';
+        textEl.style.padding = `calc(${basePadding} * 0.025vw) calc(${basePadding} * 0.045vw)`;
+        textEl.style.borderRadius = `calc(${baseRadius} * 0.04vw)`;
         
         // Vertical Position Y
         textEl.style.position = 'absolute';

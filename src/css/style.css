@@ -3876,24 +3876,21 @@ textarea::selection,
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 6px;
+  padding: 0;
   position: relative;
   border: 1px solid rgba(255, 255, 255, 0.05);
+  container-type: inline-size;
+  container-name: edthumb;
 }
 
 .editor-slide-thumb-text {
-  font-size: 0.62rem;
   color: #fff;
   text-align: center;
   line-height: 1.25;
   white-space: pre-wrap;
-  word-break: break-word;
-  max-height: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 4;
-  -webkit-box-orient: vertical;
+  word-break: normal;
+  overflow-wrap: normal;
+  box-sizing: border-box;
 }
 
 .editor-sidebar-footer {
@@ -4090,6 +4087,8 @@ textarea::selection,
   display: flex;
   align-items: center;
   justify-content: center;
+  container-type: inline-size;
+  container-name: edcanvas;
 }
 
 .editor-canvas-bg {
@@ -4103,18 +4102,19 @@ textarea::selection,
   opacity: 0.45;
 }
 
-/* FreeShow Bounding Box */
+/* FreeShow Bounding Box - 90% ancho (left 5%, right 5%) idéntico a proyección */
 .editor-bounding-box {
   position: absolute;
-  left: 6%;
-  right: 6%;
+  left: 5%;
+  right: 5%;
   top: 50%;
   transform: translateY(-50%);
   border: 2px solid #ec4899;
   border-radius: 4px;
-  padding: 14px;
+  padding: 0;
+  box-sizing: border-box;
   cursor: text;
-  min-height: 80px;
+  min-height: 60px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -4173,17 +4173,19 @@ textarea::selection,
 
 .editor-canvas-textbox {
   width: 100%;
-  min-height: 50px;
+  min-height: 40px;
   outline: none;
   background: transparent;
   color: #fff;
   font-family: 'Inter', sans-serif;
-  font-size: 56px;
+  font-size: calc(56 * 0.0521cqw);
   font-weight: 700;
   text-align: center;
   line-height: 1.25;
-  word-break: break-word;
+  word-break: normal;
+  overflow-wrap: normal;
   white-space: pre-wrap;
+  box-sizing: border-box;
   caret-color: #ec4899;
   user-select: text;
   text-shadow: 0 4px 16px rgba(0, 0, 0, 0.9);
