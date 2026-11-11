@@ -57,6 +57,9 @@ function createMainWindow() {
 
   mainWindow.on('closed', () => {
     mainWindow = null;
+    for (const folderPath of physicalFolderWatchers.keys()) {
+      unwatchPhysicalFolder(folderPath);
+    }
     if (audienceWindow) audienceWindow.close();
     if (stageWindow) stageWindow.close();
   });
@@ -215,10 +218,10 @@ const MEDIA_EXT_REGEX = /\.(mp4|webm|mov|avi|mkv|png|jpg|jpeg|gif|webp|svg|bmp)$
 const IMAGE_EXT_REGEX = /\.(png|jpg|jpeg|gif|webp|svg|bmp)$/i;
 const physicalFolderWatchers = new Map();
 
-function scanPhysicalFolder(folderPath) {
+async function scanPhysicalFolder(folderPath) {
   try {
-    if (!folderPath || !fs.existsSync(folderPath)) return [];
-    const entries = fs.readdirSync(folderPath, { withFileTypes: true });
+    if (!folderPath) return [];
+    const entries = await fs.promises.readdir(folderPath, { withFileTypes: true });
     const files = [];
     for (const entry of entries) {
       if (entry.isFile() && MEDIA_EXT_REGEX.test(entry.name)) {
@@ -256,32 +259,44 @@ function unwatchPhysicalFolder(folderPath) {
   }
 }
 
-function watchPhysicalFolder(folderPath) {
-  if (!folderPath || !fs.existsSync(folderPath)) return [];
+async function watchPhysicalFolder(folderPath) {
+  if (!folderPath) return [];
+  try {
+    await fs.promises.access(folderPath);
+  } catch {
+    return [];
+  }
   unwatchPhysicalFolder(folderPath);
 
   const folderName = path.basename(folderPath) || folderPath;
   let lastFilesSignature = '';
+  let isScanning = false;
 
-  const emitIfChanged = (force = false) => {
-    const files = scanPhysicalFolder(folderPath);
-    const sig = files.map(f => f.name).join('|');
-    if (force || sig !== lastFilesSignature) {
-      lastFilesSignature = sig;
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send('physical-folder-updated', {
-          path: folderPath,
-          name: folderName,
-          folderPath,
-          folderName,
-          files
-        });
+  const emitIfChanged = async (force = false) => {
+    if (isScanning) return [];
+    isScanning = true;
+    try {
+      const files = await scanPhysicalFolder(folderPath);
+      const sig = files.map(f => f.name).join('|');
+      if (force || sig !== lastFilesSignature) {
+        lastFilesSignature = sig;
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('physical-folder-updated', {
+            path: folderPath,
+            name: folderName,
+            folderPath,
+            folderName,
+            files
+          });
+        }
       }
+      return files;
+    } finally {
+      isScanning = false;
     }
-    return files;
   };
 
-  const initialFiles = scanPhysicalFolder(folderPath);
+  const initialFiles = await scanPhysicalFolder(folderPath);
   lastFilesSignature = initialFiles.map(f => f.name).join('|');
 
   let watcher = null;
@@ -322,7 +337,7 @@ ipcMain.handle('select-physical-folder', async () => {
 
   const folderPath = result.filePaths[0];
   const folderName = path.basename(folderPath) || folderPath;
-  const files = watchPhysicalFolder(folderPath);
+  const files = await watchPhysicalFolder(folderPath);
 
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.focus();
@@ -343,9 +358,15 @@ ipcMain.handle('sync-physical-folders', async (event, folderPaths) => {
   const synced = [];
   for (const rawPath of folderPaths) {
     if (!rawPath || typeof rawPath !== 'string') continue;
-    const exists = fs.existsSync(rawPath);
+    let exists = false;
+    try {
+      await fs.promises.access(rawPath);
+      exists = true;
+    } catch {
+      exists = false;
+    }
     const folderName = path.basename(rawPath) || rawPath;
-    const files = exists ? watchPhysicalFolder(rawPath) : [];
+    const files = exists ? await watchPhysicalFolder(rawPath) : [];
     synced.push({
       path: rawPath,
       name: folderName,

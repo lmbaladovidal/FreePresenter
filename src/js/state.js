@@ -431,7 +431,7 @@ export class Store {
     }
 
     // Provider for new windows requesting current state on launch
-    sync.setStateProvider(() => this.state);
+    sync.setStateProvider(() => this.getProjectionPayload());
   }
 
   get activeDeck() {
@@ -445,10 +445,21 @@ export class Store {
     };
   }
 
+  getProjectionPayload() {
+    const { mediaLibrary, mediaFolders, physicalMediaFolders, ...projectionState } = this.state;
+    return projectionState;
+  }
+
   notify() {
     this.listeners.forEach(fn => fn(this.state, this.decks));
+
+    // Persistir en localStorage sin duplicar miniaturas Base64 pesadas (que viven en IndexedDB)
+    const lightMediaLib = Array.isArray(this.state.mediaLibrary)
+      ? this.state.mediaLibrary.map(({ thumbnail, ...rest }) => rest)
+      : [];
+
     setStorageItem("propresenter_decks", JSON.stringify(this.decks));
-    setStorageItem("propresenter_media_library", JSON.stringify(this.state.mediaLibrary));
+    setStorageItem("propresenter_media_library", JSON.stringify(lightMediaLib));
     setStorageItem("propresenter_media_folders", JSON.stringify(this.state.mediaFolders));
     setStorageItem("propresenter_physical_media_folders", JSON.stringify(this.state.physicalMediaFolders || []));
     setStorageItem("propresenter_media_queue", JSON.stringify(this.state.mediaQueue || []));
@@ -460,8 +471,8 @@ export class Store {
     setStorageItem("propresenter_media_audio_muted", String(this.state.isMediaAudioMuted));
     setStorageItem("propresenter_media_audio_volume", String(this.state.mediaAudioVolume));
 
-    // Transmit updated state to Audience and Stage displays via Broadcast & IPC
-    sync.sendUpdate(this.state);
+    // Transmit lightweight projection state to Audience and Stage displays via Broadcast & IPC
+    sync.sendUpdate(this.getProjectionPayload());
   }
 
   toggleMediaAudio() {
@@ -1233,6 +1244,14 @@ export class Store {
     if (Array.isArray(this.state.physicalMediaFolders)) {
       this.state.physicalMediaFolders = this.state.physicalMediaFolders.filter(f => f.path !== normalizedPath);
     }
+    this.state.mediaLibrary.forEach(item => {
+      const belongsToFolder = item.physicalFolder === normalizedPath ||
+        item.physicalFolderPath === normalizedPath ||
+        item.folder === folderTag;
+      if (belongsToFolder && typeof item.url === 'string' && item.url.startsWith('blob:')) {
+        try { URL.revokeObjectURL(item.url); } catch (e) {}
+      }
+    });
     this.state.mediaLibrary = this.state.mediaLibrary.filter(item =>
       item.physicalFolder !== normalizedPath &&
       item.physicalFolderPath !== normalizedPath &&
@@ -1295,9 +1314,8 @@ export class Store {
 
   updateMediaItemThumbnail(itemId, thumbnail) {
     const target = this.state.mediaLibrary.find(m => m.id === itemId);
-    if (target && thumbnail) {
+    if (target && thumbnail && target.thumbnail !== thumbnail) {
       target.thumbnail = thumbnail;
-      setStorageItem("propresenter_media_library", JSON.stringify(this.state.mediaLibrary));
       this.notify();
     }
   }

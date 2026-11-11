@@ -35,6 +35,41 @@ function getDB() {
 }
 
 export class MediaCache {
+  static _thumbQueue = [];
+  static _activeWorkers = 0;
+  static _maxConcurrency = 2;
+  static _inFlightIds = new Set();
+
+  /**
+   * Encola la generación de una miniatura con concurrencia limitada (máx. 2 decodificadores simultáneos)
+   * y deduplicación de tareas en vuelo para no saturar WebMediaPlayer en Chromium.
+   */
+  static enqueueThumbnailGeneration(id, fileOrUrl, type = '') {
+    if (!id || !fileOrUrl) return Promise.resolve(null);
+    if (this._inFlightIds.has(id)) return Promise.resolve(null);
+    this._inFlightIds.add(id);
+
+    return new Promise((resolve) => {
+      this._thumbQueue.push({ id, fileOrUrl, type, resolve });
+      this._processThumbQueue();
+    });
+  }
+
+  static _processThumbQueue() {
+    while (this._activeWorkers < this._maxConcurrency && this._thumbQueue.length > 0) {
+      const task = this._thumbQueue.shift();
+      this._activeWorkers++;
+      this.generateThumbnail(task.fileOrUrl, task.type)
+        .then((res) => task.resolve(res))
+        .catch(() => task.resolve(null))
+        .finally(() => {
+          this._inFlightIds.delete(task.id);
+          this._activeWorkers--;
+          this._processThumbQueue();
+        });
+    }
+  }
+
   /**
    * Guarda una miniatura en IndexedDB
    */

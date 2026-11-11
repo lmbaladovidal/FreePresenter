@@ -1655,16 +1655,22 @@ class ProPresenterApp {
     if (!normQuery) return true;
 
     const terms = normQuery.split(/\s+/).filter(Boolean);
-    const titleNorm = this.normalizeSearchText(deck.title);
-    const catNorm = this.normalizeSearchText(deck.category || deck.type);
-    const lyricsNorm = this.normalizeSearchText(
-      (deck.groups || [])
-        .map(g => `${g.name || ''} ${(g.slides || []).map(s => (s.text || '').replace(/<[^>]+>/g, ' ')).join(' ')}`)
-        .join(' ')
-    );
+    const groups = deck.groups || [];
+    const rawSnapshot = `${deck.title}|${deck.category || deck.type}|${groups.length}|${groups[0]?.slides?.[0]?.text || ''}|${groups[groups.length - 1]?.slides?.slice(-1)?.[0]?.text || ''}`;
 
-    const combined = `${titleNorm} ${catNorm} ${lyricsNorm}`;
-    return terms.every(term => combined.includes(term));
+    if (deck._searchSnapshot !== rawSnapshot || !deck._searchIndex) {
+      const titleNorm = this.normalizeSearchText(deck.title);
+      const catNorm = this.normalizeSearchText(deck.category || deck.type);
+      const lyricsNorm = this.normalizeSearchText(
+        groups
+          .map(g => `${g.name || ''} ${(g.slides || []).map(s => (s.text || '').replace(/<[^>]+>/g, ' ')).join(' ')}`)
+          .join(' ')
+      );
+      deck._searchSnapshot = rawSnapshot;
+      deck._searchIndex = `${titleNorm} ${catNorm} ${lyricsNorm}`;
+    }
+
+    return terms.every(term => deck._searchIndex.includes(term));
   }
 
   openEditDeckModal(deckId) {
@@ -3657,14 +3663,14 @@ class ProPresenterApp {
           `;
         }).join('');
 
-        // Disparar generación o recuperación de miniaturas en segundo plano para items sin miniatura
+        // Disparar generación o recuperación de miniaturas en segundo plano con cola de concurrencia limitada
         filteredMedia.forEach(item => {
           if (!item.thumbnail && item.url) {
             MediaCache.getThumbnail(item.id).then(cached => {
               if (cached) {
                 store.updateMediaItemThumbnail(item.id, cached);
               } else {
-                MediaCache.generateThumbnail(item.url, item.type).then(newThumb => {
+                MediaCache.enqueueThumbnailGeneration(item.id, item.url, item.type).then(newThumb => {
                   if (newThumb) {
                     MediaCache.saveThumbnail(item.id, newThumb);
                     store.updateMediaItemThumbnail(item.id, newThumb);
@@ -4756,137 +4762,170 @@ class ProPresenterApp {
         }
       }
 
-      let globalIndex = 1;
-      const allCardsHTML = activeDeck.groups.flatMap((group, gIdx) => {
-        return group.slides.map((slide, sIdx) => {
+      const activeMediaUrlForKey = (!state.isMediaCleared && state.activeVideoUrl) ? state.activeVideoUrl : '';
+      const activeMediaItemForKey = activeMediaUrlForKey ? state.mediaLibrary?.find(m => m.url === activeMediaUrlForKey) : null;
+      const slideCardsStructuralKey = JSON.stringify({
+        deckId: activeDeck.id,
+        templateId: activeDeck.templateId,
+        activeTplId: store.activeTemplateId,
+        deckStyle: activeDeck.style,
+        mediaUrl: activeMediaUrlForKey,
+        mediaThumb: activeMediaItemForKey?.thumbnail ? '1' : '0',
+        groups: activeDeck.groups.map(g => ({
+          name: g.name,
+          badge: g.badge,
+          slides: g.slides.map(s => ({ id: s.id, text: s.text, style: s.style, isLt: s.isLowerThird }))
+        }))
+      });
+
+      if (this.lastSlideCardsStructuralKey === slideCardsStructuralKey && this.slideGroupsWrapper.querySelector('.slide-cards-grid')) {
+        // Fast-path: actualizar únicamente la clase .active-live sin destruir el DOM ni los decodificadores <video>
+        this.slideGroupsWrapper.querySelectorAll('.slide-card').forEach(card => {
+          const gIdx = parseInt(card.getAttribute('data-gidx'));
+          const sIdx = parseInt(card.getAttribute('data-sidx'));
+          const group = activeDeck.groups[gIdx];
+          const slide = group?.slides?.[sIdx];
+          if (!slide) return;
           const isLtSlide = slide.isLowerThird || (group.badge === 'badge-lowerthird');
           const isLive = isLtSlide
             ? (state.isLowerThirdActive && !state.isOverlayCleared && state.lowerThirdText === (slide.text.split('\n')[0] || ''))
             : (state.liveSlideId === slide.id && !state.isTextCleared);
-          const cardIdx = globalIndex++;
-          const tpl = this.getSlideEffectiveStyle(activeDeck, slide);
+          card.classList.toggle('active-live', isLive);
+        });
+      } else {
+        this.lastSlideCardsStructuralKey = slideCardsStructuralKey;
+        let globalIndex = 1;
+        const allCardsHTML = activeDeck.groups.flatMap((group, gIdx) => {
+          return group.slides.map((slide, sIdx) => {
+            const isLtSlide = slide.isLowerThird || (group.badge === 'badge-lowerthird');
+            const isLive = isLtSlide
+              ? (state.isLowerThirdActive && !state.isOverlayCleared && state.lowerThirdText === (slide.text.split('\n')[0] || ''))
+              : (state.liveSlideId === slide.id && !state.isTextCleared);
+            const cardIdx = globalIndex++;
+            const tpl = this.getSlideEffectiveStyle(activeDeck, slide);
 
-          const posY = tpl.posY !== undefined ? tpl.posY : 50;
-          const textAlign = tpl.textAlign || 'center';
-          const baseFontSize = tpl.fontSize || 52;
-          const baseLetterSpacing = tpl.letterSpacing || 0;
-          const basePadding = tpl.padding || 16;
-          const baseRadius = tpl.borderRadius || 6;
-          const maxLines = tpl.maxLines || 0;
+            const posY = tpl.posY !== undefined ? tpl.posY : 50;
+            const textAlign = tpl.textAlign || 'center';
+            const baseFontSize = tpl.fontSize || 52;
+            const baseLetterSpacing = tpl.letterSpacing || 0;
+            const basePadding = tpl.padding || 16;
+            const baseRadius = tpl.borderRadius || 6;
+            const maxLines = tpl.maxLines || 0;
 
-          const tplStyles = [
-            `font-family: ${tpl.fontFamily || 'Inter, sans-serif'}`,
-            `font-size: calc(${baseFontSize} * 0.0521cqw)`,
-            `font-weight: ${tpl.fontWeight || '700'}`,
-            `font-style: ${tpl.fontStyle || 'normal'}`,
-            `text-decoration: ${tpl.textDecoration || 'none'}`,
-            `text-transform: ${tpl.textTransform || 'none'}`,
-            `-webkit-text-stroke: ${tpl.webkitTextStroke || 'none'}`,
-            `letter-spacing: calc(${baseLetterSpacing} * 0.0521cqw)`,
-            `line-height: ${tpl.lineHeight || 1.25}`,
-            `color: ${tpl.color || '#ffffff'}`,
-            `text-align: ${textAlign}`,
-            `text-shadow: ${tpl.textShadow || '0 0.3cqw 1cqw rgba(0,0,0,0.9)'}`,
-            `background-color: ${tpl.bgColor || 'transparent'}`,
-            `padding: calc(${basePadding} * 0.025cqw) calc(${basePadding} * 0.045cqw)`,
-            `border-radius: calc(${baseRadius} * 0.04cqw)`,
-            `box-sizing: border-box`,
-            `white-space: pre-wrap`,
-            `word-break: normal`,
-            `overflow-wrap: normal`,
-            maxLines > 0 ? `display: -webkit-box; -webkit-line-clamp: ${maxLines}; -webkit-box-orient: vertical; overflow: hidden;` : 'display: inline-block;'
-          ].join('; ');
+            const tplStyles = [
+              `font-family: ${tpl.fontFamily || 'Inter, sans-serif'}`,
+              `font-size: calc(${baseFontSize} * 0.0521cqw)`,
+              `font-weight: ${tpl.fontWeight || '700'}`,
+              `font-style: ${tpl.fontStyle || 'normal'}`,
+              `text-decoration: ${tpl.textDecoration || 'none'}`,
+              `text-transform: ${tpl.textTransform || 'none'}`,
+              `-webkit-text-stroke: ${tpl.webkitTextStroke || 'none'}`,
+              `letter-spacing: calc(${baseLetterSpacing} * 0.0521cqw)`,
+              `line-height: ${tpl.lineHeight || 1.25}`,
+              `color: ${tpl.color || '#ffffff'}`,
+              `text-align: ${textAlign}`,
+              `text-shadow: ${tpl.textShadow || '0 0.3cqw 1cqw rgba(0,0,0,0.9)'}`,
+              `background-color: ${tpl.bgColor || 'transparent'}`,
+              `padding: calc(${basePadding} * 0.025cqw) calc(${basePadding} * 0.045cqw)`,
+              `border-radius: calc(${baseRadius} * 0.04cqw)`,
+              `box-sizing: border-box`,
+              `white-space: pre-wrap`,
+              `word-break: normal`,
+              `overflow-wrap: normal`,
+              maxLines > 0 ? `display: -webkit-box; -webkit-line-clamp: ${maxLines}; -webkit-box-orient: vertical; overflow: hidden;` : 'display: inline-block;'
+            ].join('; ');
 
-          const activeMediaUrl = (!state.isMediaCleared && state.activeVideoUrl) ? state.activeVideoUrl : '';
-          const activeMediaItem = activeMediaUrl ? state.mediaLibrary?.find(m => m.url === activeMediaUrl) : null;
-          const activeMediaThumb = activeMediaItem?.thumbnail || '';
-          const isImg = (state.activeVideoType && state.activeVideoType.startsWith('image/')) || (state.activeVideoIsImage && !state.activeVideoType?.startsWith('video/')) || (activeMediaUrl && !activeMediaUrl.startsWith('blob:') && !!activeMediaUrl.match(/\.(jpeg|jpg|gif|png|webp|svg)($|\?)/i));
-          
-          let cardBgHTML = '';
-          if (activeMediaUrl) {
-            if (isImg || activeMediaThumb) {
-              cardBgHTML = `<img src="${activeMediaThumb || activeMediaUrl}" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.55; z-index: 0; pointer-events: none;" />`;
+            const activeMediaUrl = (!state.isMediaCleared && state.activeVideoUrl) ? state.activeVideoUrl : '';
+            const activeMediaItem = activeMediaUrl ? state.mediaLibrary?.find(m => m.url === activeMediaUrl) : null;
+            const activeMediaThumb = activeMediaItem?.thumbnail || '';
+            const isImg = (state.activeVideoType && state.activeVideoType.startsWith('image/')) || (state.activeVideoIsImage && !state.activeVideoType?.startsWith('video/')) || (activeMediaUrl && !activeMediaUrl.startsWith('blob:') && !!activeMediaUrl.match(/\.(jpeg|jpg|gif|png|webp|svg)($|\?)/i));
+            
+            let cardBgHTML = '';
+            if (activeMediaUrl) {
+              if (isImg || activeMediaThumb) {
+                cardBgHTML = `<img src="${activeMediaThumb || activeMediaUrl}" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.55; z-index: 0; pointer-events: none;" />`;
+              } else {
+                cardBgHTML = `<video src="${activeMediaUrl}" muted preload="metadata" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.55; z-index: 0; pointer-events: none;"></video>`;
+              }
             } else {
-              cardBgHTML = `<video src="${activeMediaUrl}" muted preload="metadata" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.55; z-index: 0; pointer-events: none;"></video>`;
+              cardBgHTML = `<div style="position: absolute; inset: 0; background: radial-gradient(circle at center, #1e293b 0%, #090d16 100%); z-index: 0; pointer-events: none;"></div>`;
             }
-          } else {
-            cardBgHTML = `<div style="position: absolute; inset: 0; background: radial-gradient(circle at center, #1e293b 0%, #090d16 100%); z-index: 0; pointer-events: none;"></div>`;
-          }
 
-          return `
-            <div class="slide-card ${isLive ? 'active-live' : ''}" data-gidx="${gIdx}" data-sidx="${sIdx}">
-              ${cardBgHTML}
-              <span class="slide-card-index">${cardIdx}</span>
-              <span class="slide-card-live-badge">EN VIVO</span>
-              <div class="slide-card-text-wrapper" style="position: absolute; left: 5%; right: 5%; top: ${posY}%; transform: translateY(-50%); text-align: ${textAlign}; pointer-events: none; z-index: 2;">
-                <div class="slide-card-text" style="${tplStyles}">${slide.text.replace(/\n/g, '<br/>')}</div>
+            return `
+              <div class="slide-card ${isLive ? 'active-live' : ''}" data-gidx="${gIdx}" data-sidx="${sIdx}">
+                ${cardBgHTML}
+                <span class="slide-card-index">${cardIdx}</span>
+                <span class="slide-card-live-badge">EN VIVO</span>
+                <div class="slide-card-text-wrapper" style="position: absolute; left: 5%; right: 5%; top: ${posY}%; transform: translateY(-50%); text-align: ${textAlign}; pointer-events: none; z-index: 2;">
+                  <div class="slide-card-text" style="${tplStyles}">${slide.text.replace(/\n/g, '<br/>')}</div>
+                </div>
+                <div class="slide-card-footer-line">
+                  <span class="badge ${group.badge} slide-card-section-badge" data-gidx="${gIdx}" data-sidx="${sIdx}" title="Clic para cambiar o asignar sección">
+                    ${group.name} ▾
+                  </span>
+                </div>
               </div>
-              <div class="slide-card-footer-line">
-                <span class="badge ${group.badge} slide-card-section-badge" data-gidx="${gIdx}" data-sidx="${sIdx}" title="Clic para cambiar o asignar sección">
-                  ${group.name} ▾
-                </span>
-              </div>
-            </div>
-          `;
-        });
-      }).join('');
+            `;
+          });
+        }).join('');
 
-      const savedCardSize = (typeof localStorage !== 'undefined' && localStorage.getItem('propresenter_slide_card_size')) || '220';
-      this.slideGroupsWrapper.innerHTML = `
-        <div class="slide-cards-grid" style="--slide-card-min-width: ${savedCardSize}px;">
-          ${allCardsHTML}
-        </div>
-      `;
+        const savedCardSize = (typeof localStorage !== 'undefined' && localStorage.getItem('propresenter_slide_card_size')) || '220';
+        this.slideGroupsWrapper.innerHTML = `
+          <div class="slide-cards-grid" style="--slide-card-min-width: ${savedCardSize}px;">
+            ${allCardsHTML}
+          </div>
+        `;
 
-      this.slideGroupsWrapper.querySelectorAll('.slide-card').forEach(card => {
-        const gIdx = parseInt(card.getAttribute('data-gidx'));
-        const sIdx = parseInt(card.getAttribute('data-sidx'));
-        const groupObj = activeDeck.groups[gIdx];
-        const slideObj = groupObj?.slides[sIdx];
+        this.slideGroupsWrapper.querySelectorAll('.slide-card').forEach(card => {
+          const gIdx = parseInt(card.getAttribute('data-gidx'));
+          const sIdx = parseInt(card.getAttribute('data-sidx'));
+          const groupObj = activeDeck.groups[gIdx];
+          const slideObj = groupObj?.slides[sIdx];
 
-        card.addEventListener('click', () => {
-          store.setLiveSlide(gIdx, sIdx);
-        });
+          card.addEventListener('click', () => {
+            store.setLiveSlide(gIdx, sIdx);
+          });
 
-        card.querySelector('.slide-card-section-badge')?.addEventListener('click', (e) => {
-          e.stopPropagation();
-          this.openSectionPickerModal({
-            deckId: activeDeck.id,
-            groupIndex: gIdx,
-            slideIndex: sIdx,
-            currentName: groupObj.name,
-            currentBadge: groupObj.badge,
-            canSplit: (groupObj.slides?.length || 0) > 1 && sIdx > 0
+          card.querySelector('.slide-card-section-badge')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.openSectionPickerModal({
+              deckId: activeDeck.id,
+              groupIndex: gIdx,
+              slideIndex: sIdx,
+              currentName: groupObj.name,
+              currentBadge: groupObj.badge,
+              canSplit: (groupObj.slides?.length || 0) > 1 && sIdx > 0
+            });
+          });
+
+          card.addEventListener('dblclick', (e) => {
+            e.stopPropagation();
+            if (slideObj) {
+              this.openEditSlideModal({
+                type: 'slide',
+                deckId: activeDeck.id,
+                groupIndex: gIdx,
+                slideIndex: sIdx,
+                text: slideObj.text,
+                name: `${groupObj.name || 'Filmina'} #${sIdx + 1}`
+              });
+            }
+          });
+
+          card.addEventListener('contextmenu', (e) => {
+            if (slideObj) {
+              this.showContextMenu(e, {
+                type: 'slide',
+                deckId: activeDeck.id,
+                groupIndex: gIdx,
+                slideIndex: sIdx,
+                text: slideObj.text,
+                name: `${groupObj.name || 'Filmina'} #${sIdx + 1}`
+              });
+            }
           });
         });
-
-        card.addEventListener('dblclick', (e) => {
-          e.stopPropagation();
-          if (slideObj) {
-            this.openEditSlideModal({
-              type: 'slide',
-              deckId: activeDeck.id,
-              groupIndex: gIdx,
-              slideIndex: sIdx,
-              text: slideObj.text,
-              name: `${groupObj.name || 'Filmina'} #${sIdx + 1}`
-            });
-          }
-        });
-
-        card.addEventListener('contextmenu', (e) => {
-          if (slideObj) {
-            this.showContextMenu(e, {
-              type: 'slide',
-              deckId: activeDeck.id,
-              groupIndex: gIdx,
-              slideIndex: sIdx,
-              text: slideObj.text,
-              name: `${groupObj.name || 'Filmina'} #${sIdx + 1}`
-            });
-          }
-        });
-      });
+      }
     }
 
     // Sync transition toggle buttons active state

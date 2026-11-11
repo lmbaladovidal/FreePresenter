@@ -20,14 +20,26 @@ contextBridge.exposeInMainWorld('electronAPI', {
   selectPhysicalFolder: () => ipcRenderer.invoke('select-physical-folder'),
   syncPhysicalFolders: (folderPaths) => ipcRenderer.invoke('sync-physical-folders', folderPaths),
   unwatchPhysicalFolder: (folderPath) => ipcRenderer.invoke('unwatch-physical-folder', folderPath),
-  onPhysicalFolderUpdated: (callback) => ipcRenderer.on('physical-folder-updated', (event, payload) => callback(payload)),
+  onPhysicalFolderUpdated: (callback) => {
+    const handler = (_event, payload) => callback(payload);
+    ipcRenderer.on('physical-folder-updated', handler);
+    return () => ipcRenderer.removeListener('physical-folder-updated', handler);
+  },
   getDisplays: () => ipcRenderer.invoke('get-displays'),
   minimizeWindow: () => ipcRenderer.send('window-minimize'),
   maximizeWindow: () => ipcRenderer.send('window-maximize'),
   closeWindow: () => ipcRenderer.send('window-close'),
   sendBroadcast: (state) => ipcRenderer.send('broadcast-update', state),
-  onBroadcastUpdate: (callback) => ipcRenderer.on('broadcast-update', (event, state) => callback(state)),
+  onBroadcastUpdate: (callback) => {
+    const handler = (_event, state) => callback(state);
+    ipcRenderer.on('broadcast-update', handler);
+    return () => ipcRenderer.removeListener('broadcast-update', handler);
+  },
   isAudienceOpen: () => ipcRenderer.invoke('is-audience-open'),
-  onAudienceStatusChanged: (callback) => ipcRenderer.on('audience-status-changed', (event, isOpen) => callback(isOpen))
+  onAudienceStatusChanged: (callback) => {
+    const handler = (_event, isOpen) => callback(isOpen);
+    ipcRenderer.on('audience-status-changed', handler);
+    return () => ipcRenderer.removeListener('audience-status-changed', handler);
+  }
 });
 
