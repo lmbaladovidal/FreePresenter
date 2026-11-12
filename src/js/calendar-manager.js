@@ -3,6 +3,7 @@
  */
 
 import { store } from './state.js';
+import { iconSvg } from './icons.js';
 
 class CalendarManager {
   constructor() {
@@ -178,7 +179,7 @@ class CalendarManager {
             ${dayEvents.map(ev => `
               <div class="cal-event-pill" data-evt-id="${ev.id}" title="${ev.title} (${ev.time})" style="background: rgba(236, 72, 153, 0.2); border-left: 2px solid var(--accent-pink); color: #fff; font-size: 0.62rem; font-weight: 600; padding: 1px 4px; border-radius: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; justify-content: space-between;">
                 <span>${ev.time} ${ev.title}</span>
-                <span class="btn-quick-project" data-evt-id="${ev.id}" title="Proyectar Anuncio" style="margin-left: 4px; opacity: 0.8;">📢</span>
+                <span class="btn-quick-project" data-evt-id="${ev.id}" title="Proyectar Anuncio" style="margin-left: 4px; display: inline-flex; align-items: center; opacity: 0.8;">${iconSvg('megaphone', { size: 11 })}</span>
               </div>
             `).join('')}
           </div>
@@ -212,7 +213,7 @@ class CalendarManager {
   }
 
   projectEventAnnouncement(ev) {
-    const titleText = `📅 PRÓXIMO EVENTO: ${ev.title.toUpperCase()}`;
+    const titleText = `PRÓXIMO EVENTO: ${ev.title.toUpperCase()}`;
     const descText = `Fecha: ${ev.date} - Hora: ${ev.time} hs\n${ev.notes || ev.category}`;
 
     store.updateActiveSlide(

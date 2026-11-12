@@ -159,15 +159,27 @@ Tú las cambiaste por tu amor y tus bondades`
   }
 ];
 
+let activeSearchController = null;
+
 export async function searchSongsOnline(query) {
   if (!query || !query.trim()) return [];
 
   const normQuery = query.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   const results = [];
 
+  if (activeSearchController) {
+    activeSearchController.abort();
+  }
+  const controller = new AbortController();
+  activeSearchController = controller;
+  const timeoutId = setTimeout(() => controller.abort(), 6000);
+
   // 1. Consulta a API web pública abierta LRCLIB
   try {
-    const response = await fetch(`https://lrclib.net/api/search?q=${encodeURIComponent(query.trim())}`);
+    const response = await fetch(`https://lrclib.net/api/search?q=${encodeURIComponent(query.trim())}`, {
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
     if (response.ok) {
       const data = await response.json();
       if (Array.isArray(data)) {
@@ -189,7 +201,10 @@ export async function searchSongsOnline(query) {
       }
     }
   } catch (e) {
-    console.warn("Búsqueda web externa no disponible o sin conexión:", e);
+    clearTimeout(timeoutId);
+    if (e?.name !== "AbortError") {
+      console.warn("Búsqueda web externa no disponible o sin conexión:", e);
+    }
   }
 
   // 2. Coincidencias en catálogo local rápido de alabanzas

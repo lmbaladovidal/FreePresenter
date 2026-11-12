@@ -31,9 +31,23 @@ export class BroadcastSync {
 
     // Electron native IPC listener
     if (typeof window !== "undefined" && window.electronAPI && window.electronAPI.onBroadcastUpdate) {
-      window.electronAPI.onBroadcastUpdate((state) => {
+      this._unsubscribeIpc = window.electronAPI.onBroadcastUpdate((state) => {
         this.listeners.forEach(fn => fn(state));
       });
+    }
+
+    if (typeof window !== "undefined" && typeof window.addEventListener === "function") {
+      window.addEventListener("beforeunload", () => this.close(), { once: true });
+    }
+  }
+
+  close() {
+    if (typeof this._unsubscribeIpc === "function") {
+      this._unsubscribeIpc();
+      this._unsubscribeIpc = null;
+    }
+    if (this.channel) {
+      try { this.channel.close(); } catch (e) {}
     }
   }
 

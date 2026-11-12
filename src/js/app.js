@@ -9,6 +9,8 @@ import { BIBLE_BOOKS, BIBLE_VERSIONS, getAllBibleVersions, getChapterVerses, spl
 import { searchSongsOnline } from './song-search.js';
 import { calendarManager } from './calendar-manager.js';
 import { MediaCache } from './media-cache.js';
+import { importPresentationSource, isPresentationFileName } from './presentation-importer.js';
+import { initIcons, iconSvg, getSectionIconSvg, getCategoryIconSvg } from './icons.js';
 import pkg from '../../package.json';
 
 class ProPresenterApp {
@@ -102,6 +104,7 @@ class ProPresenterApp {
   }
 
   initDOM() {
+    initIcons();
     this.brandBadgeEl = document.getElementById('app-brand-badge') || document.querySelector('.brand-badge');
     if (this.brandBadgeEl && pkg && pkg.version) {
       this.brandBadgeEl.textContent = `PRO v${pkg.version}`;
@@ -194,7 +197,7 @@ class ProPresenterApp {
           if (store.activeDeckId) {
             this.openFullScreenSongEditor(store.activeDeckId);
           } else {
-            this.showToast("⚠️ Selecciona una canción para editar en pantalla completa.", "warn");
+            this.showToast("Selecciona una canción para editar en pantalla completa.", "warn");
           }
         } else if (mode === 'show') {
           this.closeFullScreenSongEditor();
@@ -279,6 +282,9 @@ class ProPresenterApp {
       timelineSlider.addEventListener('touchend', endScrub);
       timelineSlider.addEventListener('change', endScrub);
 
+      let seekRafId = null;
+      let lastBroadcastSeekTs = 0;
+
       timelineSlider.addEventListener('input', () => {
         this.isScrubbingTimeline = true;
         const activeVid = this.getActiveOperatorVideo();
@@ -287,12 +293,20 @@ class ProPresenterApp {
 
         if (activeVid && activeVid.duration && isFinite(activeVid.duration)) {
           const targetTime = ratio * activeVid.duration;
-          try { activeVid.currentTime = targetTime; } catch (e) {}
           const curEl = document.getElementById('lbl-timeline-current');
           const remEl = document.getElementById('lbl-timeline-remaining');
           if (curEl) curEl.textContent = this.formatMediaTime(targetTime);
           if (remEl) remEl.textContent = `-${this.formatMediaTime(Math.max(0, activeVid.duration - targetTime))}`;
-          store.seekActiveMedia(targetTime);
+
+          if (seekRafId) cancelAnimationFrame(seekRafId);
+          seekRafId = requestAnimationFrame(() => {
+            try { activeVid.currentTime = targetTime; } catch (e) {}
+            const now = performance.now();
+            if (now - lastBroadcastSeekTs > 80) {
+              lastBroadcastSeekTs = now;
+              store.seekActiveMedia(targetTime);
+            }
+          });
         }
       });
     }
@@ -495,7 +509,7 @@ class ProPresenterApp {
         }
 
         if (!clipboardText || !clipboardText.trim()) {
-          this.showToast("⚠️ El portapapeles está vacío o no contiene texto legible.", "warn");
+          this.showToast("El portapapeles está vacío o no contiene texto legible.", "warn");
           this.ensureModalInteractive(this.modalCreateShow, this.inputShowText);
           return;
         }
@@ -521,7 +535,7 @@ class ProPresenterApp {
         this.ensureModalInteractive(this.modalCreateShow, this.inputShowText);
       } catch (err) {
         console.warn("No se pudo acceder directamente al portapapeles:", err);
-        this.showToast("ℹ️ Puedes pegar directamente con Ctrl+V en el cuadro de letra.", "warn");
+        this.showToast("Puedes pegar directamente con Ctrl+V en el cuadro de letra.", "info");
         this.ensureModalInteractive(this.modalCreateShow, this.inputShowText);
       }
     };
@@ -550,23 +564,23 @@ class ProPresenterApp {
       let html = '';
 
       if (localMatches.length > 0) {
-        html += `<div style="font-size: 0.72rem; font-weight: 800; color: #34d399; text-transform: uppercase; letter-spacing: 0.04em; padding: 4px 2px;">📚 En tu Biblioteca Local (${localMatches.length} descargada${localMatches.length === 1 ? '' : 's'})</div>`;
+        html += `<div style="font-size: 0.72rem; font-weight: 800; color: #34d399; text-transform: uppercase; letter-spacing: 0.04em; padding: 4px 2px; display: flex; align-items: center; gap: 5px;">${iconSvg('book-open', { size: 13, color: '#34d399' })} En tu Biblioteca Local (${localMatches.length} descargada${localMatches.length === 1 ? '' : 's'})</div>`;
         html += localMatches.map(deck => `
           <div class="song-search-item" style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 6px; padding: 8px 12px; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
             <div style="display: flex; flex-direction: column; gap: 2px; overflow: hidden; flex: 1;">
-              <span style="font-size: 0.85rem; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">🎵 ${deck.title}</span>
+              <span style="font-size: 0.85rem; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 5px;">${iconSvg('music', { size: 13, color: '#34d399' })} ${deck.title}</span>
               <div style="display: flex; align-items: center; gap: 8px; font-size: 0.72rem; color: var(--text-muted);">
-                <span style="color: #6ee7b7; font-weight: 700;">✓ Ya descargada</span>
+                <span style="color: #6ee7b7; font-weight: 700; display: inline-flex; align-items: center; gap: 3px;">${iconSvg('check', { size: 12, color: '#6ee7b7' })} Ya descargada</span>
                 <span>•</span>
-                <span>📂 ${deck.category || 'Alabanza'}</span>
+                <span style="display: inline-flex; align-items: center; gap: 3px;">${iconSvg('folder', { size: 12 })} ${deck.category || 'Alabanza'}</span>
               </div>
             </div>
             <div style="display: flex; gap: 6px; align-items: center;">
               <button type="button" class="btn-project-local-song" data-deck-id="${deck.id}" style="background: #059669; color: white; border: none; padding: 5px 10px; border-radius: 4px; font-size: 0.73rem; font-weight: 700; cursor: pointer; white-space: nowrap;">
-                ▶️ Proyectar
+                ${iconSvg('play', { size: 12 })} Proyectar
               </button>
               <button type="button" class="btn-edit-local-song" data-deck-id="${deck.id}" style="background: rgba(56, 189, 248, 0.16); color: #7dd3fc; border: 1px solid rgba(56, 189, 248, 0.4); padding: 5px 10px; border-radius: 4px; font-size: 0.73rem; font-weight: 700; cursor: pointer; white-space: nowrap;">
-                ✏️ Editar
+                ${iconSvg('pencil', { size: 12 })} Editar
               </button>
             </div>
           </div>
@@ -576,24 +590,24 @@ class ProPresenterApp {
       if (isLoadingWeb) {
         html += `<div style="padding: 14px; text-align: center; color: var(--text-muted); font-size: 0.78rem;">⏳ Buscando más resultados en la web para "<strong>${q}</strong>"...</div>`;
       } else if (webResults.length > 0) {
-        html += `<div style="font-size: 0.72rem; font-weight: 800; color: var(--accent-cyan); text-transform: uppercase; letter-spacing: 0.04em; padding: 6px 2px 2px 2px;">🌐 Resultados Online (${webResults.length})</div>`;
+        html += `<div style="font-size: 0.72rem; font-weight: 800; color: var(--accent-cyan); text-transform: uppercase; letter-spacing: 0.04em; padding: 6px 2px 2px 2px; display: flex; align-items: center; gap: 5px;">${iconSvg('globe', { size: 13, color: 'var(--accent-cyan)' })} Resultados Online (${webResults.length})</div>`;
         html += webResults.map((song, idx) => `
           <div class="song-search-item" style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 6px; padding: 8px 12px; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
             <div style="display: flex; flex-direction: column; gap: 2px; overflow: hidden; flex: 1;">
-              <span style="font-size: 0.85rem; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">🎵 ${song.title}</span>
+              <span style="font-size: 0.85rem; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 5px;">${iconSvg('music', { size: 13, color: 'var(--accent-pink)' })} ${song.title}</span>
               <div style="display: flex; align-items: center; gap: 8px; font-size: 0.72rem; color: var(--text-muted);">
-                <span>👤 <strong>Autor:</strong> ${song.artist}</span>
+                <span style="display: inline-flex; align-items: center; gap: 4px;">${iconSvg('user', { size: 12 })} <strong>Autor:</strong> ${song.artist}</span>
                 <span>•</span>
-                <span style="color: var(--accent-cyan);">🌐 <strong>Página:</strong> ${song.source}</span>
+                <span style="color: var(--accent-cyan); display: inline-flex; align-items: center; gap: 4px;">${iconSvg('globe', { size: 12 })} <strong>Página:</strong> ${song.source}</span>
               </div>
             </div>
             <button type="button" class="btn-select-song-result" data-song-idx="${idx}" style="background: linear-gradient(135deg, var(--accent-magenta), #db2777); color: white; border: none; padding: 5px 10px; border-radius: 4px; font-size: 0.73rem; font-weight: 700; cursor: pointer; white-space: nowrap;">
-              📥 Cargar Letra
+              ${iconSvg('download', { size: 12 })} Cargar Letra
             </button>
           </div>
         `).join('');
       } else if (localMatches.length === 0) {
-        html = `<div style="padding: 20px; text-align: center; color: var(--text-muted); font-size: 0.8rem;">❌ No se encontraron canciones locales ni online para "${q}".</div>`;
+        html = `<div style="padding: 20px; text-align: center; color: var(--text-muted); font-size: 0.8rem; display: flex; align-items: center; justify-content: center; gap: 6px;">${iconSvg('x-circle', { size: 15, color: '#ef4444' })} No se encontraron canciones locales ni online para "${q}".</div>`;
       }
 
       songResultsList.innerHTML = html;
@@ -644,7 +658,7 @@ class ProPresenterApp {
       const q = inputSongQuery?.value.trim();
       if (!q) {
         if (songResultsList) {
-          songResultsList.innerHTML = `<div style="padding: 20px; text-align: center; color: var(--text-muted); font-size: 0.8rem;">⚠️ Por favor ingresa el título, letra o autor de la canción.</div>`;
+          songResultsList.innerHTML = `<div style="padding: 20px; text-align: center; color: var(--text-muted); font-size: 0.8rem; display: flex; align-items: center; justify-content: center; gap: 6px;">${iconSvg('alert-triangle', { size: 14, color: 'var(--accent-gold)' })} Por favor ingresa el título, letra o autor de la canción.</div>`;
         }
         return;
       }
@@ -665,7 +679,7 @@ class ProPresenterApp {
       } finally {
         if (btnSongSearch) {
           btnSongSearch.disabled = false;
-          btnSongSearch.textContent = "🔍 Buscar";
+          btnSongSearch.innerHTML = `${iconSvg('search', { size: 13 })} Buscar`;
         }
       }
     };
@@ -688,8 +702,8 @@ class ProPresenterApp {
       this.editingDeckId = null;
       this.originalEditLines = [];
       const headerTitleEl = document.getElementById('modal-show-header-title');
-      if (headerTitleEl) headerTitleEl.textContent = "🎵 Agregar Nueva Canción o Presentación";
-      if (this.btnSaveShow) this.btnSaveShow.textContent = "💾 Guardar y Proyectar";
+      if (headerTitleEl) headerTitleEl.innerHTML = `${iconSvg('music', { size: 16, color: 'var(--accent-pink)' })} Agregar Nueva Canción o Presentación`;
+      if (this.btnSaveShow) this.btnSaveShow.innerHTML = `${iconSvg('save', { size: 13 })} Guardar y Proyectar`;
       if (this.inputShowTitle) this.inputShowTitle.value = "";
       if (this.inputShowText) this.inputShowText.value = "";
       this.renderSongEditDiff();
@@ -764,7 +778,7 @@ class ProPresenterApp {
       const maxLines = parseInt(this.inputShowMaxLines?.value || 0);
 
       if (!title || !text) {
-        this.showToast("⚠️ Por favor ingresa un título y el texto del show/canción.", "warn");
+        this.showToast("Por favor ingresa un título y el texto del show/canción.", "warn");
         this.ensureModalInteractive(this.modalCreateShow, !title ? this.inputShowTitle : this.inputShowText);
         return;
       }
@@ -775,14 +789,14 @@ class ProPresenterApp {
           splitMode,
           maxLines
         });
-        this.showToast(`✅ Canción "${title}" actualizada correctamente.`, "success");
+        this.showToast(`Canción "${title}" actualizada correctamente.`, "success");
       } else {
         store.createNewShow(title, category, text, {
           templateId,
           splitMode,
           maxLines
         });
-        this.showToast(`✅ Canción "${title}" guardada y proyectada.`, "success");
+        this.showToast(`Canción "${title}" guardada y proyectada.`, "success");
       }
       closeModalShow();
     });
@@ -813,6 +827,9 @@ class ProPresenterApp {
       }
       closeModalReflow();
     });
+
+    // 7b. Importador de Presentaciones (PPTX / PPT / PPSX / ODP / PDF)
+    this.initPresentationImportEvents();
 
     // Control de Tamaño / Zoom de Slide-Cards en el Banner del Grid
     const inputCardSize = document.getElementById('input-slide-card-size');
@@ -967,7 +984,7 @@ class ProPresenterApp {
         return;
       }
 
-      this.showToast("⚠️ Por favor selecciona uno o más archivos de video/imagen o ingresa una URL.", "warn");
+      this.showToast("Por favor selecciona uno o más archivos de video/imagen o ingresa una URL.", "warn");
       this.ensureModalInteractive(this.modalUploadMedia, this.inputMediaUrl);
     });
 
@@ -1037,9 +1054,9 @@ class ProPresenterApp {
         store.addMediaFolder(folderName);
         this.selectedMediaFolder = folderName;
         closeModalFolder();
-        this.showToast(`📁 Carpeta virtual "${folderName}" creada.`, "success");
+        this.showToast(`Carpeta virtual "${folderName}" creada.`, "success");
       } else {
-        this.showToast("⚠️ Por favor ingresa un nombre para la carpeta virtual.", "warn");
+        this.showToast("Por favor ingresa un nombre para la carpeta virtual.", "warn");
         this.ensureModalInteractive(this.modalCreateFolder, this.inputVirtualFolderName);
       }
     };
@@ -1069,7 +1086,7 @@ class ProPresenterApp {
       const firstPath = files[0].webkitRelativePath || '';
       const folderName = firstPath.split('/')[0] || 'Carpeta Local';
       const folderKey = `local-dir://${folderName}`;
-      const processed = await this.processMediaFiles(files, `💽 ${folderName}`);
+      const processed = await this.processMediaFiles(files, folderName);
       store.addPhysicalMediaFolder(folderKey, folderName, processed);
       this.selectedMediaFolder = `phys:${folderKey}`;
       physFallbackInput.value = '';
@@ -1335,37 +1352,37 @@ class ProPresenterApp {
     if (primaryEl) primaryEl.style.display = 'flex';
     if (secondaryEl) secondaryEl.style.display = 'flex';
     if (duplicateEl) duplicateEl.style.display = 'flex';
-    if (duplicateLabel) duplicateLabel.textContent = '📋 Duplicar Elemento';
+    if (duplicateLabel) duplicateLabel.textContent = 'Duplicar Elemento';
 
     if (target.type === 'project-item') {
-      if (primaryLabel) primaryLabel.textContent = '▶️ Proyectar / Activar';
-      if (secondaryLabel) secondaryLabel.textContent = '✏️ Editar Contenido';
-      if (duplicateLabel) duplicateLabel.textContent = '➖ Quitar del Proyecto';
+      if (primaryLabel) primaryLabel.textContent = 'Proyectar / Activar';
+      if (secondaryLabel) secondaryLabel.textContent = 'Editar Contenido';
+      if (duplicateLabel) duplicateLabel.textContent = 'Quitar del Proyecto';
       if (duplicateEl) duplicateEl.style.display = 'flex';
       if (deleteLabel) deleteLabel.textContent = `Eliminar de Biblioteca (${target.name || ''})`;
     } else if (target.type === 'deck') {
       const isInProject = store.projectDeckIds.includes(target.id);
-      if (primaryLabel) primaryLabel.textContent = '▶️ Proyectar / Activar';
-      if (secondaryLabel) secondaryLabel.textContent = '✏️ Editar Contenido';
-      if (duplicateLabel) duplicateLabel.textContent = isInProject ? '➖ Quitar del Proyecto' : '➕ Agregar al Proyecto';
+      if (primaryLabel) primaryLabel.textContent = 'Proyectar / Activar';
+      if (secondaryLabel) secondaryLabel.textContent = 'Editar Contenido';
+      if (duplicateLabel) duplicateLabel.textContent = isInProject ? 'Quitar del Proyecto' : 'Agregar al Proyecto';
       if (duplicateEl) duplicateEl.style.display = 'flex';
       if (deleteLabel) deleteLabel.textContent = `Eliminar de Biblioteca (${target.name || ''})`;
     } else if (target.type === 'media') {
-      if (primaryLabel) primaryLabel.textContent = '🎬 Transmitir en Vivo';
-      if (secondaryLabel) secondaryLabel.textContent = '📁 Cambiar Carpeta';
+      if (primaryLabel) primaryLabel.textContent = 'Transmitir en Vivo';
+      if (secondaryLabel) secondaryLabel.textContent = 'Cambiar Carpeta';
       if (duplicateEl) duplicateEl.style.display = 'none';
     } else if (target.type === 'bible') {
-      if (primaryLabel) primaryLabel.textContent = '📖 Activar Biblia';
-      if (secondaryLabel) secondaryLabel.style.display = 'none';
+      if (primaryLabel) primaryLabel.textContent = 'Activar Biblia';
+      if (secondaryEl) secondaryEl.style.display = 'none';
       if (duplicateEl) duplicateEl.style.display = 'none';
     } else if (target.type === 'slide') {
-      if (primaryLabel) primaryLabel.textContent = '▶️ Proyectar Filmina';
-      if (secondaryLabel) secondaryLabel.textContent = '✏️ Editar Diapositiva';
-      if (duplicateLabel) duplicateLabel.textContent = '📋 Duplicar Diapositiva';
+      if (primaryLabel) primaryLabel.textContent = 'Proyectar Filmina';
+      if (secondaryLabel) secondaryLabel.textContent = 'Editar Diapositiva';
+      if (duplicateLabel) duplicateLabel.textContent = 'Duplicar Diapositiva';
       if (duplicateEl) duplicateEl.style.display = 'flex';
       if (deleteLabel) deleteLabel.textContent = `Eliminar ${target.name || 'Diapositiva'}`;
     } else if (target.type === 'event') {
-      if (primaryLabel) primaryLabel.textContent = '📢 Proyectar Anuncio';
+      if (primaryLabel) primaryLabel.textContent = 'Proyectar Anuncio';
       if (secondaryEl) secondaryEl.style.display = 'none';
       if (duplicateEl) duplicateEl.style.display = 'none';
     }
@@ -1563,15 +1580,15 @@ class ProPresenterApp {
       }
       if (btnPlayPause) btnPlayPause.disabled = true;
       if (btnRestart) btnRestart.disabled = true;
-      if (iconPlayPause) iconPlayPause.textContent = '▶';
+      if (iconPlayPause) iconPlayPause.innerHTML = iconSvg('play', { size: 13 });
       return;
     }
 
     if (isImage) {
-      if (iconEl) iconEl.textContent = '🖼️';
+      if (iconEl) iconEl.innerHTML = iconSvg('image', { size: 14 });
       if (nameEl) nameEl.textContent = activeTitle;
       if (modeBadgeEl) {
-        modeBadgeEl.textContent = '🖼️ IMAGEN FIJA';
+        modeBadgeEl.innerHTML = `${iconSvg('image', { size: 11, className: 'lucide-icon' })} IMAGEN FIJA`;
         modeBadgeEl.className = 'media-timeline-mode-badge';
       }
       if (curEl) curEl.textContent = '--:--';
@@ -1584,7 +1601,7 @@ class ProPresenterApp {
       }
       if (btnPlayPause) btnPlayPause.disabled = true;
       if (btnRestart) btnRestart.disabled = true;
-      if (iconPlayPause) iconPlayPause.textContent = '⏸';
+      if (iconPlayPause) iconPlayPause.innerHTML = iconSvg('pause', { size: 13 });
       return;
     }
 
@@ -1593,25 +1610,25 @@ class ProPresenterApp {
     const queueLen = Array.isArray(state.mediaQueue) ? state.mediaQueue.length : 0;
     const isPaused = activeVid ? activeVid.paused : !!state.isMediaPaused;
 
-    if (iconEl) iconEl.textContent = '🎬';
+    if (iconEl) iconEl.innerHTML = iconSvg('film', { size: 14 });
     if (nameEl) nameEl.textContent = activeTitle;
 
     if (modeBadgeEl) {
       if (isPaused) {
-        modeBadgeEl.textContent = '⏸ EN PAUSA';
+        modeBadgeEl.innerHTML = `${iconSvg('pause', { size: 11, className: 'lucide-icon' })} EN PAUSA`;
         modeBadgeEl.className = 'media-timeline-mode-badge paused-mode';
       } else if (queueLen > 0) {
-        modeBadgeEl.textContent = `⏭️ COLA (${queueLen})`;
+        modeBadgeEl.innerHTML = `${iconSvg('skip-forward', { size: 11, className: 'lucide-icon' })} COLA (${queueLen})`;
         modeBadgeEl.className = 'media-timeline-mode-badge queue-mode';
       } else {
-        modeBadgeEl.textContent = '🔁 LOOP';
+        modeBadgeEl.innerHTML = `${iconSvg('repeat', { size: 11, className: 'lucide-icon' })} LOOP`;
         modeBadgeEl.className = 'media-timeline-mode-badge';
       }
     }
 
     if (btnPlayPause) btnPlayPause.disabled = false;
     if (btnRestart) btnRestart.disabled = false;
-    if (iconPlayPause) iconPlayPause.textContent = isPaused ? '▶' : '⏸';
+    if (iconPlayPause) iconPlayPause.innerHTML = isPaused ? iconSvg('play', { size: 13 }) : iconSvg('pause', { size: 13 });
 
     const duration = (activeVid && isFinite(activeVid.duration) && activeVid.duration > 0) ? activeVid.duration : 0;
     const currentTime = (activeVid && isFinite(activeVid.currentTime) && activeVid.currentTime >= 0) ? activeVid.currentTime : 0;
@@ -1673,7 +1690,240 @@ class ProPresenterApp {
     return terms.every(term => deck._searchIndex.includes(term));
   }
 
+  initPresentationImportEvents() {
+    this.selectedPresentationSource = null;
+    this.isImportingPresentation = false;
+    this.presentationImportCancelled = false;
+
+    const modal = document.getElementById('modal-import-presentation');
+    const dropzone = document.getElementById('presentation-dropzone');
+    const fileInput = document.getElementById('input-presentation-file-fallback');
+    const lblFile = document.getElementById('lbl-presentation-selected-file');
+    const lblPath = document.getElementById('lbl-presentation-selected-path');
+    const inputTitle = document.getElementById('input-presentation-title');
+    const selectCat = document.getElementById('input-presentation-category');
+    const selectMode = document.getElementById('input-presentation-mode');
+    const chkHidden = document.getElementById('check-presentation-include-hidden');
+    const progressBox = document.getElementById('presentation-import-progress-box');
+    const lblProgressMsg = document.getElementById('lbl-presentation-progress-msg');
+    const lblProgressPct = document.getElementById('lbl-presentation-progress-pct');
+    const barProgressFill = document.getElementById('bar-presentation-progress-fill');
+    const btnConfirm = document.getElementById('btn-confirm-import-presentation');
+    const btnCancel = document.getElementById('btn-cancel-import-presentation');
+    const btnClose = document.getElementById('btn-close-import-presentation');
+    const badgePpt = document.getElementById('badge-engine-ppt');
+
+    const updateProgressUI = ({ message = 'Convirtiendo...', current = 0, total = 0 } = {}) => {
+      if (progressBox) progressBox.style.display = 'flex';
+      if (lblProgressMsg) lblProgressMsg.textContent = message;
+      const pct = total > 0 ? Math.min(100, Math.round((current / total) * 100)) : 20;
+      if (lblProgressPct) lblProgressPct.textContent = total > 0 ? `${pct}% (${current}/${total})` : '...';
+      if (barProgressFill) barProgressFill.style.width = `${Math.max(8, pct)}%`;
+    };
+
+    const resetModalForm = () => {
+      this.selectedPresentationSource = null;
+      this.presentationImportCancelled = false;
+      if (fileInput) fileInput.value = '';
+      if (lblFile) lblFile.textContent = 'Haz clic para elegir tu archivo .PPTX / .PPT / .PDF o arrástralo aquí';
+      if (lblPath) lblPath.textContent = 'Soporta diseños personalizados, tipografías incrustadas, gráficos e imágenes';
+      if (inputTitle) inputTitle.value = '';
+      if (progressBox) progressBox.style.display = 'none';
+      if (btnConfirm) {
+        btnConfirm.disabled = false;
+        btnConfirm.innerHTML = `${iconSvg('presentation', { size: 13 })} Importar y Cargar`;
+      }
+    };
+
+    const setSelectedSource = (source, displayName = '', displayPath = '') => {
+      this.selectedPresentationSource = source;
+      const cleanTitle = String(displayName || '').replace(/\.[^.]+$/, '');
+      if (lblFile) lblFile.innerHTML = `${iconSvg('file-text', { size: 13 })} ${displayName || 'Archivo seleccionado'}`;
+      if (lblPath) lblPath.textContent = displayPath || 'Listo para importar';
+      if (inputTitle && !inputTitle.value.trim() && cleanTitle) {
+        inputTitle.value = cleanTitle;
+      }
+    };
+
+    const refreshEnginesBadge = async () => {
+      if (!badgePpt) return;
+      if (window.electronAPI?.getPresentationEngines) {
+        try {
+          const engines = await window.electronAPI.getPresentationEngines();
+          if (engines?.powerpoint) {
+            badgePpt.textContent = 'PowerPoint Nativo: Listo ✓';
+            badgePpt.style.background = 'rgba(16, 185, 129, 0.18)';
+            badgePpt.style.color = '#34d399';
+          } else if (engines?.libreoffice) {
+            badgePpt.textContent = 'LibreOffice: Listo ✓';
+            badgePpt.style.background = 'rgba(56, 189, 248, 0.18)';
+            badgePpt.style.color = '#38bdf8';
+          } else {
+            badgePpt.textContent = 'PPTX: requiere PowerPoint o LibreOffice (PDF activo)';
+            badgePpt.style.background = 'rgba(245, 158, 11, 0.18)';
+            badgePpt.style.color = '#fbbf24';
+          }
+        } catch {
+          badgePpt.textContent = 'Modo Escritorio';
+        }
+      } else {
+        badgePpt.textContent = 'Modo Web (Importación directa de PDF)';
+      }
+    };
+
+    const openImportModal = (preselectedFile = null) => {
+      if (this.isImportingPresentation) return;
+      this.closeAllModals();
+      resetModalForm();
+      if (modal) {
+        modal.classList.add('open');
+        refreshEnginesBadge();
+        if (preselectedFile) {
+          if (typeof preselectedFile === 'string') {
+            const name = preselectedFile.split(/[\\/]/).pop();
+            setSelectedSource(preselectedFile, name, preselectedFile);
+          } else if (preselectedFile instanceof File) {
+            const nativePath = window.electronAPI?.getPathForFile?.(preselectedFile) || '';
+            setSelectedSource(nativePath || preselectedFile, preselectedFile.name, nativePath || `${(preselectedFile.size / 1024 / 1024).toFixed(2)} MB`);
+          }
+        }
+        this.ensureModalInteractive(modal, inputTitle);
+      }
+    };
+    this.openImportPresentationModal = openImportModal;
+
+    const closeImportModal = async () => {
+      if (this.isImportingPresentation) {
+        this.presentationImportCancelled = true;
+        await window.electronAPI?.cancelPresentationImport?.();
+        this.isImportingPresentation = false;
+      }
+      if (modal) modal.classList.remove('open');
+      resetModalForm();
+    };
+
+    document.getElementById('btn-open-import-presentation')?.addEventListener('click', () => openImportModal());
+    document.getElementById('btn-import-presentation-header')?.addEventListener('click', () => openImportModal());
+    btnClose?.addEventListener('click', closeImportModal);
+    btnCancel?.addEventListener('click', closeImportModal);
+
+    dropzone?.addEventListener('click', async () => {
+      if (this.isImportingPresentation) return;
+      if (window.electronAPI?.selectPresentationFile) {
+        const picked = await window.electronAPI.selectPresentationFile();
+        if (picked?.filePath) {
+          setSelectedSource(picked.filePath, picked.name, picked.filePath);
+        }
+      } else {
+        fileInput?.click();
+      }
+    });
+
+    fileInput?.addEventListener('change', (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const nativePath = window.electronAPI?.getPathForFile?.(file) || '';
+      setSelectedSource(nativePath || file, file.name, nativePath || `${(file.size / 1024 / 1024).toFixed(2)} MB`);
+    });
+
+    ['dragenter', 'dragover'].forEach(evtName => {
+      dropzone?.addEventListener(evtName, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropzone.style.borderColor = '#38bdf8';
+        dropzone.style.background = 'rgba(56, 189, 248, 0.12)';
+      });
+    });
+    ['dragleave', 'drop'].forEach(evtName => {
+      dropzone?.addEventListener(evtName, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropzone.style.borderColor = 'rgba(245, 158, 11, 0.55)';
+        dropzone.style.background = 'rgba(245, 158, 11, 0.06)';
+      });
+    });
+    dropzone?.addEventListener('drop', (e) => {
+      if (this.isImportingPresentation) return;
+      const file = e.dataTransfer?.files?.[0];
+      if (!file) return;
+      if (!isPresentationFileName(file.name)) {
+        this.showToast('Formato no válido. Arrastra un archivo .pptx, .ppt, .ppsx, .odp o .pdf.', 'warn');
+        return;
+      }
+      const nativePath = window.electronAPI?.getPathForFile?.(file) || '';
+      setSelectedSource(nativePath || file, file.name, nativePath || `${(file.size / 1024 / 1024).toFixed(2)} MB`);
+    });
+
+    // Permitir arrastrar y soltar un archivo .pptx / .pdf sobre cualquier parte de la ventana
+    window.addEventListener('dragover', (e) => {
+      if (e.dataTransfer?.types?.includes('Files')) {
+        e.preventDefault();
+      }
+    });
+    window.addEventListener('drop', (e) => {
+      if (modal?.classList.contains('open')) return;
+      const file = e.dataTransfer?.files?.[0];
+      if (file && isPresentationFileName(file.name)) {
+        e.preventDefault();
+        openImportModal(file);
+      }
+    });
+
+    btnConfirm?.addEventListener('click', async () => {
+      if (this.isImportingPresentation) return;
+      if (!this.selectedPresentationSource) {
+        this.showToast('Selecciona primero un archivo de presentación (.pptx, .ppt o .pdf).', 'warn');
+        return;
+      }
+
+      this.isImportingPresentation = true;
+      this.presentationImportCancelled = false;
+      btnConfirm.disabled = true;
+      btnConfirm.textContent = '⏳ Convirtiendo...';
+      updateProgressUI({ message: 'Iniciando conversión de diapositivas...', current: 0, total: 0 });
+
+      try {
+        const imported = await importPresentationSource(this.selectedPresentationSource, {
+          onProgress: (p) => updateProgressUI(p),
+          isCancelled: () => this.presentationImportCancelled
+        });
+
+        const deck = store.createPresentationDeck(imported, {
+          title: inputTitle?.value?.trim() || imported.title,
+          category: selectCat?.value || 'Presentación',
+          mode: selectMode?.value || 'slides',
+          includeHidden: Boolean(chkHidden?.checked)
+        });
+
+        this.isImportingPresentation = false;
+        if (modal) modal.classList.remove('open');
+        resetModalForm();
+
+        // Proyectar inmediatamente la primera diapositiva de la presentación
+        store.setLiveSlide(0, 0);
+        const slideTotal = deck.groups.reduce((acc, g) => acc + g.slides.length, 0);
+        this.showToast(`Presentación "${deck.title}" importada (${slideTotal} diapositivas listas para proyectar).`, 'success');
+      } catch (err) {
+        this.isImportingPresentation = false;
+        if (progressBox) progressBox.style.display = 'none';
+        if (btnConfirm) {
+          btnConfirm.disabled = false;
+          btnConfirm.innerHTML = `${iconSvg('presentation', { size: 13 })} Importar y Cargar`;
+        }
+        if (err?.code !== 'CANCELLED') {
+          this.showToast(`${err?.message || 'No se pudo importar la presentación.'}`, 'warn');
+        }
+      }
+    });
+  }
+
   openEditDeckModal(deckId) {
+    const deck = store.decks.find(d => d.id === deckId);
+    if (deck && deck.type === 'presentation') {
+      store.setActiveDeck(deck.id);
+      this.showToast('Las presentaciones visuales conservan su diseño original. Haz doble clic en cualquier diapositiva para editar sus notas o texto.', 'info');
+      return;
+    }
     this.openFullScreenSongEditor(deckId);
   }
 
@@ -1889,6 +2139,36 @@ class ProPresenterApp {
     };
   }
 
+  buildEditorThumbInlineStyle(slideStyle) {
+    return `font-family: ${slideStyle.fontFamily || 'Inter, sans-serif'}; font-size: calc(${slideStyle.fontSize || 52} * 0.0521cqw); letter-spacing: calc(${slideStyle.letterSpacing || 0} * 0.0521cqw); line-height: ${slideStyle.lineHeight || 1.25}; color: ${slideStyle.color || '#ffffff'}; font-weight: ${slideStyle.fontWeight || '700'}; font-style: ${slideStyle.fontStyle || 'normal'}; text-decoration: ${slideStyle.textDecoration || 'none'}; text-transform: ${slideStyle.textTransform || 'none'}; text-align: ${slideStyle.textAlign || 'center'}; text-shadow: ${slideStyle.textShadow || 'none'}; -webkit-text-stroke: ${slideStyle.webkitTextStroke || 'none'}; background-color: ${slideStyle.bgColor || 'transparent'}; padding: calc(${slideStyle.padding || 16} * 0.025cqw) calc(${slideStyle.padding || 16} * 0.045cqw); border-radius: calc(${slideStyle.borderRadius || 6} * 0.04cqw); box-sizing: border-box; white-space: pre-wrap; word-break: normal; overflow-wrap: normal; ${slideStyle.maxLines > 0 ? `display: -webkit-box; -webkit-line-clamp: ${slideStyle.maxLines}; -webkit-box-orient: vertical; overflow: hidden;` : 'display: inline-block;'}`;
+  }
+
+  updateEditorSlidesListStylesInPlace(deck) {
+    const listEl = document.getElementById('editor-slides-list');
+    if (!listEl || !deck) return false;
+    const cards = listEl.querySelectorAll('.editor-slide-thumb-card');
+    const totalSlides = (deck.groups || []).reduce((acc, g) => acc + (g.slides?.length || 0), 0);
+    if (cards.length !== totalSlides) return false;
+
+    cards.forEach(card => {
+      const gIdx = parseInt(card.getAttribute('data-gidx'));
+      const sIdx = parseInt(card.getAttribute('data-sidx'));
+      const slide = deck.groups?.[gIdx]?.slides?.[sIdx];
+      if (!slide) return;
+      const slideStyle = this.getSlideEffectiveStyle(deck, slide);
+      const wrapperEl = card.querySelector('.editor-slide-thumb-text-wrapper');
+      const textEl = card.querySelector('.editor-slide-thumb-text');
+      if (wrapperEl) {
+        wrapperEl.style.top = `${slideStyle.posY !== undefined ? slideStyle.posY : 50}%`;
+        wrapperEl.style.textAlign = slideStyle.textAlign || 'center';
+      }
+      if (textEl) {
+        textEl.setAttribute('style', this.buildEditorThumbInlineStyle(slideStyle));
+      }
+    });
+    return true;
+  }
+
   renderEditorSlidesList(deck) {
     const listEl = document.getElementById('editor-slides-list');
     const countEl = document.getElementById('editor-slides-count');
@@ -1915,15 +2195,15 @@ class ProPresenterApp {
                 <span class="editor-slide-section-badge ${badgeClass}">${this.escapeHtml(sectionName)}</span>
               </div>
               <div class="editor-slide-thumb-actions">
-                <button type="button" class="btn-slide-thumb-action btn-move-slide-up" data-gidx="${gIdx}" data-sidx="${sIdx}" title="Subir">↑</button>
-                <button type="button" class="btn-slide-thumb-action btn-move-slide-down" data-gidx="${gIdx}" data-sidx="${sIdx}" title="Bajar">↓</button>
-                <button type="button" class="btn-slide-thumb-action btn-dup-slide-card" data-gidx="${gIdx}" data-sidx="${sIdx}" title="Duplicar">📑</button>
-                <button type="button" class="btn-slide-thumb-action btn-del-slide-card" data-gidx="${gIdx}" data-sidx="${sIdx}" title="Eliminar">&times;</button>
+                <button type="button" class="btn-slide-thumb-action btn-move-slide-up" data-gidx="${gIdx}" data-sidx="${sIdx}" title="Subir">${iconSvg('arrow-up', { size: 11 })}</button>
+                <button type="button" class="btn-slide-thumb-action btn-move-slide-down" data-gidx="${gIdx}" data-sidx="${sIdx}" title="Bajar">${iconSvg('arrow-down', { size: 11 })}</button>
+                <button type="button" class="btn-slide-thumb-action btn-dup-slide-card" data-gidx="${gIdx}" data-sidx="${sIdx}" title="Duplicar">${iconSvg('copy', { size: 11 })}</button>
+                <button type="button" class="btn-slide-thumb-action btn-del-slide-card" data-gidx="${gIdx}" data-sidx="${sIdx}" title="Eliminar">${iconSvg('x', { size: 11 })}</button>
               </div>
             </div>
             <div class="editor-slide-thumb-preview-box">
-              <div style="position: absolute; left: 5%; right: 5%; top: ${slideStyle.posY !== undefined ? slideStyle.posY : 50}%; transform: translateY(-50%); text-align: ${slideStyle.textAlign || 'center'}; pointer-events: none; z-index: 2;">
-                <div class="editor-slide-thumb-text" style="font-family: ${slideStyle.fontFamily || 'Inter, sans-serif'}; font-size: calc(${slideStyle.fontSize || 52} * 0.0521cqw); letter-spacing: calc(${slideStyle.letterSpacing || 0} * 0.0521cqw); line-height: ${slideStyle.lineHeight || 1.25}; color: ${slideStyle.color || '#ffffff'}; font-weight: ${slideStyle.fontWeight || '700'}; font-style: ${slideStyle.fontStyle || 'normal'}; text-decoration: ${slideStyle.textDecoration || 'none'}; text-transform: ${slideStyle.textTransform || 'none'}; text-align: ${slideStyle.textAlign || 'center'}; text-shadow: ${slideStyle.textShadow || 'none'}; -webkit-text-stroke: ${slideStyle.webkitTextStroke || 'none'}; background-color: ${slideStyle.bgColor || 'transparent'}; padding: calc(${slideStyle.padding || 16} * 0.025cqw) calc(${slideStyle.padding || 16} * 0.045cqw); border-radius: calc(${slideStyle.borderRadius || 6} * 0.04cqw); box-sizing: border-box; white-space: pre-wrap; word-break: normal; overflow-wrap: normal; ${slideStyle.maxLines > 0 ? `display: -webkit-box; -webkit-line-clamp: ${slideStyle.maxLines}; -webkit-box-orient: vertical; overflow: hidden;` : 'display: inline-block;'}">${textPreview ? this.escapeHtml(textPreview).replace(/\n/g, '<br/>') : '<em style="opacity:0.4;">[Vacía]</em>'}</div>
+              <div class="editor-slide-thumb-text-wrapper" style="position: absolute; left: 5%; right: 5%; top: ${slideStyle.posY !== undefined ? slideStyle.posY : 50}%; transform: translateY(-50%); text-align: ${slideStyle.textAlign || 'center'}; pointer-events: none; z-index: 2;">
+                <div class="editor-slide-thumb-text" style="${this.buildEditorThumbInlineStyle(slideStyle)}">${textPreview ? this.escapeHtml(textPreview).replace(/\n/g, '<br/>') : '<em style="opacity:0.4;">[Vacía]</em>'}</div>
               </div>
             </div>
           </div>
@@ -2300,9 +2580,11 @@ class ProPresenterApp {
     const valBgRad = document.getElementById('val-ed-bgbox-radius');
     if (valBgRad) valBgRad.textContent = `${bgBoxRadius}px`;
 
-    // Re-renderizar lienzo y miniaturas
+    // Re-renderizar lienzo y actualizar estilos de miniaturas in-place
     this.renderEditorCenterCanvas(deck);
-    this.renderEditorSlidesList(deck);
+    if (!this.updateEditorSlidesListStylesInPlace(deck)) {
+      this.renderEditorSlidesList(deck);
+    }
   }
 
   renderEditorLyricsDiff() {
@@ -2368,7 +2650,7 @@ class ProPresenterApp {
     // 2. Guardar y Salir
     const saveAndClose = () => {
       this.closeFullScreenSongEditor();
-      this.showToast("💾 Cambios guardados exitosamente.", "success");
+      this.showToast("Cambios guardados exitosamente.", "success");
     };
 
     document.getElementById('btn-editor-save')?.addEventListener('click', saveAndClose);
@@ -2589,7 +2871,7 @@ class ProPresenterApp {
       store.reflowDeckSlides(deck.id, maxLines);
       this.selectEditorSlide(0, 0);
       this.renderEditorHeader(deck);
-      this.showToast(`📐 Filminas re-divididas a máximo ${maxLines} líneas por diapositiva.`, "success");
+      this.showToast(`Filminas re-divididas a máximo ${maxLines} líneas por diapositiva.`, "success");
     };
     document.getElementById('btn-editor-reflow')?.addEventListener('click', handleEditorReflow);
     document.getElementById('btn-ed-apply-reflow')?.addEventListener('click', handleEditorReflow);
@@ -2705,7 +2987,7 @@ class ProPresenterApp {
       } else if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) {
         e.preventDefault();
         this.saveCurrentEditorCanvasText();
-        this.showToast("💾 Cambios guardados correctamente.", "success");
+        this.showToast("Cambios guardados correctamente.", "success");
       }
     });
   }
@@ -2789,7 +3071,7 @@ class ProPresenterApp {
     }
 
     if (badgeKept) badgeKept.textContent = `✓ ${keptCount} se conservan`;
-    if (badgeDeleted) badgeDeleted.textContent = `🗑️ ${deletedCount} se borran`;
+    if (badgeDeleted) badgeDeleted.innerHTML = `${iconSvg('trash-2', { size: 11 })} ${deletedCount} se borran`;
 
     diffList.innerHTML = diffItems.map((item, idx) => {
       const safeText = item.text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -2806,7 +3088,7 @@ class ProPresenterApp {
         <div class="diff-line-item kept">
           <span class="diff-status-tag">${item.isNew ? 'NUEVO' : 'QUEDA'}</span>
           <span class="diff-line-text" title="${safeText}">${safeText}</span>
-          <button type="button" class="btn-delete-line" data-raw-line-idx="${item.rawIdx}" title="Borrar esta línea de la canción">🗑️ Borrar</button>
+          <button type="button" class="btn-delete-line" data-raw-line-idx="${item.rawIdx}" title="Borrar esta línea de la canción">${iconSvg('trash-2', { size: 11 })} Borrar</button>
         </div>
       `;
     }).join('');
@@ -2933,7 +3215,7 @@ class ProPresenterApp {
           if (mediaTabBtn && !mediaTabBtn.classList.contains('active')) {
             mediaTabBtn.click();
           }
-          this.showToast(`💽 Carpeta física "${folderName}" vinculada en tiempo real.`, "success");
+          this.showToast(`Carpeta física "${folderName}" vinculada en tiempo real.`, "success");
         }
       } catch (err) {
         console.warn("Error al vincular carpeta física:", err);
@@ -2948,9 +3230,25 @@ class ProPresenterApp {
     const container = document.getElementById('app-toast-container');
     if (!container) return;
 
+    // Quitar emojis iniciales si los hubiera
+    const cleanMsg = String(message).replace(/^[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{1F1E6}-\u{1F1FF}\u{2700}-\u{27BF}\s]+/u, '').trim();
+
+    let iconName = 'info';
+    let iconColor = 'var(--accent-blue)';
+    if (type === 'warn' || type === 'error') {
+      iconName = 'alert-triangle';
+      iconColor = 'var(--accent-gold)';
+    } else if (type === 'success') {
+      iconName = 'check-circle-2';
+      iconColor = 'var(--accent-green)';
+    }
+
     const toast = document.createElement('div');
     toast.className = `app-toast ${type === 'warn' ? 'toast-warn' : (type === 'success' ? 'toast-success' : '')}`;
-    toast.textContent = message;
+    toast.style.display = 'inline-flex';
+    toast.style.alignItems = 'center';
+    toast.style.gap = '8px';
+    toast.innerHTML = `${iconSvg(iconName, { size: 16, color: iconColor })} <span>${cleanMsg}</span>`;
     container.appendChild(toast);
 
     setTimeout(() => {
@@ -3290,12 +3588,12 @@ class ProPresenterApp {
     if (!listEl) return;
 
     const defaultCategories = [
-      { id: 'Alabanza', name: 'Alabanza', icon: '🎵' },
-      { id: 'Adoración', name: 'Adoración', icon: '❤️' },
-      { id: 'Sermón', name: 'Sermones', icon: '🗣️' },
-      { id: 'Lectura', name: 'Escrituras / Lectura', icon: '📖' },
-      { id: 'Anuncio', name: 'Anuncios / Avisos', icon: '📢' },
-      { id: 'Overlays Stream', name: 'Overlays Stream', icon: '👤' }
+      { id: 'Alabanza', name: 'Alabanza', icon: 'music' },
+      { id: 'Adoración', name: 'Adoración', icon: 'heart' },
+      { id: 'Sermón', name: 'Sermones', icon: 'mic' },
+      { id: 'Lectura', name: 'Escrituras / Lectura', icon: 'book-open' },
+      { id: 'Anuncio', name: 'Anuncios / Avisos', icon: 'megaphone' },
+      { id: 'Overlays Stream', name: 'Overlays Stream', icon: 'user' }
     ];
 
     const categoriesMap = new Map();
@@ -3305,28 +3603,36 @@ class ProPresenterApp {
       const catName = d.category || d.type || 'General';
       const catKey = catName.toLowerCase();
       if (!categoriesMap.has(catKey)) {
-        categoriesMap.set(catKey, { id: catName, name: catName, icon: '📄' });
+        categoriesMap.set(catKey, { id: catName, name: catName, icon: 'file-text' });
       }
     });
 
     const categoryItems = Array.from(categoriesMap.values());
+    const countsByCat = categoryItems.map(cat => {
+      const targetLower = cat.id.toLowerCase();
+      let count = 0;
+      for (let i = 0; i < decks.length; i++) {
+        const cLower = (decks[i].category || decks[i].type || '').toLowerCase();
+        if (cLower.includes(targetLower) || targetLower.includes(cLower)) count++;
+      }
+      return count;
+    });
+
+    const catsKey = `${this.activeFilter}|${decks.length}|${categoryItems.map((c, idx) => `${c.id}:${countsByCat[idx]}`).join(',')}`;
+    if (this._lastShowsCategoriesKey === catsKey) return;
+    this._lastShowsCategoriesKey = catsKey;
 
     listEl.innerHTML = `
       <div class="filter-item ${this.activeFilter === 'all' ? 'active' : ''}" data-filter="all">
-        <span class="dot-indicator"></span>
-        <span>Todos los Shows</span>
+        <span class="filter-item-label"><span class="dot-indicator"></span> <span>Todos los Shows</span></span>
         <span class="count">${decks.length}</span>
       </div>
-      ${categoryItems.map(cat => {
-        const count = decks.filter(d => {
-          const cLower = (d.category || d.type || '').toLowerCase();
-          const targetLower = cat.id.toLowerCase();
-          return cLower.includes(targetLower) || targetLower.includes(cLower);
-        }).length;
+      ${categoryItems.map((cat, idx) => {
+        const count = countsByCat[idx];
         const isActive = this.activeFilter.toLowerCase() === cat.id.toLowerCase();
         return `
           <div class="filter-item ${isActive ? 'active' : ''}" data-filter="${cat.id}">
-            <span>${cat.icon} ${cat.name}</span>
+            <span class="filter-item-label">${iconSvg(cat.icon, { size: 13, className: 'lucide-icon icon-cyan' })} <span>${cat.name}</span></span>
             <span class="count">${count}</span>
           </div>
         `;
@@ -3384,25 +3690,29 @@ class ProPresenterApp {
           const isActive = deck.id === store.activeDeckId;
           const isInProject = store.projectDeckIds.includes(deck.id);
           const slideCount = deck.groups.reduce((acc, g) => acc + g.slides.length, 0);
-          const snippetText = deck.groups[0]?.slides[0]?.text || "Sin texto";
+          const firstSlide = deck.groups[0]?.slides[0] || {};
+          const isPresentation = deck.type === 'presentation' || Boolean(firstSlide.image);
+          const snippetText = firstSlide.text || (isPresentation ? `${iconSvg('presentation', { size: 12 })} Presentación visual (${deck.sourceName || 'PPT/PDF'})` : "Sin texto");
+          const thumbPreview = isPresentation && (firstSlide.thumb || firstSlide.image)
+            ? `<div style="height: 62px; margin-bottom: 6px; border-radius: 5px; overflow: hidden; background: #000; border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center;"><img src="${firstSlide.thumb || firstSlide.image}" style="width: 100%; height: 100%; object-fit: contain;" alt="" /></div>`
+            : '';
 
           return `
             <div class="show-dock-card ${isActive ? 'active-dock-show' : ''}" data-deck-id="${deck.id}">
               <div class="show-card-top">
-                <span class="show-card-title" title="${deck.title}">${deck.title}</span>
+                <span class="show-card-title" title="${deck.title}">${isPresentation ? iconSvg('presentation', { size: 13, className: 'lucide-icon icon-gold' }) + ' ' : ''}${deck.title}</span>
                 <span class="show-card-badge">${deck.category || 'General'}</span>
               </div>
+              ${thumbPreview}
               <div class="show-card-snippet">${snippetText}</div>
               <div class="show-card-footer">
-                <span>${slideCount} Diapositivas</span>
-                <div style="display: flex; gap: 4px; align-items: center;">
-                  <button class="btn-edit-show-card" data-edit-id="${deck.id}" title="Editar canción (ver qué se borra y qué queda)">
-                    ✏️ Editar
-                  </button>
+                <span class="show-card-slide-count">${slideCount} ${slideCount === 1 ? 'diapositiva' : 'diap.'}</span>
+                <div class="show-card-actions">
+                  ${!isPresentation ? `<button class="btn-edit-show-card" data-edit-id="${deck.id}" title="Editar canción (ver qué se borra y qué queda)">${iconSvg('pencil', { size: 11 })} <span>Editar</span></button>` : ''}
                   <button class="btn-toggle-project-show ${isInProject ? 'in-project' : ''}" data-project-id="${deck.id}" title="${isInProject ? 'Quitar del proyecto' : 'Agregar al proyecto'}">
-                    ${isInProject ? '✓ Proyecto' : '+ Proyecto'}
+                    ${isInProject ? `${iconSvg('check', { size: 11 })} <span>Proyecto</span>` : `${iconSvg('plus', { size: 11 })} <span>Proyecto</span>`}
                   </button>
-                  <button class="btn-delete-show" data-delete-id="${deck.id}" title="Eliminar de la biblioteca base">&times;</button>
+                  <button class="btn-delete-show" data-delete-id="${deck.id}" title="Eliminar de la biblioteca base">${iconSvg('trash-2', { size: 12 })}</button>
                 </div>
               </div>
             </div>
@@ -3414,9 +3724,9 @@ class ProPresenterApp {
           const deckObj = decks.find(d => d.id === id);
           card.addEventListener('click', (e) => {
             if (
-              e.target.classList.contains('btn-delete-show') ||
-              e.target.classList.contains('btn-toggle-project-show') ||
-              e.target.classList.contains('btn-edit-show-card')
+              e.target.closest('.btn-delete-show') ||
+              e.target.closest('.btn-toggle-project-show') ||
+              e.target.closest('.btn-edit-show-card')
             ) return;
             store.setActiveDeck(id);
           });
@@ -3498,10 +3808,10 @@ class ProPresenterApp {
           const isGeneral = folder === 'General';
           return `
             <div class="folder-item ${isActive ? 'active' : ''}" data-folder-name="${folder}" title="Carpeta Virtual: ${folder}">
-              <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">📁 ${folder}</span>
+              <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px;">${iconSvg('folder', { size: 13, className: 'lucide-icon icon-cyan' })} ${folder}</span>
               <div style="display: flex; align-items: center; gap: 6px;">
                 <span class="count">${count}</span>
-                ${!isGeneral ? `<button class="btn-delete-folder" data-folder="${folder}" title="Eliminar carpeta virtual" style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 0 4px; font-size: 0.8rem; opacity: 0.6; transition: opacity 0.2s;">🗑️</button>` : ''}
+                ${!isGeneral ? `<button class="btn-delete-folder" data-folder="${folder}" title="Eliminar carpeta virtual" style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 0 4px; display: inline-flex; align-items: center; opacity: 0.6; transition: opacity 0.2s;">${iconSvg('trash-2', { size: 13, color: '#ef4444' })}</button>` : ''}
               </div>
             </div>
           `;
@@ -3512,11 +3822,11 @@ class ProPresenterApp {
           const isActive = this.selectedMediaFolder === folderKey;
           return `
             <div class="folder-item physical-folder ${isActive ? 'active' : ''}" data-folder-name="${folderKey}" title="Carpeta Física en Tiempo Real: ${phys.path}">
-              <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">💽 ${phys.name}</span>
+              <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px;">${iconSvg('hard-drive', { size: 13, className: 'lucide-icon icon-green' })} ${phys.name}</span>
               <div style="display: flex; align-items: center; gap: 5px;">
                 <span class="phys-live-badge" title="Sincronizada en tiempo real con el disco">LIVE</span>
                 <span class="count">${count}</span>
-                <button class="btn-delete-phys-folder" data-phys-path="${phys.path}" data-phys-name="${phys.name}" title="Desvincular carpeta física de la lista" style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 0 4px; font-size: 0.8rem; opacity: 0.7; transition: opacity 0.2s;">🗑️</button>
+                <button class="btn-delete-phys-folder" data-phys-path="${phys.path}" data-phys-name="${phys.name}" title="Desvincular carpeta física de la lista" style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 0 4px; display: inline-flex; align-items: center; opacity: 0.7; transition: opacity 0.2s;">${iconSvg('trash-2', { size: 13, color: '#ef4444' })}</button>
               </div>
             </div>
           `;
@@ -3571,7 +3881,7 @@ class ProPresenterApp {
       if (this.selectedMediaFolder.startsWith('phys:')) {
         const physPath = this.selectedMediaFolder.slice(5);
         const foundPhys = physicalFolders.find(p => p.path === physPath);
-        selectedFolderLabel = foundPhys ? `💽 ${foundPhys.name} (En vivo)` : physPath;
+        selectedFolderLabel = foundPhys ? `${foundPhys.name} (En vivo)` : physPath;
       } else {
         selectedFolderLabel = this.selectedMediaFolder;
       }
@@ -3627,8 +3937,8 @@ class ProPresenterApp {
                 : `<video data-src="${item.url}" muted preload="metadata" playsinline></video>`);
 
           const typeBadge = isImg 
-            ? `<span class="video-card-type-badge img-badge">🖼️ IMG</span>`
-            : `<span class="video-card-type-badge vid-badge">🎬 VIDEO</span>`;
+            ? `<span class="video-card-type-badge img-badge">${iconSvg('image', { size: 11, className: 'lucide-icon' })} IMG</span>`
+            : `<span class="video-card-type-badge vid-badge">${iconSvg('film', { size: 11, className: 'lucide-icon' })} VIDEO</span>`;
 
           // Find positions of this item in the active mediaQueue
           const queuePositions = [];
@@ -3639,7 +3949,7 @@ class ProPresenterApp {
           });
           const isQueued = queuePositions.length > 0;
           const queueBadgeHTML = isQueued
-            ? `<span class="video-card-queue-badge" title="En cola de reproducción (${queuePositions.join(', ')})">⏭️ ${queuePositions.join(', ')}</span>`
+            ? `<span class="video-card-queue-badge" title="En cola de reproducción (${queuePositions.join(', ')})">${iconSvg('skip-forward', { size: 11, className: 'lucide-icon' })} ${queuePositions.join(', ')}</span>`
             : '';
 
           return `
@@ -3797,7 +4107,7 @@ class ProPresenterApp {
       : 'Sin reproducción activa';
 
     const nextItemName = queue[0]?.name || '#1';
-    const currentBannerHTML = `🎬 En curso: <strong title="${currentPlayingName}">${currentPlayingName}</strong> <span>(Al finalizar ➔ ${nextItemName})</span>`;
+    const currentBannerHTML = `${iconSvg('film', { size: 13, className: 'lucide-icon icon-cyan' })} En curso: <strong title="${currentPlayingName}">${currentPlayingName}</strong> <span>(Al finalizar ➔ ${nextItemName})</span>`;
 
     const dockCurrentBanner = document.getElementById('dock-queue-current-info');
     const sidebarCurrentBanner = document.getElementById('sidebar-queue-current-info');
@@ -3812,9 +4122,9 @@ class ProPresenterApp {
         ? `<img class="media-queue-thumb" src="${thumb}" alt="${item.name}" />`
         : (isImg
             ? `<img class="media-queue-thumb" src="${item.url}" alt="${item.name}" />`
-            : `<div class="media-queue-thumb" style="display:flex;align-items:center;justify-content:center;font-size:0.7rem;">🎬</div>`);
+            : `<div class="media-queue-thumb" style="display:flex;align-items:center;justify-content:center;">${iconSvg('film', { size: 14, className: 'lucide-icon icon-cyan' })}</div>`);
 
-      const statusLabel = idx === 0 ? '⚡ Siguiente al terminar actual' : `En espera (Posición #${idx + 1})`;
+      const statusLabel = idx === 0 ? `${iconSvg('zap', { size: 11, className: 'lucide-icon icon-gold' })} Siguiente al terminar actual` : `En espera (Posición #${idx + 1})`;
 
       return `
         <div class="media-queue-item" data-queue-id="${item.queueId}" data-queue-idx="${idx}">
@@ -3825,10 +4135,10 @@ class ProPresenterApp {
             <span class="media-queue-sub">${statusLabel} • ${item.folder || 'General'}</span>
           </div>
           <div class="media-queue-item-controls">
-            <button type="button" class="btn-queue-item-ctrl play-now" data-q-action="play" data-q-id="${item.queueId}" title="Reproducir ahora mismo">▶</button>
-            ${idx > 0 ? `<button type="button" class="btn-queue-item-ctrl" data-q-action="up" data-q-idx="${idx}" title="Subir posición">↑</button>` : ''}
-            ${idx < queue.length - 1 ? `<button type="button" class="btn-queue-item-ctrl" data-q-action="down" data-q-idx="${idx}" title="Bajar posición">↓</button>` : ''}
-            <button type="button" class="btn-queue-item-ctrl remove-item" data-q-action="remove" data-q-id="${item.queueId}" title="Quitar de la cola">&times;</button>
+            <button type="button" class="btn-queue-item-ctrl play-now" data-q-action="play" data-q-id="${item.queueId}" title="Reproducir ahora mismo">${iconSvg('play', { size: 11 })}</button>
+            ${idx > 0 ? `<button type="button" class="btn-queue-item-ctrl" data-q-action="up" data-q-idx="${idx}" title="Subir posición">${iconSvg('arrow-up', { size: 11 })}</button>` : ''}
+            ${idx < queue.length - 1 ? `<button type="button" class="btn-queue-item-ctrl" data-q-action="down" data-q-idx="${idx}" title="Bajar posición">${iconSvg('arrow-down', { size: 11 })}</button>` : ''}
+            <button type="button" class="btn-queue-item-ctrl remove-item" data-q-action="remove" data-q-id="${item.queueId}" title="Quitar de la cola">${iconSvg('x', { size: 11 })}</button>
           </div>
         </div>
       `;
@@ -3875,10 +4185,10 @@ class ProPresenterApp {
       const isActive = tpl.id === store.activeTemplateId;
       return `
         <div class="folder-item ${isActive ? 'active' : ''}" data-tpl-id="${tpl.id}">
-          <span>📄 ${tpl.name}</span>
+          <span class="filter-item-label">${iconSvg('file-text', { size: 13, className: 'lucide-icon icon-pink' })} <span>${tpl.name}</span></span>
           <div style="display: flex; gap: 4px; align-items: center;">
             ${isActive ? '<span class="count" style="color: var(--accent-cyan); font-weight:700;">ACTIVO</span>' : ''}
-            <button class="btn-delete-media btn-delete-tpl" data-delete-tpl-id="${tpl.id}" title="Eliminar plantilla" style="width:16px;height:16px;font-size:0.65rem;">&times;</button>
+            <button class="btn-delete-media btn-delete-tpl" data-delete-tpl-id="${tpl.id}" title="Eliminar plantilla">${iconSvg('x', { size: 11 })}</button>
           </div>
         </div>
       `;
@@ -3886,7 +4196,7 @@ class ProPresenterApp {
 
     sidebarEl.querySelectorAll('.folder-item').forEach(item => {
       item.addEventListener('click', (e) => {
-        if (e.target.classList.contains('btn-delete-tpl')) return;
+        if (e.target.closest('.btn-delete-tpl')) return;
         const id = item.getAttribute('data-tpl-id');
         store.setActiveTemplate(id);
         if (store.activeDeck) {
@@ -4123,9 +4433,9 @@ class ProPresenterApp {
         store.saveTemplate(newTpl);
         this.populateTemplateForm(newTpl);
         closeModalTemplate();
-        this.showToast(`🎨 Plantilla "${tplName}" creada.`, "success");
+        this.showToast(`Plantilla "${tplName}" creada.`, "success");
       } else {
-        this.showToast("⚠️ Por favor ingresa un nombre para la plantilla.", "warn");
+        this.showToast("Por favor ingresa un nombre para la plantilla.", "warn");
         this.ensureModalInteractive(this.modalCreateTemplate, this.inputTemplateName);
       }
     };
@@ -4168,10 +4478,10 @@ class ProPresenterApp {
       const isActive = ver.id === this.selectedBibleVersion;
       return `
         <div class="folder-item ${isActive ? 'active' : ''}" data-bible-id="${ver.id}">
-          <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;">📖 ${ver.name}</span>
+          <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; display: inline-flex; align-items: center; gap: 4px;">${iconSvg('book-open', { size: 13, className: 'lucide-icon icon-blue' })} ${ver.name}</span>
           <div style="display: flex; align-items: center; gap: 4px;">
             <span class="count">${ver.tag}</span>
-            <button class="btn-delete-bible" data-bible-id="${ver.id}" data-bible-name="${ver.name.replace(/"/g, '&quot;')}" title="Eliminar Biblia" style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 0.72rem; padding: 2px 4px; border-radius: 4px;">🗑️</button>
+            <button class="btn-delete-bible" data-bible-id="${ver.id}" data-bible-name="${ver.name.replace(/"/g, '&quot;')}" title="Eliminar Biblia" style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 2px 4px; border-radius: 4px; display: inline-flex; align-items: center;">${iconSvg('trash-2', { size: 13, color: '#ef4444' })}</button>
           </div>
         </div>
       `;
@@ -4305,14 +4615,14 @@ class ProPresenterApp {
     // 3. Verses Column
     const activeRefText = `${activeBookObj.name} ${this.selectedChapter}`;
     if (labelChapterRefEl) labelChapterRefEl.textContent = activeRefText;
-    if (activeRefTagEl) activeRefTagEl.textContent = this.selectedBibleVersion ? `📖 ${activeRefText} (${this.selectedBibleVersion})` : '📖 Ninguna Biblia Seleccionada';
+    if (activeRefTagEl) activeRefTagEl.innerHTML = this.selectedBibleVersion ? `${iconSvg('book-open', { size: 13, className: 'lucide-icon icon-blue' })} ${activeRefText} (${this.selectedBibleVersion})` : `${iconSvg('book-open', { size: 13, className: 'lucide-icon icon-muted' })} Ninguna Biblia Seleccionada`;
 
     const verses = getChapterVerses(this.selectedBookId, this.selectedChapter, this.selectedBibleVersion);
 
     if (verses.length === 0) {
       versesListEl.innerHTML = `
         <div style="padding: 30px; text-align: center; color: var(--text-muted); font-size: 0.82rem; width: 100%;">
-          <div style="font-size: 2rem; margin-bottom: 8px;">📖</div>
+          <div style="margin-bottom: 8px;">${iconSvg('book-open', { size: 36, className: 'lucide-icon icon-muted' })}</div>
           No hay pasajes disponibles en esta vista.<br/><br/>
           Por favor presiona el botón <strong style="color: var(--accent-magenta); font-size: 1rem;">"+"</strong> en el panel lateral izquierdo para cargar una Biblia en formato JSON.
         </div>
@@ -4380,14 +4690,14 @@ class ProPresenterApp {
       const notes = inputNotes?.value.trim();
 
       if (!title) {
-        this.showToast("⚠️ Por favor ingresa un título para el evento.", "warn");
+        this.showToast("Por favor ingresa un título para el evento.", "warn");
         this.ensureModalInteractive(modalEvt, inputTitle);
         return;
       }
 
       calendarManager.addEvent(title, date, time, category, notes);
       closeModalEvt();
-      this.showToast(`📅 Evento "${title}" guardado en el calendario.`, "success");
+      this.showToast(`Evento "${title}" guardado en el calendario.`, "success");
     });
 
     document.getElementById('btn-cal-prev-month')?.addEventListener('click', () => calendarManager.changeMonth(-1));
@@ -4457,7 +4767,7 @@ class ProPresenterApp {
           }
         } catch (err) {
           if (statusEl) {
-            statusEl.textContent = `❌ Error: El archivo no es un JSON válido.`;
+            statusEl.innerHTML = `${iconSvg('x-circle', { size: 13, color: '#ef4444' })} Error: El archivo no es un JSON válido.`;
             statusEl.style.color = '#f87171';
             statusEl.style.display = 'block';
           }
@@ -4482,7 +4792,7 @@ class ProPresenterApp {
         } else if (url) {
           newBible = await fetchAndLoadBibleFromUrl(url);
         } else {
-          this.showToast("⚠️ Por favor ingresa una URL o selecciona un archivo JSON de Biblia.", "warn");
+          this.showToast("Por favor ingresa una URL o selecciona un archivo JSON de Biblia.", "warn");
           this.ensureModalInteractive(modal, inputUrl);
           return;
         }
@@ -4492,11 +4802,11 @@ class ProPresenterApp {
           this.renderScriptureSubSidebar();
           this.renderScripture3ColView();
           closeModal();
-          this.showToast(`✨ Biblia "${newBible.name}" cargada y seleccionada exitosamente.`, "success");
+          this.showToast(`Biblia "${newBible.name}" cargada y seleccionada exitosamente.`, "success");
         }
       } catch (err) {
         if (statusEl) {
-          statusEl.textContent = `❌ ${err.message}`;
+          statusEl.innerHTML = `${iconSvg('x-circle', { size: 13, color: '#ef4444' })} ${err.message}`;
           statusEl.style.color = '#f87171';
           statusEl.style.display = 'block';
         }
@@ -4516,6 +4826,8 @@ class ProPresenterApp {
     const refLine = showRef ? `\n<span class="slide-scripture-ref">${fullTitle}</span>` : '';
 
     store.state.liveText = `${firstChunk}${refLine}`;
+    store.state.liveSlideImage = "";
+    store.state.liveSlideNotes = "";
     store.state.isTextCleared = false;
     store.notify();
   }
@@ -4631,7 +4943,7 @@ class ProPresenterApp {
 
       const rawPassageText = passageBlocks.join('\n\n');
       store.createNewShow(title, "Lectura", rawPassageText);
-      this.showToast(`✨ Se ha creado el show "${title}" con ${passageBlocks.length} diapositivas adaptadas.`, "success");
+      this.showToast(`Se ha creado el show "${title}" con ${passageBlocks.length} diapositivas adaptadas.`, "success");
     });
   }
 
@@ -4646,55 +4958,59 @@ class ProPresenterApp {
     const projectBadge = document.querySelector('.project-count-badge');
     if (projectBadge) projectBadge.textContent = filteredSidebarDecks.length;
 
-    if (filteredSidebarDecks.length === 0 && hasProjSearch) {
-      this.deckListEl.innerHTML = `
-        <div style="padding: 12px 8px; text-align: center; color: var(--text-muted); font-size: 0.73rem;">
-          Sin coincidencias para "${this.projectSearchQuery}"
-        </div>
-      `;
-    } else {
-      this.deckListEl.innerHTML = filteredSidebarDecks.map(deck => {
-        const isInProject = store.projectDeckIds.includes(deck.id);
-        return `
-          <div class="deck-item ${deck.id === store.activeDeckId ? 'active' : ''}" data-deck-id="${deck.id}">
-            <span class="deck-item-title" style="flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${deck.title}">${deck.title}</span>
-            <div style="display: flex; align-items: center; gap: 4px;">
-              <span class="deck-item-tag">${deck.category || deck.type}</span>
-              <button class="btn-edit-project-item" data-edit-id="${deck.id}" title="Editar canción" style="background: none; border: none; color: #7dd3fc; cursor: pointer; font-size: 0.72rem; padding: 0 2px;">✏️</button>
-              ${isInProject ? `<button class="btn-remove-project-item" data-remove-id="${deck.id}" title="Quitar del proyecto (mantener en biblioteca)">&times;</button>` : ''}
-            </div>
+    const projectSidebarKey = `${this.projectSearchQuery || ''}|${store.activeDeckId || ''}|${store.projectDeckIds.join(',')}|${filteredSidebarDecks.map(d => `${d.id}:${d.title}:${d.category || d.type}`).join('|')}`;
+    if (this._lastProjectSidebarKey !== projectSidebarKey) {
+      this._lastProjectSidebarKey = projectSidebarKey;
+      if (filteredSidebarDecks.length === 0 && hasProjSearch) {
+        this.deckListEl.innerHTML = `
+          <div style="padding: 12px 8px; text-align: center; color: var(--text-muted); font-size: 0.73rem;">
+            Sin coincidencias para "${this.projectSearchQuery}"
           </div>
         `;
-      }).join('');
+      } else {
+        this.deckListEl.innerHTML = filteredSidebarDecks.map(deck => {
+          const isInProject = store.projectDeckIds.includes(deck.id);
+          return `
+            <div class="deck-item ${deck.id === store.activeDeckId ? 'active' : ''}" data-deck-id="${deck.id}">
+              <span class="deck-item-title" title="${deck.title}">${deck.title}</span>
+              <div class="deck-item-actions">
+                <span class="deck-item-tag">${deck.category || deck.type}</span>
+                <button class="btn-edit-project-item" data-edit-id="${deck.id}" title="Editar canción">${iconSvg('pencil', { size: 12 })}</button>
+                ${isInProject ? `<button class="btn-remove-project-item" data-remove-id="${deck.id}" title="Quitar del proyecto (mantener en biblioteca)">${iconSvg('x', { size: 12 })}</button>` : ''}
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      this.deckListEl.querySelectorAll('.deck-item').forEach(el => {
+        const id = el.getAttribute('data-deck-id');
+        const deckObj = decks.find(d => d.id === id);
+        el.addEventListener('click', (e) => {
+          if (e.target.closest('.btn-remove-project-item') || e.target.closest('.btn-edit-project-item')) return;
+          store.setActiveDeck(id);
+        });
+        el.addEventListener('contextmenu', (e) => {
+          if (deckObj) this.showContextMenu(e, { type: 'project-item', id: deckObj.id, name: deckObj.title });
+        });
+      });
+
+      this.deckListEl.querySelectorAll('.btn-edit-project-item').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const id = btn.getAttribute('data-edit-id');
+          if (id) this.openEditDeckModal(id);
+        });
+      });
+
+      this.deckListEl.querySelectorAll('.btn-remove-project-item').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const id = btn.getAttribute('data-remove-id');
+          store.removeFromProject(id);
+        });
+      });
     }
-
-    this.deckListEl.querySelectorAll('.deck-item').forEach(el => {
-      const id = el.getAttribute('data-deck-id');
-      const deckObj = decks.find(d => d.id === id);
-      el.addEventListener('click', (e) => {
-        if (e.target.classList.contains('btn-remove-project-item') || e.target.classList.contains('btn-edit-project-item')) return;
-        store.setActiveDeck(id);
-      });
-      el.addEventListener('contextmenu', (e) => {
-        if (deckObj) this.showContextMenu(e, { type: 'project-item', id: deckObj.id, name: deckObj.title });
-      });
-    });
-
-    this.deckListEl.querySelectorAll('.btn-edit-project-item').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const id = btn.getAttribute('data-edit-id');
-        if (id) this.openEditDeckModal(id);
-      });
-    });
-
-    this.deckListEl.querySelectorAll('.btn-remove-project-item').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const id = btn.getAttribute('data-remove-id');
-        store.removeFromProject(id);
-      });
-    });
 
     // 2. Render Shows, Media, Templates & Scripture Dock
     this.renderShowsCategories(decks);
@@ -4714,51 +5030,47 @@ class ProPresenterApp {
       // Render Deck Sections Quick Navigation Bar
       const sectionsNavEl = document.getElementById('deck-sections-nav');
       if (sectionsNavEl) {
-        if (!activeDeck.groups || activeDeck.groups.length === 0) {
-          sectionsNavEl.innerHTML = `<span class="section-nav-empty">Sin secciones definidas en esta canción</span>`;
-        } else {
-          const liveGIdx = state.liveGroupIndex;
-          const sectionButtonsHTML = activeDeck.groups.map((group, gIdx) => {
-            const isGroupLive = liveGIdx === gIdx && !state.isTextCleared;
-            const badgeClass = group.badge || 'badge-verse';
-            const slideCount = group.slides?.length || 1;
+        const sectionsNavKey = `${activeDeck.id}|${!state.isTextCleared ? state.liveGroupIndex : -1}|${(activeDeck.groups || []).map(g => `${g.name}:${g.badge}:${g.slides?.length || 0}`).join('|')}`;
+        if (this._lastSectionsNavKey !== sectionsNavKey) {
+          this._lastSectionsNavKey = sectionsNavKey;
+          if (!activeDeck.groups || activeDeck.groups.length === 0) {
+            sectionsNavEl.innerHTML = `<span class="section-nav-empty">Sin secciones definidas en esta canción</span>`;
+          } else {
+            const liveGIdx = state.liveGroupIndex;
+            const sectionButtonsHTML = activeDeck.groups.map((group, gIdx) => {
+              const isGroupLive = liveGIdx === gIdx && !state.isTextCleared;
+              const badgeClass = group.badge || 'badge-verse';
+              const slideCount = group.slides?.length || 1;
 
-            let icon = '📖';
-            if (badgeClass.includes('intro')) icon = '🎵';
-            else if (badgeClass.includes('prechorus')) icon = '⚡';
-            else if (badgeClass.includes('chorus')) icon = '🔥';
-            else if (badgeClass.includes('bridge')) icon = '🌉';
-            else if (badgeClass.includes('instrumental')) icon = '🎸';
-            else if (badgeClass.includes('outro')) icon = '🏁';
-            else if (badgeClass.includes('sermon')) icon = '💬';
-            else if (badgeClass.includes('lowerthird')) icon = '👤';
+              const sectionSvg = getSectionIconSvg(badgeClass, { size: 12 });
 
-            return `
-              <button type="button" class="btn-section-nav ${badgeClass} ${isGroupLive ? 'active-live-section' : ''}" data-gidx="${gIdx}" title="Saltar a ${group.name} (${slideCount} filminas)">
-                <span class="section-icon">${icon}</span>
-                <span class="section-title">${group.name}</span>
-                <span class="section-count">${slideCount}</span>
-                ${isGroupLive ? '<span class="section-live-dot" title="En Vivo">●</span>' : ''}
-              </button>
+              return `
+                <button type="button" class="btn-section-nav ${badgeClass} ${isGroupLive ? 'active-live-section' : ''}" data-gidx="${gIdx}" title="Saltar a ${group.name} (${slideCount} filminas)">
+                  <span class="section-icon">${sectionSvg}</span>
+                  <span class="section-title">${group.name}</span>
+                  <span class="section-count">${slideCount}</span>
+                  ${isGroupLive ? '<span class="section-live-dot" title="En Vivo">●</span>' : ''}
+                </button>
+              `;
+            }).join('');
+
+            sectionsNavEl.innerHTML = `
+              <span class="section-nav-label">
+                ${iconSvg('list', { size: 12 })}
+                <span>SECCIONES:</span>
+              </span>
+              <div class="section-nav-buttons-track">
+                ${sectionButtonsHTML}
+              </div>
             `;
-          }).join('');
 
-          sectionsNavEl.innerHTML = `
-            <span class="section-nav-label">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 6h16M4 12h16M4 18h7"/></svg>
-              SECCIONES:
-            </span>
-            <div class="section-nav-buttons-track">
-              ${sectionButtonsHTML}
-            </div>
-          `;
-
-          sectionsNavEl.querySelectorAll('.btn-section-nav').forEach(btn => {
-            btn.addEventListener('click', () => {
-              const gIdx = parseInt(btn.getAttribute('data-gidx'));
-              this.navigateToSection(gIdx);
+            sectionsNavEl.querySelectorAll('.btn-section-nav').forEach(btn => {
+              btn.addEventListener('click', () => {
+                const gIdx = parseInt(btn.getAttribute('data-gidx'));
+                this.navigateToSection(gIdx);
+              });
             });
-          });
+          }
         }
       }
 
@@ -4774,9 +5086,15 @@ class ProPresenterApp {
         groups: activeDeck.groups.map(g => ({
           name: g.name,
           badge: g.badge,
-          slides: g.slides.map(s => ({ id: s.id, text: s.text, style: s.style, isLt: s.isLowerThird }))
+          slides: g.slides.map(s => ({ id: s.id, text: s.text, image: s.image, notes: s.notes, style: s.style, isLt: s.isLowerThird }))
         }))
       });
+
+      const btnEditDeck = document.getElementById('btn-edit-active-deck');
+      const btnReflowDeck = document.getElementById('btn-reflow-deck');
+      const isPresDeck = activeDeck.type === 'presentation';
+      if (btnEditDeck) btnEditDeck.style.display = isPresDeck ? 'none' : '';
+      if (btnReflowDeck) btnReflowDeck.style.display = isPresDeck ? 'none' : '';
 
       if (this.lastSlideCardsStructuralKey === slideCardsStructuralKey && this.slideGroupsWrapper.querySelector('.slide-cards-grid')) {
         // Fast-path: actualizar únicamente la clase .active-live sin destruir el DOM ni los decodificadores <video>
@@ -4839,7 +5157,27 @@ class ProPresenterApp {
             const activeMediaItem = activeMediaUrl ? state.mediaLibrary?.find(m => m.url === activeMediaUrl) : null;
             const activeMediaThumb = activeMediaItem?.thumbnail || '';
             const isImg = (state.activeVideoType && state.activeVideoType.startsWith('image/')) || (state.activeVideoIsImage && !state.activeVideoType?.startsWith('video/')) || (activeMediaUrl && !activeMediaUrl.startsWith('blob:') && !!activeMediaUrl.match(/\.(jpeg|jpg|gif|png|webp|svg)($|\?)/i));
-            
+            const slideImgSrc = slide.thumb || slide.image || '';
+
+            if (slideImgSrc) {
+              const notesIndicator = slide.notes
+                ? `<span title="Notas del orador: ${this.escapeHtml(slide.notes)}" style="position: absolute; bottom: 26px; right: 6px; background: rgba(15, 23, 42, 0.85); color: #fde68a; border: 1px solid rgba(251, 191, 36, 0.45); border-radius: 4px; font-size: 0.62rem; font-weight: 700; padding: 1px 5px; z-index: 3; display: inline-flex; align-items: center; gap: 3px;">${iconSvg('file-text', { size: 10 })} Notas</span>`
+                : '';
+              return `
+                <div class="slide-card ${isLive ? 'active-live' : ''}" data-gidx="${gIdx}" data-sidx="${sIdx}" style="background: #000;">
+                  <img src="${slideImgSrc}" alt="Diapositiva ${cardIdx}" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; z-index: 1; pointer-events: none;" />
+                  <span class="slide-card-index">${cardIdx}</span>
+                  <span class="slide-card-live-badge">EN VIVO</span>
+                  ${notesIndicator}
+                  <div class="slide-card-footer-line">
+                    <span class="badge ${group.badge} slide-card-section-badge" data-gidx="${gIdx}" data-sidx="${sIdx}" title="Diapositiva ${cardIdx}">
+                      Diapositiva ${cardIdx}
+                    </span>
+                  </div>
+                </div>
+              `;
+            }
+
             let cardBgHTML = '';
             if (activeMediaUrl) {
               if (isImg || activeMediaThumb) {
@@ -4982,9 +5320,23 @@ class ProPresenterApp {
         if (imgB) imgB.style.opacity = '0';
         bgA.pause();
         bgB.pause();
-        this.operatorVideoUrl = "";
-        this.operatorMediaPlayId = 0;
+        if (this.operatorVideoUrl) {
+          this.operatorVideoUrl = "";
+          this.operatorMediaPlayId = 0;
+          if (this._operatorClearVramTimeout) clearTimeout(this._operatorClearVramTimeout);
+          this._operatorClearVramTimeout = setTimeout(() => {
+            if (store.state.isMediaCleared || !store.state.activeVideoUrl) {
+              bgA.removeAttribute('src');
+              bgB.removeAttribute('src');
+              try { bgA.load(); bgB.load(); } catch (e) {}
+            }
+          }, (mediaMode === 'cut' ? 0 : dur) + 60);
+        }
       } else if (this.operatorVideoUrl !== state.activeVideoUrl || (state.activeMediaPlayId && this.operatorMediaPlayId !== state.activeMediaPlayId)) {
+        if (this._operatorClearVramTimeout) {
+          clearTimeout(this._operatorClearVramTimeout);
+          this._operatorClearVramTimeout = null;
+        }
         this.operatorVideoUrl = state.activeVideoUrl;
         this.operatorMediaPlayId = state.activeMediaPlayId || 0;
 
@@ -5057,8 +5409,24 @@ class ProPresenterApp {
     this.updateMediaTimelineUI(state);
 
 
-    // 5. Text & Stage Previews (Escalado equivalente e idéntico a la pantalla de Audiencia)
-    const targetText = (state.isTextCleared || !state.liveText) ? "" : state.liveText;
+    // 5. Presentation Slide Image + Text & Stage Previews (Escalado equivalente e idéntico a la pantalla de Audiencia)
+    const targetSlideImage = (!state.isTextCleared && state.liveSlideImage) ? state.liveSlideImage : "";
+    const operatorSlideImgEl = document.getElementById('operator-slide-img-preview');
+    if (operatorSlideImgEl) {
+      operatorSlideImgEl.style.transition = state.textTransition === 'cut' ? 'opacity 0s' : `opacity ${dur}ms ease-in-out`;
+      if (targetSlideImage) {
+        if (operatorSlideImgEl.getAttribute('src') !== targetSlideImage) {
+          operatorSlideImgEl.src = targetSlideImage;
+        }
+        operatorSlideImgEl.style.display = 'block';
+        operatorSlideImgEl.style.opacity = '1';
+      } else {
+        operatorSlideImgEl.style.opacity = '0';
+        operatorSlideImgEl.style.display = 'none';
+      }
+    }
+
+    const targetText = (state.isTextCleared || targetSlideImage || !state.liveText) ? "" : state.liveText;
     const operatorTextWrapper = document.getElementById('operator-live-text-wrapper');
 
     if (!targetText) {
@@ -5149,9 +5517,18 @@ class ProPresenterApp {
       }
     }
 
-    this.stageCurrentEl.textContent = state.isTextCleared ? "TEXTO LIMPIO" : (state.liveText || "--");
+    const liveStageSummary = state.isTextCleared
+      ? "TEXTO LIMPIO"
+      : (state.liveSlideNotes || state.liveText || (state.liveSlideImage ? "Diapositiva en proyección" : "--"));
+    this.stageCurrentEl.textContent = liveStageSummary;
     this.stageNextEl.textContent = "SIGUIENTE: " + (state.nextText || "--");
     this.stageTimerEl.textContent = stageManager.constructor.formatTime(state.timerValue);
+    if (this.btnTimerToggle) {
+      this.btnTimerToggle.innerHTML = state.timerRunning
+        ? `${iconSvg('pause', { size: 12 })} <span>Pausar</span>`
+        : `${iconSvg('play', { size: 12 })} <span>Iniciar</span>`;
+      this.btnTimerToggle.classList.toggle('active', !!state.timerRunning);
+    }
 
     // Update transition toggle buttons & slider active state
     document.querySelectorAll('.btn-trans-toggle').forEach(btn => {
@@ -5183,7 +5560,7 @@ class ProPresenterApp {
     if (btnToggleSound) {
       btnToggleSound.classList.toggle('muted', isAudioMuted);
       btnToggleSound.classList.toggle('active', !isAudioMuted);
-      if (soundIcon) soundIcon.textContent = isAudioMuted ? '🔇' : '🔊';
+      if (soundIcon) soundIcon.innerHTML = isAudioMuted ? iconSvg('volume-x', { size: 14 }) : iconSvg('volume-2', { size: 14 });
       if (soundText) soundText.textContent = isAudioMuted ? 'Silenciado' : 'Sonido ON';
     }
 
@@ -5192,7 +5569,7 @@ class ProPresenterApp {
     const audioPillText = document.getElementById('audio-pill-text');
     if (btnAudioPill) {
       btnAudioPill.classList.toggle('muted', isAudioMuted);
-      if (audioPillIcon) audioPillIcon.textContent = isAudioMuted ? '🔇' : '🔊';
+      if (audioPillIcon) audioPillIcon.innerHTML = isAudioMuted ? iconSvg('volume-x', { size: 14 }) : iconSvg('volume-2', { size: 14 });
       if (audioPillText) audioPillText.textContent = isAudioMuted ? 'MUTE' : 'ON';
     }
 
@@ -5201,7 +5578,7 @@ class ProPresenterApp {
     const dockAudioText = document.getElementById('dock-audio-text');
     if (btnDockAudio) {
       btnDockAudio.classList.toggle('muted', isAudioMuted);
-      if (dockAudioIcon) dockAudioIcon.textContent = isAudioMuted ? '🔇' : '🔊';
+      if (dockAudioIcon) dockAudioIcon.innerHTML = isAudioMuted ? iconSvg('volume-x', { size: 14 }) : iconSvg('volume-2', { size: 14 });
       if (dockAudioText) dockAudioText.textContent = isAudioMuted ? 'Audio: Mute' : 'Audio: ON';
     }
 
@@ -5236,7 +5613,7 @@ class ProPresenterApp {
         statusBgLayer.style.color = "var(--accent-cyan)";
       }
     }
-    if (!state.isTextCleared && state.liveText) {
+    if (!state.isTextCleared && (state.liveText || state.liveSlideImage)) {
       statusDot?.classList.add('live');
       if (statusText) statusText.textContent = "PROYECTANDO EN VIVO • Sincronización OK";
     } else {

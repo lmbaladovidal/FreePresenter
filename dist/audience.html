@@ -1,12 +1,13 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ProPresenter AI Studio - Salida Principal (Audiencia / Stream)</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
-    
+
     * {
       box-sizing: border-box;
       margin: 0;
@@ -37,6 +38,18 @@
       pointer-events: none;
     }
 
+    .slide-image-layer {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: #000000;
+      z-index: 2;
+      opacity: 0;
+      pointer-events: none;
+    }
+
     #bg-fallback {
       position: absolute;
       inset: 0;
@@ -47,9 +60,11 @@
     }
 
     #slide-text-container {
-      position: relative;
+      position: absolute;
+      left: 5%;
+      right: 5%;
       z-index: 2;
-      max-width: 85%;
+      max-width: none;
       text-align: center;
       font-size: 3.8rem;
       font-weight: 800;
@@ -58,6 +73,9 @@
       color: #ffffff;
       text-shadow: 0 4px 20px rgba(0, 0, 0, 0.9), 0 2px 4px rgba(0, 0, 0, 0.8);
       white-space: pre-wrap;
+      word-break: normal;
+      overflow-wrap: normal;
+      box-sizing: border-box;
       transition: opacity 0.25s ease, transform 0.25s ease;
     }
 
@@ -117,18 +135,23 @@
       letter-spacing: 0.5px;
     }
   </style>
-  <script type="module" crossorigin src="./assets/audience-_Gj3NnmK.js"></script>
-  <link rel="modulepreload" crossorigin href="./assets/broadcast-BAs4ad2R.js">
+  <script type="module" crossorigin src="./assets/audience-rx-Ou1pA.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/broadcast-BTPDFxxy.js">
 </head>
+
 <body>
   <div id="bg-fallback"></div>
-  
+
   <!-- Dual Layer Media for Smooth Crossfade Transitions (Video & Image Support) -->
   <video id="bg-video-a" class="bg-media-layer" autoplay loop playsinline></video>
   <video id="bg-video-b" class="bg-media-layer" autoplay loop playsinline></video>
   <img id="bg-img-a" class="bg-media-layer" style="display:none;" />
   <img id="bg-img-b" class="bg-media-layer" style="display:none;" />
-  
+
+  <!-- Dual Layer Presentation Slide Images (PPTX / PDF Full-Fidelity Slides) -->
+  <img id="slide-image-a" class="slide-image-layer" alt="" />
+  <img id="slide-image-b" class="slide-image-layer" alt="" />
+
   <div id="slide-text-container"></div>
 
   <div id="lower-third-banner">
@@ -137,4 +160,5 @@
   </div>
 
 </body>
+
 </html>

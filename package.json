@@ -1,6 +1,6 @@
 {
   "name": "propresenter-ai-studio",
-  "version": "1.6.0",
+  "version": "2.0.0",
   "description": "Estación de control multimedia de escritorio para proyección multipantalla, transmisión en vivo, monitor de escenario, calendario de eventos y gestor de escrituras.",
   "main": "main.js",
   "author": "ProPresenter AI Studio Team",
@@ -32,6 +32,7 @@
     },
     "files": [
       "dist/**/*",
+      "electron/**/*",
       "main.js",
       "preload.js",
       "package.json"
@@ -55,5 +56,9 @@
     "electron-builder": "^26.0.12",
     "electron-packager": "^17.1.2",
     "vite": "^5.0.0"
+  },
+  "dependencies": {
+    "lucide": "^1.72.0",
+    "pdfjs-dist": "^5.7.284"
   }
 }

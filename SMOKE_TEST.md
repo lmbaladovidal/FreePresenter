@@ -112,7 +112,7 @@ npm test
 | **ST-35** | Zoom Dinámico Grid | Deslizar la barra de zoom de filminas de `140px` a `380px`. | Las tarjetas de filmina redimensionan su tamaño en vivo. | RF-41 |
 | **ST-36** | Paridad 1:1 Monitor | Proyectar canción y comparar `.monitor-screen` con `audience.html`. | Fuentes, espaciados, saltos de línea y posición vertical coinciden 100% idénticos. | RF-42 |
 | **ST-37** | Menú Contextual | Hacer clic derecho en una canción, medio, biblia o filmina. | Muestra menú dinámico con opciones Proyectar, Editar, Duplicar, Copiar, Eliminar. | RF-43 |
-| **ST-38** | Badge de Versión | Inspeccionar la insignia del encabezado superior. | Muestra dinámicamente la versión leída desde `package.json` (`PRO v1.3.4`). | RF-44 |
+| **ST-38** | Badge de Versión | Inspeccionar la insignia del encabezado superior. | Muestra dinámicamente la versión leída desde `package.json` (`PRO v2.0.0`). | RF-44 |
 
 ---
 

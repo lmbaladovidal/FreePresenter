@@ -166,19 +166,31 @@ const POPULAR_PASSAGES = {
 };
 
 export const CUSTOM_BIBLES = {};
+let _customBiblesLoaded = false;
 
-// Cargar biblias personalizadas guardadas en localStorage
-try {
-  const saved = localStorage.getItem("propresenter_custom_bibles");
-  if (saved) {
-    const parsed = JSON.parse(saved);
-    Object.assign(CUSTOM_BIBLES, parsed);
+export function ensureCustomBiblesLoaded() {
+  if (_customBiblesLoaded) return;
+  _customBiblesLoaded = true;
+  try {
+    if (typeof localStorage === "undefined") return;
+    const saved = localStorage.getItem("propresenter_custom_bibles");
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      Object.assign(CUSTOM_BIBLES, parsed);
+    }
+  } catch (e) {
+    console.error("No se pudieron cargar las biblias guardadas:", e);
   }
-} catch (e) {
-  console.error("No se pudieron cargar las biblias guardadas:", e);
+}
+
+if (typeof window !== "undefined" && typeof window.requestIdleCallback === "function") {
+  window.requestIdleCallback(() => ensureCustomBiblesLoaded());
+} else if (typeof setTimeout === "function") {
+  setTimeout(() => ensureCustomBiblesLoaded(), 0);
 }
 
 export function getAllBibleVersions() {
+  ensureCustomBiblesLoaded();
   const customList = Object.keys(CUSTOM_BIBLES).map(id => ({
     id: id,
     name: CUSTOM_BIBLES[id].name,
@@ -189,6 +201,7 @@ export function getAllBibleVersions() {
 }
 
 export function deleteCustomBible(versionId) {
+  ensureCustomBiblesLoaded();
   if (CUSTOM_BIBLES[versionId]) {
     delete CUSTOM_BIBLES[versionId];
     try {
@@ -202,6 +215,7 @@ export function deleteCustomBible(versionId) {
 }
 
 export function parseAndAddCustomBible(jsonData, sourceUrl = '') {
+  ensureCustomBiblesLoaded();
   if (!jsonData || !jsonData.books || !Array.isArray(jsonData.books)) {
     throw new Error("El archivo JSON no tiene la estructura de libros bíblicos requerida.");
   }
@@ -276,6 +290,7 @@ export async function fetchAndLoadBibleFromUrl(url) {
 
 // Retrieve Verses for any Book & Chapter & Version
 export function getChapterVerses(bookId, chapterNum, bibleVersionId = '') {
+  ensureCustomBiblesLoaded();
   if (CUSTOM_BIBLES[bibleVersionId]) {
     const custom = CUSTOM_BIBLES[bibleVersionId];
     if (custom.books) {

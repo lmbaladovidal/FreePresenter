@@ -6,6 +6,26 @@ For detailed release notes in Spanish, please see [NOTAS_DE_VERSION.md](./NOTAS_
 
 ---
 
+## [2.0.0] - 2026-11-12
+
+### Changed
+- **Comprehensive Visual & UI Polish:**
+  - Standardized font sizes, button paddings, border radiuses, and alignment across all toolbars, decks, sidebars, and full-screen editor.
+  - Replaced legacy unicode and emoji glyphs with vector Lucide SVG icons sized to a crisp 14px default.
+  - Redesigned deck banner and bottom shows cards so action buttons and slide counters remain perfectly aligned on a single line.
+  - Refined workspace grid proportions (255px / 1fr / 460px) and full-width operator monitor screen fit.
+  - Added missing accent color variables (`--accent-magenta`, `--accent-magenta-dark`).
+
+## [1.7.0] - 2026-11-11
+
+### Added
+- **PowerPoint & PDF Presentation Importer:**
+  - Direct import and conversion of presentations (`.pptx`, `.ppt`, `.ppsx`, `.pps`, `.odp`) and `.pdf` files into editable slide decks.
+  - Integration with `pdfjs-dist` for high-fidelity slide page rendering and text extraction.
+- **Stage Display & Audience Monitor Enhancements:**
+  - Improved real-time IPC synchronization across operator, audience, and stage views.
+  - Automated smoke test suite (`tests/smoke-test.mjs`).
+
 ## [1.6.0] - 2026-11-08
 
 ### Added

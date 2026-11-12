@@ -2,9 +2,31 @@
  * ProPresenter AI Studio - Electron Main Process
  * Manages Native Windows, Multi-Monitor Projections & Desktop IPC
  */
-const { app, BrowserWindow, ipcMain, dialog, screen } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, screen, nativeImage } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const { PresentationImporter, SUPPORTED_EXTENSIONS } = require('./electron/presentation-importer');
+
+let presentationImporter = null;
+function getPresentationImporter() {
+  if (!presentationImporter) {
+    presentationImporter = new PresentationImporter({
+      assetsRoot: path.join(app.getPath('userData'), 'presentations'),
+      makeThumbnail: async (srcPath, destPath) => {
+        try {
+          const img = nativeImage.createFromPath(srcPath);
+          if (img.isEmpty()) return false;
+          const resized = img.resize({ width: 420 });
+          await fs.promises.writeFile(destPath, resized.toJPEG(82));
+          return true;
+        } catch {
+          return false;
+        }
+      }
+    });
+  }
+  return presentationImporter;
+}
 
 // Optimize Chromium GPU Hardware Acceleration & Video Decoding Performance
 app.commandLine.appendSwitch('ignore-gpu-blocklist');
@@ -384,6 +406,91 @@ ipcMain.handle('unwatch-physical-folder', async (event, folderPath) => {
     unwatchPhysicalFolder(folderPath);
   }
   return true;
+});
+
+// =========================================================================
+// IMPORTACIÓN NATIVA DE PRESENTACIONES (PPTX / PPT / PPSX / ODP / PDF)
+// =========================================================================
+ipcMain.handle('select-presentation-file', async () => {
+  if (!mainWindow) return null;
+  const result = await dialog.showOpenDialog(mainWindow, {
+    title: 'Importar Presentación (PowerPoint / Impress / PDF)',
+    properties: ['openFile'],
+    filters: [
+      { name: 'Presentaciones y PDF', extensions: SUPPORTED_EXTENSIONS },
+      { name: 'PowerPoint / Impress', extensions: ['pptx', 'ppt', 'ppsx', 'pps', 'pptm', 'potx', 'odp'] },
+      { name: 'Documento PDF', extensions: ['pdf'] }
+    ]
+  });
+
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.focus();
+    mainWindow.webContents.focus();
+  }
+
+  if (result.canceled || !result.filePaths || result.filePaths.length === 0) {
+    return null;
+  }
+
+  const filePath = result.filePaths[0];
+  return {
+    filePath,
+    name: path.basename(filePath),
+    title: path.basename(filePath, path.extname(filePath))
+  };
+});
+
+ipcMain.handle('get-presentation-engines', async () => {
+  try {
+    return await getPresentationImporter().getEngines();
+  } catch {
+    return { powerpoint: false, libreoffice: false, pdf: true };
+  }
+});
+
+ipcMain.handle('import-presentation-file', async (_event, filePath) => {
+  try {
+    const importer = getPresentationImporter();
+    const res = await importer.importFile(filePath, {
+      onProgress: (payload) => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('presentation-import-progress', payload);
+        }
+      }
+    });
+    return { ok: true, ...res };
+  } catch (err) {
+    return {
+      ok: false,
+      code: err?.code || 'IMPORT_ERROR',
+      error: err?.message || 'Error al importar la presentación.'
+    };
+  }
+});
+
+ipcMain.handle('save-presentation-slide-image', async (_event, { assetId, index, data } = {}) => {
+  try {
+    const saved = await getPresentationImporter().saveSlideImage(assetId, index, data);
+    return { ok: true, ...saved };
+  } catch (err) {
+    return { ok: false, error: err?.message || 'No se pudo guardar la imagen de la diapositiva.' };
+  }
+});
+
+ipcMain.handle('cancel-presentation-import', () => {
+  try {
+    return getPresentationImporter().cancel();
+  } catch {
+    return false;
+  }
+});
+
+ipcMain.handle('delete-presentation-assets', async (_event, assetId) => {
+  try {
+    return await getPresentationImporter().deleteAssets(assetId);
+  } catch {
+    return false;
+  }
 });
 
 // Real-Time High Performance Local IPC Broadcast Synchronization

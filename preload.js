@@ -40,6 +40,18 @@ contextBridge.exposeInMainWorld('electronAPI', {
     const handler = (_event, isOpen) => callback(isOpen);
     ipcRenderer.on('audience-status-changed', handler);
     return () => ipcRenderer.removeListener('audience-status-changed', handler);
+  },
+  // Importación de Presentaciones (PPTX / PPT / PPSX / ODP / PDF)
+  selectPresentationFile: () => ipcRenderer.invoke('select-presentation-file'),
+  getPresentationEngines: () => ipcRenderer.invoke('get-presentation-engines'),
+  importPresentationFile: (filePath) => ipcRenderer.invoke('import-presentation-file', filePath),
+  savePresentationSlideImage: (assetId, index, data) => ipcRenderer.invoke('save-presentation-slide-image', { assetId, index, data }),
+  cancelPresentationImport: () => ipcRenderer.invoke('cancel-presentation-import'),
+  deletePresentationAssets: (assetId) => ipcRenderer.invoke('delete-presentation-assets', assetId),
+  onPresentationImportProgress: (callback) => {
+    const handler = (_event, payload) => callback(payload);
+    ipcRenderer.on('presentation-import-progress', handler);
+    return () => ipcRenderer.removeListener('presentation-import-progress', handler);
   }
 });
 

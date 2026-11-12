@@ -90,6 +90,36 @@
       white-space: pre-wrap;
     }
 
+    .stage-slide-split {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      width: 100%;
+      flex: 1;
+      min-height: 0;
+    }
+
+    #current-slide-img {
+      max-height: 100%;
+      max-width: 62%;
+      object-fit: contain;
+      border-radius: 10px;
+      border: 2px solid #334155;
+      background: #000;
+      display: none;
+    }
+
+    #next-slide-img {
+      height: 82px;
+      width: auto;
+      object-fit: contain;
+      border-radius: 6px;
+      border: 1px solid #334155;
+      background: #000;
+      display: none;
+    }
+
     /* Bottom: Next Slide Preview */
     .next-slide-area {
       border: 2px solid #1e293b;
@@ -126,8 +156,8 @@
       100% { opacity: 1; }
     }
   </style>
-  <script type="module" crossorigin src="./assets/stage-C2VYMXom.js"></script>
-  <link rel="modulepreload" crossorigin href="./assets/broadcast-BAs4ad2R.js">
+  <script type="module" crossorigin src="./assets/stage-CHUJsCEQ.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/broadcast-BTPDFxxy.js">
 </head>
 <body>
   <div class="stage-top-bar">
@@ -137,12 +167,18 @@
 
   <div class="current-slide-area">
     <div class="slide-label">● DIAPOSITIVA ACTUAL</div>
-    <div id="current-text" class="current-text">-- ESPERANDO DIAPOSITIVA --</div>
+    <div class="stage-slide-split">
+      <img id="current-slide-img" alt="Diapositiva actual" />
+      <div id="current-text" class="current-text">-- ESPERANDO DIAPOSITIVA --</div>
+    </div>
   </div>
 
   <div class="next-slide-area">
     <div class="next-label">SIGUIENTE DIAPOSITIVA ▶</div>
-    <div id="next-text" class="next-text">-- SIN SIGUIENTE --</div>
+    <div style="display: flex; align-items: center; gap: 16px;">
+      <img id="next-slide-img" alt="Siguiente diapositiva" />
+      <div id="next-text" class="next-text">-- SIN SIGUIENTE --</div>
+    </div>
   </div>
 
 </body>

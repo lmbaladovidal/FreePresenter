@@ -1,12 +1,13 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ProPresenter AI Studio - Salida Principal (Audiencia / Stream)</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
-    
+
     * {
       box-sizing: border-box;
       margin: 0;
@@ -33,6 +34,18 @@
       height: 100%;
       object-fit: cover;
       z-index: 1;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .slide-image-layer {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: #000000;
+      z-index: 2;
       opacity: 0;
       pointer-events: none;
     }
@@ -123,15 +136,20 @@
     }
   </style>
 </head>
+
 <body>
   <div id="bg-fallback"></div>
-  
+
   <!-- Dual Layer Media for Smooth Crossfade Transitions (Video & Image Support) -->
   <video id="bg-video-a" class="bg-media-layer" autoplay loop playsinline></video>
   <video id="bg-video-b" class="bg-media-layer" autoplay loop playsinline></video>
   <img id="bg-img-a" class="bg-media-layer" style="display:none;" />
   <img id="bg-img-b" class="bg-media-layer" style="display:none;" />
-  
+
+  <!-- Dual Layer Presentation Slide Images (PPTX / PDF Full-Fidelity Slides) -->
+  <img id="slide-image-a" class="slide-image-layer" alt="" />
+  <img id="slide-image-b" class="slide-image-layer" alt="" />
+
   <div id="slide-text-container"></div>
 
   <div id="lower-third-banner">
@@ -147,6 +165,8 @@
     const bgVideoB = document.getElementById('bg-video-b');
     const bgImgA = document.getElementById('bg-img-a');
     const bgImgB = document.getElementById('bg-img-b');
+    const slideImgA = document.getElementById('slide-image-a');
+    const slideImgB = document.getElementById('slide-image-b');
     const textEl = document.getElementById('slide-text-container');
     const ltBanner = document.getElementById('lower-third-banner');
     const ltTitle = document.getElementById('lower-third-title');
@@ -155,7 +175,9 @@
     let currentVideoUrl = "";
     let currentMediaPlayId = 0;
     let currentLiveText = "";
+    let currentSlideImageUrl = "";
     let activeMediaLayer = 'A'; // 'A' or 'B'
+    let activeSlideImgLayer = 'A';
     let fadeTimeout = null;
     let hasQueuedMedia = false;
     let lastMediaCommandId = null;
@@ -180,16 +202,16 @@
       if (cmd.action === 'seek' && typeof cmd.time === 'number' && !isNaN(cmd.time)) {
         try {
           activeVid.currentTime = Math.max(0, cmd.time);
-        } catch (e) {}
+        } catch (e) { }
       } else if (cmd.action === 'restart') {
         try {
           activeVid.currentTime = 0;
-          activeVid.play().catch(() => {});
-        } catch (e) {}
+          activeVid.play().catch(() => { });
+        } catch (e) { }
       } else if (cmd.action === 'pause') {
         activeVid.pause();
       } else if (cmd.action === 'play') {
-        activeVid.play().catch(() => {});
+        activeVid.play().catch(() => { });
       }
     };
 
@@ -229,7 +251,7 @@
         textEl.style.backgroundColor = tpl.bgColor || 'transparent';
         textEl.style.padding = `calc(${basePadding} * 0.025vw) calc(${basePadding} * 0.045vw)`;
         textEl.style.borderRadius = `calc(${baseRadius} * 0.04vw)`;
-        
+
         // Vertical Position Y
         textEl.style.position = 'absolute';
         textEl.style.left = '5%';
@@ -259,8 +281,32 @@
         textEl.style.transition = `opacity ${halfDur}ms ease-in-out, transform ${halfDur}ms ease-in-out`;
       }
 
-      // 1. Text Layer (with slide-to-slide crossfade animation)
-      const targetText = (state.isTextCleared || !state.liveText) ? "" : state.liveText;
+      // 1. Presentation Slide Image Layer (PPTX / PDF) + Text Layer
+      const targetSlideImage = (!state.isTextCleared && state.liveSlideImage) ? state.liveSlideImage : "";
+      const slideTransCss = state.textTransition === 'cut' ? 'opacity 0s' : `opacity ${dur}ms ease-in-out`;
+
+      if (!targetSlideImage) {
+        if (currentSlideImageUrl) {
+          slideImgA.style.transition = slideTransCss;
+          slideImgB.style.transition = slideTransCss;
+          slideImgA.style.opacity = '0';
+          slideImgB.style.opacity = '0';
+          currentSlideImageUrl = "";
+        }
+      } else if (targetSlideImage !== currentSlideImageUrl) {
+        currentSlideImageUrl = targetSlideImage;
+        const incomingSlide = activeSlideImgLayer === 'A' ? slideImgB : slideImgA;
+        const outgoingSlide = activeSlideImgLayer === 'A' ? slideImgA : slideImgB;
+        activeSlideImgLayer = activeSlideImgLayer === 'A' ? 'B' : 'A';
+
+        incomingSlide.style.transition = slideTransCss;
+        outgoingSlide.style.transition = slideTransCss;
+        incomingSlide.src = targetSlideImage;
+        incomingSlide.style.opacity = '1';
+        outgoingSlide.style.opacity = '0';
+      }
+
+      const targetText = (state.isTextCleared || targetSlideImage || !state.liveText) ? "" : state.liveText;
 
       if (!targetText) {
         textEl.classList.add('cleared');
@@ -328,9 +374,23 @@
         bgImgB.style.opacity = '0';
         bgVideoA.pause();
         bgVideoB.pause();
-        currentVideoUrl = "";
-        currentMediaPlayId = 0;
+        if (currentVideoUrl) {
+          currentVideoUrl = "";
+          currentMediaPlayId = 0;
+          if (window.audienceClearVramTimeout) clearTimeout(window.audienceClearVramTimeout);
+          window.audienceClearVramTimeout = setTimeout(() => {
+            if (!currentVideoUrl) {
+              bgVideoA.removeAttribute('src');
+              bgVideoB.removeAttribute('src');
+              try { bgVideoA.load(); bgVideoB.load(); } catch (e) {}
+            }
+          }, (mediaMode === 'cut' ? 0 : dur) + 60);
+        }
       } else if (currentVideoUrl !== state.activeVideoUrl || (state.activeMediaPlayId && currentMediaPlayId !== state.activeMediaPlayId)) {
+        if (window.audienceClearVramTimeout) {
+          clearTimeout(window.audienceClearVramTimeout);
+          window.audienceClearVramTimeout = null;
+        }
         currentVideoUrl = state.activeVideoUrl;
         currentMediaPlayId = state.activeMediaPlayId || 0;
 
@@ -438,4 +498,5 @@
     sync.requestState();
   </script>
 </body>
+
 </html>

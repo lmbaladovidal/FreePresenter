@@ -24,7 +24,7 @@
             <polygon points="5 3 19 12 5 21 5 3"></polygon>
           </svg>
           <span class="brand-name">FreePresenter <span style="color: var(--accent-pink)">AI</span></span>
-          <span class="brand-badge" id="app-brand-badge">PRO v1.3.4</span>
+          <span class="brand-badge" id="app-brand-badge">PRO v2.0.0</span>
         </div>
       </div>
 
@@ -91,20 +91,19 @@
       <aside class="sidebar">
         <div class="sidebar-header">
           <div style="display: flex; align-items: center; gap: 6px;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
-            </svg>
+            <i data-lucide="folder" class="icon-cyan"></i>
             <span class="sidebar-title">Projects</span>
           </div>
-          <div style="display: flex; align-items: center; gap: 6px;">
+          <div style="display: flex; align-items: center; gap: 5px;">
             <span class="project-count-badge">3</span>
-            <button id="btn-add-deck-header" class="btn-add-folder" title="Crear Nuevo Show o Presentación">+</button>
+            <button id="btn-import-presentation-header" class="btn-add-folder" title="Importar Presentación (PowerPoint .pptx / .ppt / PDF)"><i data-lucide="presentation"></i></button>
+            <button id="btn-add-deck-header" class="btn-add-folder" title="Crear Nuevo Show o Presentación"><i data-lucide="plus"></i></button>
           </div>
         </div>
 
         <!-- Buscador rápido en lista de proyectos / canciones descargadas -->
         <div class="sidebar-search-bar">
-          <span class="sidebar-search-icon">🔍</span>
+          <span class="sidebar-search-icon"><i data-lucide="search"></i></span>
           <input type="text" id="input-project-search" placeholder="Buscar canción guardada..." autocomplete="off" />
           <button type="button" id="btn-clear-project-search" class="btn-clear-search-input" style="display: none;" title="Limpiar búsqueda">&times;</button>
         </div>
@@ -121,16 +120,18 @@
             <h2 id="active-deck-title">Cuan Grande Es Él</h2>
             <p id="active-deck-category">Alabanza • 3 Secciones</p>
           </div>
-          <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-            <div class="slide-card-zoom-box" style="display: flex; align-items: center; gap: 6px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 6px; padding: 3px 8px;" title="Ajustar tamaño de las tarjetas de filminas">
-              <span style="font-size: 0.72rem; color: var(--text-muted);">🔍</span>
-              <input type="range" id="input-slide-card-size" min="140" max="380" step="10" value="220" style="width: 75px; accent-color: var(--accent-cyan); cursor: pointer;" title="Arrastra para aumentar o reducir el tamaño de las filminas" />
-              <span id="val-slide-card-size" style="font-size: 0.68rem; font-weight: 700; color: #cbd5e1; min-width: 34px;">220px</span>
+          <div class="deck-banner-actions">
+            <div class="slide-card-zoom-box" title="Ajustar tamaño de las tarjetas de filminas">
+              <span class="zoom-icon-wrap"><i data-lucide="zoom-in"></i></span>
+              <input type="range" id="input-slide-card-size" min="140" max="380" step="10" value="220" title="Arrastra para aumentar o reducir el tamaño de las filminas" />
+              <span id="val-slide-card-size" class="zoom-val-label">220px</span>
             </div>
-            <button id="btn-edit-active-deck" class="btn-output" style="background: rgba(56, 189, 248, 0.14); border: 1px solid rgba(56, 189, 248, 0.45); color: #38bdf8; font-size: 0.73rem; font-weight: 700; padding: 4px 10px;" title="Editar letra completa y secciones de esta canción">✏️ Editar Canción</button>
-            <button id="btn-reflow-deck" class="btn-output" style="background: var(--bg-card); border: 1px solid var(--border-color); font-size: 0.73rem; padding: 4px 8px;" title="Re-dividir filminas por número de renglones o plantilla">✂️ Dividir Filminas</button>
-            <button id="btn-prev-slide" class="btn-output">◀ Anterior</button>
-            <button id="btn-next-slide" class="btn-output" style="background: var(--accent-blue); color: #fff; border: none; font-weight: 700;">Siguiente ▶</button>
+            <button id="btn-edit-active-deck" class="btn-output btn-banner-accent" title="Editar letra completa y secciones de esta canción"><i data-lucide="pencil"></i> <span>Editar Canción</span></button>
+            <button id="btn-reflow-deck" class="btn-output" title="Re-dividir filminas por número de renglones o plantilla"><i data-lucide="scissors"></i> <span>Dividir Filminas</span></button>
+            <div class="deck-banner-nav-group">
+              <button id="btn-prev-slide" class="btn-output" title="Diapositiva Anterior"><i data-lucide="chevron-left"></i> <span>Anterior</span></button>
+              <button id="btn-next-slide" class="btn-output btn-banner-primary" title="Siguiente Diapositiva"><span>Siguiente</span> <i data-lucide="chevron-right"></i></button>
+            </div>
           </div>
         </div>
 
@@ -156,7 +157,7 @@
               <span style="font-size: 0.68rem; color: var(--text-muted)">AUDIENCE SCREEN</span>
             </div>
             <button id="btn-toggle-video-sound" class="btn-monitor-sound" title="Habilitar/Silenciar Sonido de Videos (Mute/Unmute)">
-              <span id="monitor-sound-icon">🔊</span>
+              <span id="monitor-sound-icon"><i data-lucide="volume-2"></i></span>
               <span id="monitor-sound-text">Sonido ON</span>
             </button>
           </div>
@@ -166,7 +167,8 @@
             <video id="operator-video-preview-b" autoplay loop muted style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; z-index: 0; pointer-events: none;"></video>
             <img id="operator-img-preview-a" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; z-index: 0; pointer-events: none; display: none;" />
             <img id="operator-img-preview-b" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; z-index: 0; pointer-events: none; display: none;" />
-            <div id="operator-live-text-wrapper" style="position: absolute; left: 5%; right: 5%; top: 50%; transform: translateY(-50%); text-align: center; pointer-events: none; z-index: 1;">
+            <img id="operator-slide-img-preview" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #000; opacity: 0; z-index: 1; pointer-events: none; display: none;" />
+            <div id="operator-live-text-wrapper" style="position: absolute; left: 5%; right: 5%; top: 50%; transform: translateY(-50%); text-align: center; pointer-events: none; z-index: 2;">
               <div id="operator-live-text" class="monitor-live-text" style="color: white; line-height: 1.25;"></div>
             </div>
 
@@ -181,20 +183,20 @@
           <div id="media-timeline-panel" class="media-timeline-bar">
             <div class="media-timeline-top">
               <div class="media-timeline-title-wrap">
-                <span id="lbl-timeline-media-icon" class="media-timeline-icon">🎬</span>
+                <span id="lbl-timeline-media-icon" class="media-timeline-icon"><i data-lucide="film"></i></span>
                 <span id="lbl-timeline-media-name" class="media-timeline-name" title="Medio en reproducción">Space Stars Motion</span>
               </div>
               <div class="media-timeline-badges">
-                <span id="lbl-timeline-mode-badge" class="media-timeline-mode-badge">🔁 LOOP</span>
+                <span id="lbl-timeline-mode-badge" class="media-timeline-mode-badge"><i data-lucide="repeat" style="width: 11px; height: 11px; margin-right: 3px;"></i> LOOP</span>
                 <span id="lbl-timeline-remaining" class="media-timeline-remaining" title="Tiempo restante">-00:00</span>
               </div>
             </div>
             <div class="media-timeline-controls">
               <button type="button" id="btn-timeline-play-pause" class="btn-timeline-ctrl" title="Pausar / Reanudar medio en reproducción">
-                <span id="icon-timeline-play-pause">⏸</span>
+                <span id="icon-timeline-play-pause" style="display: inline-flex; align-items: center; justify-content: center;"><i data-lucide="pause"></i></span>
               </button>
               <button type="button" id="btn-timeline-restart" class="btn-timeline-ctrl" title="Reiniciar video desde 00:00">
-                ⏮
+                <i data-lucide="rotate-ccw"></i>
               </button>
               <span id="lbl-timeline-current" class="media-timeline-time">00:00</span>
               <div class="media-timeline-slider-wrap">
@@ -204,10 +206,13 @@
             </div>
           </div>
 
-          <div style="display: flex; gap: 8px; margin-top: 8px;">
-            <button id="btn-quick-prev" class="btn-output" style="padding: 6px 14px;" title="Diapositiva Anterior">‹ Anterior</button>
-            <button id="btn-quick-next" class="btn-output" style="padding: 6px 14px;" title="Siguiente Diapositiva">Siguiente ›</button>
-            <button class="btn-output" style="flex: 1; text-align: center;" title="Estado Transmisión">EN VIVO</button>
+          <div class="monitor-transport-row">
+            <button id="btn-quick-prev" class="btn-output monitor-transport-btn" title="Diapositiva Anterior"><i data-lucide="chevron-left"></i> <span>Anterior</span></button>
+            <button id="btn-quick-next" class="btn-output monitor-transport-btn" title="Siguiente Diapositiva"><span>Siguiente</span> <i data-lucide="chevron-right"></i></button>
+            <div class="monitor-status-pill" title="Estado de la Señal de Salida">
+              <span class="monitor-status-dot"></span>
+              <span>EN VIVO</span>
+            </div>
           </div>
         </div>
 
@@ -216,22 +221,22 @@
           <div class="media-queue-header">
             <div style="display: flex; align-items: center; gap: 6px;">
               <span class="queue-pulse-dot"></span>
-              <span class="media-queue-title">⏭️ SIGUIENTES EN COLA (<span id="sidebar-queue-count">0</span>)</span>
+              <span class="media-queue-title"><i data-lucide="skip-forward" style="width: 13px; height: 13px; margin-right: 4px;"></i> SIGUIENTES EN COLA (<span id="sidebar-queue-count">0</span>)</span>
             </div>
             <div style="display: flex; gap: 4px;">
-              <button type="button" id="btn-sidebar-queue-next" class="btn-queue-action btn-queue-skip" title="Pasar al siguiente medio ahora">⏭️ Pasar</button>
-              <button type="button" id="btn-sidebar-queue-clear" class="btn-queue-action btn-queue-clear" title="Vaciar toda la cola (volver a Loop)">🗑️ Vaciar</button>
+              <button type="button" id="btn-sidebar-queue-next" class="btn-queue-action btn-queue-skip" title="Pasar al siguiente medio ahora"><i data-lucide="skip-forward"></i> Pasar</button>
+              <button type="button" id="btn-sidebar-queue-clear" class="btn-queue-action btn-queue-clear" title="Vaciar toda la cola (volver a Loop)"><i data-lucide="trash-2"></i> Vaciar</button>
             </div>
           </div>
           <div id="sidebar-queue-current-info" class="media-queue-current-banner">
-            🎬 En curso: <strong>--</strong> <span>(Al finalizar ➔ #1)</span>
+            <i data-lucide="film" style="width: 13px; height: 13px; margin-right: 4px;"></i> En curso: <strong>--</strong> <span>(Al finalizar ➔ #1)</span>
           </div>
           <div id="sidebar-media-queue-list" class="media-queue-list"></div>
         </div>
 
         <!-- Master Clear Control Panel (Estilo ProPresenter Red) -->
         <div class="master-clear-panel">
-          <button id="btn-clear-all" class="clear-btn clear-all">✕ CLEAR ALL</button>
+          <button id="btn-clear-all" class="clear-btn clear-all"><i data-lucide="x" style="width: 14px; height: 14px;"></i> CLEAR ALL</button>
           <div class="clear-btn-group">
             <button id="btn-clear-text" class="clear-btn">Text (F2)</button>
             <button id="btn-clear-media" class="clear-btn">Media (F3)</button>
@@ -241,7 +246,7 @@
 
         <!-- Transiciones en Vivo (Cut vs Fade + Duration Slider) -->
         <div class="transitions-control-panel">
-          <div class="transitions-panel-title">⚡ TRANSICIONES EN VIVO</div>
+          <div class="transitions-panel-title"><i data-lucide="zap" style="width: 13px; height: 13px; margin-right: 4px; color: var(--accent-gold);"></i> TRANSICIONES EN VIVO</div>
           <div class="transition-controls-grid">
             <div class="transition-row">
               <span class="transition-label">TEXTO:</span>
@@ -268,7 +273,7 @@
               <span class="transition-label">AUDIO:</span>
               <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
                 <button id="btn-audio-mute-toggle" class="btn-audio-pill" title="Habilitar/Silenciar audio de video">
-                  <span id="audio-pill-icon">🔊</span>
+                  <span id="audio-pill-icon"><i data-lucide="volume-2"></i></span>
                   <span id="audio-pill-text">ON</span>
                 </button>
                 <input type="range" id="input-video-volume" min="0" max="100" step="5" value="100" style="flex: 1;" title="Volumen de video">
@@ -300,12 +305,12 @@
             </div>
 
             <!-- Stage Control Quick Panel -->
-            <div style="background: var(--bg-panel); border: 1px solid var(--border-color); border-radius: 8px; padding: 8px; display: flex; flex-direction: column; gap: 6px;">
-              <span style="font-size: 0.7rem; font-weight: 700; color: #7f8c8d;">TEMPORIZADOR ORADOR</span>
-              <div style="display: flex; gap: 4px;">
-                <button id="btn-timer-10m" class="btn-output" style="font-size: 0.7rem; padding: 3px 6px;">10M</button>
-                <button id="btn-timer-5m" class="btn-output" style="font-size: 0.7rem; padding: 3px 6px;">5M</button>
-                <button id="btn-timer-toggle" class="btn-output" style="font-size: 0.7rem; padding: 3px 6px; background: var(--accent-green); color: white; border: none;">▶ Iniciar</button>
+            <div class="stage-timer-card">
+              <span class="stage-timer-card-title"><i data-lucide="clock"></i> TEMPORIZADOR ORADOR</span>
+              <div class="stage-timer-btns">
+                <button id="btn-timer-10m" class="btn-output">10M</button>
+                <button id="btn-timer-5m" class="btn-output">5M</button>
+                <button id="btn-timer-toggle" class="btn-output btn-timer-start"><i data-lucide="play"></i> <span>Iniciar</span></button>
               </div>
             </div>
           </div>
@@ -319,18 +324,15 @@
       <!-- Resource Tabs Header -->
       <div class="resource-tabs-bar">
         <div class="resource-tabs">
-          <button class="res-tab active" data-res="shows">Shows</button>
-          <button class="res-tab" data-res="media">Media</button>
-          <button class="res-tab" data-res="templates">Templates</button>
-          <button class="res-tab" data-res="scripture">Scripture</button>
-          <button class="res-tab" data-res="calendar">Calendar</button>
+          <button class="res-tab active" data-res="shows"><i data-lucide="layers"></i> <span>Shows</span></button>
+          <button class="res-tab" data-res="media"><i data-lucide="film"></i> <span>Media</span></button>
+          <button class="res-tab" data-res="templates"><i data-lucide="palette"></i> <span>Templates</span></button>
+          <button class="res-tab" data-res="scripture"><i data-lucide="book-open"></i> <span>Scripture</span></button>
+          <button class="res-tab" data-res="calendar"><i data-lucide="calendar"></i> <span>Calendar</span></button>
         </div>
 
         <div class="resource-search-box">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="11" cy="11" r="8"></circle>
-            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-          </svg>
+          <i data-lucide="search"></i>
           <input type="text" id="dock-search-input" placeholder="Buscar título o categoría..." />
         </div>
       </div>
@@ -341,7 +343,9 @@
         <div class="resource-sub-sidebar">
           <!-- 1. Menu Lateral para la pestaña SHOWS (Categorías dinámicas: Alabanza, Sermón, Lectura/Escrituras, etc.) -->
           <div id="sub-sidebar-shows" class="sub-sidebar-content active">
-            <div class="folders-header" style="margin-bottom: 6px;">Categorías de Shows</div>
+            <div class="folders-header-row">
+              <span class="folders-header">Categorías de Shows</span>
+            </div>
             <div id="shows-categories-list" class="filter-group">
               <!-- Dynamically populated categories -->
             </div>
@@ -352,8 +356,8 @@
             <div class="folders-header-row">
               <span class="folders-header">Carpetas de Medios</span>
               <div style="display: flex; align-items: center; gap: 4px;">
-                <button id="btn-add-physical-folder" class="btn-add-folder btn-add-phys-folder" title="Vincular Carpeta Física del Disco (Se actualiza en tiempo real al agregar archivos)">💽+</button>
-                <button id="btn-add-virtual-folder" class="btn-add-folder" title="Crear Nueva Carpeta Virtual">+</button>
+                <button id="btn-add-physical-folder" class="btn-add-folder btn-add-phys-folder" title="Vincular Carpeta Física del Disco (Se actualiza en tiempo real al agregar archivos)"><i data-lucide="hard-drive"></i></button>
+                <button id="btn-add-virtual-folder" class="btn-add-folder" title="Crear Nueva Carpeta Virtual"><i data-lucide="plus"></i></button>
               </div>
             </div>
             <input type="file" id="input-physical-folder-fallback" webkitdirectory directory multiple style="display: none;" />
@@ -366,7 +370,7 @@
           <div id="sub-sidebar-templates" class="sub-sidebar-content">
             <div class="folders-header-row">
               <span class="folders-header">Plantillas de Texto</span>
-              <button id="btn-create-template" class="btn-add-folder" title="Crear Nueva Plantilla">+</button>
+              <button id="btn-create-template" class="btn-add-folder" title="Crear Nueva Plantilla"><i data-lucide="plus"></i></button>
             </div>
             <div id="template-list-sidebar" class="folder-list">
               <!-- Dynamically populated templates -->
@@ -377,7 +381,7 @@
           <div id="sub-sidebar-scripture" class="sub-sidebar-content">
             <div class="folders-header-row">
               <span class="folders-header">Versiones de la Biblia</span>
-              <button id="btn-open-load-bible-modal" class="btn-add-folder" title="Cargar Biblia desde URL o JSON">+</button>
+              <button id="btn-open-load-bible-modal" class="btn-add-folder" title="Cargar Biblia desde URL o JSON"><i data-lucide="plus"></i></button>
             </div>
             <div id="scripture-bibles-list" class="folder-list">
               <!-- Dynamically populated Bible versions -->
@@ -388,7 +392,7 @@
           <div id="sub-sidebar-calendar" class="sub-sidebar-content">
             <div class="folders-header-row">
               <span class="folders-header">Eventos & Calendario</span>
-              <button id="btn-open-create-event-modal" class="btn-add-folder" title="Agregar Nuevo Evento">+</button>
+              <button id="btn-open-create-event-modal" class="btn-add-folder" title="Agregar Nuevo Evento"><i data-lucide="plus"></i></button>
             </div>
             <div id="calendar-categories-list" class="filter-group">
               <div class="filter-item active" data-cal-filter="all">
@@ -433,14 +437,15 @@
             <div class="shows-dock-header" style="gap: 10px; flex-wrap: wrap;">
               <div style="display: flex; align-items: center; gap: 8px; flex: 1; min-width: 260px;">
                 <button id="btn-open-create-modal" class="btn-create-show-dock" style="white-space: nowrap;">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                  </svg>
-                  + Nuevo Texto / Canción
+                  <i data-lucide="plus"></i>
+                  <span>Nuevo Texto / Canción</span>
+                </button>
+                <button id="btn-open-import-presentation" class="btn-create-show-dock" style="white-space: nowrap; background: linear-gradient(135deg, #f59e0b, #ea580c);" title="Importar presentación PowerPoint (.pptx, .ppt, .ppsx), Impress (.odp) o PDF para proyectar sus diapositivas">
+                  <i data-lucide="presentation"></i>
+                  <span>Importar PPT / PDF</span>
                 </button>
                 <div class="shows-local-search-box">
-                  <span>🔍</span>
+                  <span style="display: inline-flex; align-items: center; color: var(--text-muted);"><i data-lucide="search"></i></span>
                   <input type="text" id="input-shows-local-search" placeholder="Buscar en canciones descargadas (por título, letra o categoría)..." autocomplete="off" />
                   <button type="button" id="btn-clear-shows-search" class="btn-clear-search-input" style="display: none;" title="Limpiar búsqueda">&times;</button>
                 </div>
@@ -455,17 +460,15 @@
             <div class="media-dock-header">
               <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                 <button id="btn-open-media-modal" class="btn-create-show-dock" style="background: linear-gradient(135deg, var(--accent-cyan), #0284c7);">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                  </svg>
-                  + Cargar Video / Fondo
+                  <i data-lucide="plus"></i>
+                  <span>Cargar Video / Fondo</span>
                 </button>
                 <button id="btn-dock-audio-toggle" class="btn-dock-audio" title="Habilitar/Silenciar audio de videos (Mute/Unmute)">
-                  <span id="dock-audio-icon">🔊</span> <span id="dock-audio-text">Audio: ON</span>
+                  <span id="dock-audio-icon" style="display: inline-flex; align-items: center;"><i data-lucide="volume-2"></i></span>
+                  <span id="dock-audio-text">Audio: ON</span>
                 </button>
                 <span class="media-queue-hint-pill" title="Mantén presionado Alt y haz clic sobre cualquier video o imagen para sumarlo a la cola de reproducción automática">
-                  ✨ <strong>Alt + Click</strong>: Sumar a la Cola
+                  <i data-lucide="sparkles" style="width: 12px; height: 12px; color: var(--accent-gold);"></i> <strong>Alt + Click</strong>: Sumar a la Cola
                 </span>
               </div>
               <span id="dock-media-info" style="font-size: 0.72rem; color: var(--text-muted);">Carpeta: General</span>
@@ -477,15 +480,15 @@
                 <div class="media-queue-header">
                   <div style="display: flex; align-items: center; gap: 6px;">
                     <span class="queue-pulse-dot"></span>
-                    <span class="media-queue-title">⏭️ COLA DE MEDIOS (<span id="dock-queue-count">0</span>)</span>
+                    <span class="media-queue-title"><i data-lucide="skip-forward" style="width: 13px; height: 13px; margin-right: 4px;"></i> COLA DE MEDIOS (<span id="dock-queue-count">0</span>)</span>
                   </div>
                   <div style="display: flex; gap: 4px;">
-                    <button type="button" id="btn-dock-queue-next" class="btn-queue-action btn-queue-skip" title="Pasar al siguiente medio ahora">⏭️ Pasar</button>
-                    <button type="button" id="btn-dock-queue-clear" class="btn-queue-action btn-queue-clear" title="Vaciar toda la cola (volver a Loop)">🗑️ Vaciar</button>
+                    <button type="button" id="btn-dock-queue-next" class="btn-queue-action btn-queue-skip" title="Pasar al siguiente medio ahora"><i data-lucide="skip-forward"></i> Pasar</button>
+                    <button type="button" id="btn-dock-queue-clear" class="btn-queue-action btn-queue-clear" title="Vaciar toda la cola (volver a Loop)"><i data-lucide="trash-2"></i> Vaciar</button>
                   </div>
                 </div>
                 <div id="dock-queue-current-info" class="media-queue-current-banner">
-                  🎬 En curso: <strong>--</strong> <span>(Al finalizar ➔ #1)</span>
+                  <i data-lucide="film" style="width: 13px; height: 13px; margin-right: 4px;"></i> En curso: <strong>--</strong> <span>(Al finalizar ➔ #1)</span>
                 </div>
                 <div id="dock-media-queue-list" class="media-queue-list"></div>
               </aside>
@@ -509,7 +512,7 @@
                 </div>
               </div>
               <div class="template-controls-container" style="overflow-y: auto; max-height: 100%; padding-right: 6px;">
-                <div class="tpl-section-title">✍️ Tipografía y Nombre</div>
+                <div class="tpl-section-title"><i data-lucide="type" class="icon-pink" style="width: 14px; height: 14px; margin-right: 4px;"></i> Tipografía y Nombre</div>
                 <div class="tpl-form-group">
                   <label>Nombre de la Plantilla:</label>
                   <input type="text" id="input-tpl-name" placeholder="Ej: Moderno Centrado" />
@@ -532,7 +535,7 @@
                   </div>
                 </div>
 
-                <div class="tpl-section-title">📐 Espaciado, Alineación y Posición</div>
+                <div class="tpl-section-title"><i data-lucide="ruler" class="icon-cyan" style="width: 14px; height: 14px; margin-right: 4px;"></i> Espaciado, Alineación y Posición</div>
                 <div class="tpl-grid-2col">
                   <div class="tpl-form-group">
                     <label>Alineación de Texto:</label>
@@ -559,7 +562,7 @@
                   </div>
                 </div>
 
-                <div class="tpl-section-title">🎨 Color y Fondo de Caja</div>
+                <div class="tpl-section-title"><i data-lucide="palette" class="icon-gold" style="width: 14px; height: 14px; margin-right: 4px;"></i> Color y Fondo de Caja</div>
                 <div class="tpl-grid-2col">
                   <div class="tpl-form-group">
                     <label>Color de Texto:</label>
@@ -601,10 +604,12 @@
 
                 <div style="margin-top: 12px; display: flex; gap: 8px;">
                   <button id="btn-save-tpl" class="btn-create-show-dock" style="flex: 1; background: linear-gradient(135deg, var(--accent-pink), #db2777); font-weight: 700;">
-                    💾 Guardar Plantilla
+                    <i data-lucide="save"></i>
+                    <span>Guardar Plantilla</span>
                   </button>
                   <button id="btn-create-template" class="btn-output" style="padding: 6px 12px;">
-                    + Nueva Plantilla
+                    <i data-lucide="plus"></i>
+                    <span>Nueva Plantilla</span>
                   </button>
                 </div>
               </div>
@@ -616,17 +621,15 @@
             <div class="scripture-container">
               <div class="scripture-search-bar">
                 <div class="scripture-search-input-box">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                    <circle cx="11" cy="11" r="8"></circle>
-                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                  </svg>
+                  <i data-lucide="search"></i>
                   <input type="text" id="input-scripture-search" placeholder="Escribe un libro o pasaje (ej: Mateo, Juan 3:16) — Presiona Tab para autocompletar" autocomplete="off" />
                   <div id="scripture-autocomplete-hint" class="autocomplete-hint"></div>
                 </div>
                 <div class="scripture-header-actions">
-                  <span id="scripture-active-ref" class="scripture-ref-tag">📖 Juan 3 (RVR1960)</span>
-                  <button id="btn-convert-scripture-to-show" class="btn-create-show-dock" style="background: linear-gradient(135deg, var(--accent-magenta), #c026d3); padding: 4px 10px; font-size: 0.72rem;">
-                    ✨ Convertir a Show
+                  <span id="scripture-active-ref" class="scripture-ref-tag"><i data-lucide="book-open"></i> Juan 3 (RVR1960)</span>
+                  <button id="btn-convert-scripture-to-show" class="btn-create-show-dock" style="background: linear-gradient(135deg, var(--accent-magenta), #c026d3);">
+                    <i data-lucide="sparkles"></i>
+                    <span>Convertir a Show</span>
                   </button>
                 </div>
               </div>
@@ -671,16 +674,17 @@
               <!-- Floating Bar Inferior (Navegación de Mes + Nuevo Evento Estilo FreeShow) -->
               <div class="calendar-floating-footer" style="position: absolute; bottom: 8px; left: 0; right: 0; display: flex; justify-content: space-between; align-items: center; padding: 0 16px; pointer-events: none; z-index: 10;">
                 <!-- Left Nav Control Pill -->
-                <div style="display: flex; align-items: center; gap: 6px; background: rgba(17, 20, 29, 0.95); border: 1px solid var(--border-color); backdrop-filter: blur(8px); padding: 3px 10px; border-radius: 20px; box-shadow: 0 4px 14px rgba(0,0,0,0.6); pointer-events: auto;">
-                  <button id="btn-cal-prev-month" class="btn-cal-icon" title="Mes Anterior" style="background: none; border: none; color: var(--accent-pink); cursor: pointer; font-size: 0.9rem; padding: 0 4px;">‹</button>
-                  <button id="btn-cal-next-month" class="btn-cal-icon" title="Mes Siguiente" style="background: none; border: none; color: var(--accent-pink); cursor: pointer; font-size: 0.9rem; padding: 0 4px;">›</button>
-                  <button id="btn-cal-today" class="btn-cal-icon" title="Ir a Hoy" style="background: none; border: none; color: #fff; cursor: pointer; font-size: 0.82rem; padding: 0 4px;">🏠</button>
-                  <span id="calendar-month-title" style="font-size: 0.78rem; font-weight: 700; color: #fff; margin-left: 4px;">Agosto 2026</span>
+                <div style="display: flex; align-items: center; gap: 4px; background: rgba(17, 20, 29, 0.95); border: 1px solid var(--border-color); backdrop-filter: blur(8px); padding: 4px 10px; border-radius: 20px; box-shadow: 0 4px 14px rgba(0,0,0,0.6); pointer-events: auto;">
+                  <button id="btn-cal-prev-month" class="btn-cal-icon" title="Mes Anterior"><i data-lucide="chevron-left"></i></button>
+                  <button id="btn-cal-next-month" class="btn-cal-icon" title="Mes Siguiente"><i data-lucide="chevron-right"></i></button>
+                  <button id="btn-cal-today" class="btn-cal-icon" title="Ir a Hoy"><i data-lucide="home"></i></button>
+                  <span id="calendar-month-title" style="font-size: 0.76rem; font-weight: 700; color: #fff; margin-left: 4px;">Agosto 2026</span>
                 </div>
 
                 <!-- Right Action Button -->
-                <button id="btn-create-event-dock" class="btn-create-show-dock" style="background: linear-gradient(135deg, var(--accent-pink), #db2777); border-radius: 20px; padding: 5px 14px; font-size: 0.75rem; pointer-events: auto; box-shadow: 0 4px 14px rgba(236, 72, 153, 0.4);">
-                  + New event
+                <button id="btn-create-event-dock" class="btn-create-show-dock" style="background: linear-gradient(135deg, var(--accent-pink), #db2777); border-radius: 20px; padding: 5px 14px; font-size: 0.74rem; pointer-events: auto; box-shadow: 0 4px 14px rgba(236, 72, 153, 0.4);">
+                  <i data-lucide="plus"></i>
+                  <span>New event</span>
                 </button>
               </div>
 
@@ -699,7 +703,7 @@
         <div class="resource-clock-widget">
           <!-- Configuración de Escrituras -->
           <div class="scripture-dock-settings">
-            <div class="scripture-settings-title">⚙️ Ajustes de Escrituras</div>
+            <div class="scripture-settings-title"><i data-lucide="settings" style="width: 13px; height: 13px; margin-right: 4px;"></i> Ajustes de Escrituras</div>
             
             <div class="scripture-setting-group">
               <label>Máx Renglones por filmina:</label>
@@ -749,7 +753,7 @@
       <!-- Sub-barra superior del Editor -->
       <div class="editor-sub-header">
         <div class="editor-title-box">
-          <span class="editor-badge-icon">✏️ EDIT</span>
+          <span class="editor-badge-icon"><i data-lucide="pencil" style="width: 12px; height: 12px; margin-right: 4px;"></i> EDIT</span>
           <div class="editor-song-meta">
             <h2 id="editor-deck-title" class="editor-deck-title" contenteditable="true" spellcheck="false" title="Haz clic para renombrar la canción">Cuan Grande Es Él</h2>
             <span id="editor-deck-category" class="editor-deck-category">Alabanza • 8 Diapositivas</span>
@@ -779,13 +783,16 @@
 
         <div class="editor-header-actions">
           <button type="button" id="btn-editor-reflow" class="btn-editor-action" title="Dividir o compactar renglones por diapositiva">
-            <span>✂️ Re-dividir</span>
+            <i data-lucide="scissors"></i>
+            <span>Re-dividir</span>
           </button>
           <button type="button" id="btn-editor-save" class="btn-editor-action btn-editor-save" title="Guardar cambios y volver a presentación (Ctrl+S)">
-            <span>💾 Guardar</span>
+            <i data-lucide="save"></i>
+            <span>Guardar</span>
           </button>
           <button type="button" id="btn-editor-close" class="btn-editor-action btn-editor-close" title="Volver a la vista de proyección (Esc)">
-            <span>✕ Volver a Show</span>
+            <i data-lucide="arrow-left"></i>
+            <span>Volver a Show</span>
           </button>
         </div>
       </div>
@@ -797,14 +804,10 @@
         <aside class="editor-left-sidebar">
           <div class="editor-sidebar-header">
             <div style="display: flex; align-items: center; gap: 6px;">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                <line x1="3" y1="9" x2="21" y2="9"></line>
-                <line x1="9" y1="21" x2="9" y2="9"></line>
-              </svg>
+              <i data-lucide="layout-grid" class="icon-pink"></i>
               <span class="editor-col-title">FILMINAS (<span id="editor-slides-count">0</span>)</span>
             </div>
-            <button type="button" id="btn-editor-add-slide-top" class="btn-editor-icon" title="Agregar filmina al final">+</button>
+            <button type="button" id="btn-editor-add-slide-top" class="btn-editor-icon" title="Agregar filmina al final"><i data-lucide="plus"></i></button>
           </div>
 
           <!-- Contenedor scrollable de filminas miniatura -->
@@ -814,11 +817,11 @@
 
           <div class="editor-sidebar-footer">
             <button type="button" id="btn-editor-add-slide" class="btn-editor-new-slide">
-              <span style="font-size: 1.1rem; line-height: 1;">+</span>
+              <i data-lucide="plus"></i>
               <span>Nueva Filmina</span>
             </button>
             <div class="editor-zoom-pill" title="Tamaño de las miniaturas">
-              <span style="font-size: 0.7rem; color: var(--text-muted);">🔍</span>
+              <span style="font-size: 0.7rem; color: var(--text-muted); display: inline-flex; align-items: center;"><i data-lucide="zoom-in" style="width: 12px; height: 12px;"></i></span>
               <input type="range" id="input-editor-thumb-size" min="90" max="220" step="10" value="130" />
             </div>
           </div>
@@ -835,30 +838,30 @@
                 <div class="editor-section-chip-dropdown">
                   <span style="font-size: 0.72rem; color: var(--text-muted);">Sección:</span>
                   <select id="select-editor-current-section" class="editor-section-select">
-                    <option value="badge-verse|Verso">📖 Verso</option>
-                    <option value="badge-chorus|Coro">🔥 Coro</option>
-                    <option value="badge-bridge|Puente">🌉 Puente</option>
-                    <option value="badge-prechorus|Pre-Coro">⚡ Pre-Coro</option>
-                    <option value="badge-intro|Intro">🎵 Intro</option>
-                    <option value="badge-instrumental|Solo">🎸 Instrumental</option>
-                    <option value="badge-outro|Final">🏁 Final</option>
-                    <option value="badge-sermon|Sermón">💬 Sermón</option>
-                    <option value="badge-lowerthird|Overlay">👤 Overlay / Zócalo</option>
+                    <option value="badge-verse|Verso">Verso</option>
+                    <option value="badge-chorus|Coro">Coro</option>
+                    <option value="badge-bridge|Puente">Puente</option>
+                    <option value="badge-prechorus|Pre-Coro">Pre-Coro</option>
+                    <option value="badge-intro|Intro">Intro</option>
+                    <option value="badge-instrumental|Solo">Instrumental / Solo</option>
+                    <option value="badge-outro|Final">Final / Outro</option>
+                    <option value="badge-sermon|Sermón">Sermón</option>
+                    <option value="badge-lowerthird|Overlay">Overlay / Zócalo</option>
                   </select>
                   <input type="text" id="input-editor-section-name" class="editor-section-name-input" placeholder="Nombre (ej. Coro 1)" />
                 </div>
               </div>
 
               <div class="editor-canvas-toolbar-center">
-                <button type="button" id="btn-editor-prev-slide" class="btn-editor-nav" title="Filmina anterior (Flecha Izq)">‹ Anterior</button>
+                <button type="button" id="btn-editor-prev-slide" class="btn-editor-nav" title="Filmina anterior (Flecha Izq)"><i data-lucide="chevron-left"></i> <span>Anterior</span></button>
                 <span id="label-editor-slide-pos" class="editor-slide-pos-label">Filmina 1 de 8</span>
-                <button type="button" id="btn-editor-next-slide" class="btn-editor-nav" title="Filmina siguiente (Flecha Der)">Siguiente ›</button>
+                <button type="button" id="btn-editor-next-slide" class="btn-editor-nav" title="Filmina siguiente (Flecha Der)"><span>Siguiente</span> <i data-lucide="chevron-right"></i></button>
               </div>
 
               <div class="editor-canvas-toolbar-right">
-                <button type="button" id="btn-editor-split-slide" class="btn-editor-canvas-action" title="Dividir el texto en dos filminas justo donde está el cursor">✂️ Dividir en Cursor</button>
-                <button type="button" id="btn-editor-dup-slide" class="btn-editor-canvas-action" title="Duplicar esta filmina">📑 Duplicar</button>
-                <button type="button" id="btn-editor-del-slide" class="btn-editor-canvas-action btn-danger" title="Eliminar esta filmina">🗑️ Borrar</button>
+                <button type="button" id="btn-editor-split-slide" class="btn-editor-canvas-action" title="Dividir el texto en dos filminas justo donde está el cursor"><i data-lucide="scissors"></i> <span>Dividir en Cursor</span></button>
+                <button type="button" id="btn-editor-dup-slide" class="btn-editor-canvas-action" title="Duplicar esta filmina"><i data-lucide="copy"></i> <span>Duplicar</span></button>
+                <button type="button" id="btn-editor-del-slide" class="btn-editor-canvas-action btn-danger" title="Eliminar esta filmina"><i data-lucide="trash-2"></i> <span>Borrar</span></button>
               </div>
             </div>
 
@@ -893,7 +896,7 @@
             <!-- Barra de zoom y atajos al pie del lienzo -->
             <div class="editor-canvas-footer">
               <div class="editor-canvas-hint">
-                <span>💡 Haz clic directo en el recuadro para editar el texto • Enter para nueva línea • <strong>Ctrl+S</strong> para guardar</span>
+                <span><i data-lucide="lightbulb" class="icon-gold" style="width: 13px; height: 13px; margin-right: 4px;"></i> Haz clic directo en el recuadro para editar el texto • Enter para nueva línea • <strong>Ctrl+S</strong> para guardar</span>
               </div>
               <div class="editor-canvas-zoom-controls">
                 <button type="button" id="btn-editor-zoom-out" class="btn-zoom-icon">-</button>
@@ -909,13 +912,13 @@
             <div class="editor-lyrics-container">
               <div class="editor-lyrics-left">
                 <div class="editor-lyrics-toolbar">
-                  <span>📝 Letra Completa de la Canción (Usa renglón en blanco para separar filminas)</span>
+                  <span><i data-lucide="file-text" style="width: 13px; height: 13px; margin-right: 4px;"></i> Letra Completa de la Canción (Usa renglón en blanco para separar filminas)</span>
                 </div>
                 <textarea id="editor-lyrics-textarea" class="editor-lyrics-textarea" spellcheck="false" placeholder="Ingresa o edita la letra completa..."></textarea>
               </div>
               <div class="editor-lyrics-right">
                 <div class="editor-lyrics-toolbar">
-                  <span>🔍 Comparador Visual (Qué Queda y Qué se Borra)</span>
+                  <span><i data-lucide="eye" style="width: 13px; height: 13px; margin-right: 4px;"></i> Comparador Visual (Qué Queda y Qué se Borra)</span>
                 </div>
                 <div id="editor-lyrics-diff" class="editor-lyrics-diff-panel"></div>
               </div>
@@ -930,10 +933,12 @@
           <!-- Pestañas del Inspector de Estilo (Estilo FreeShow: Textbox | Item) -->
           <div class="editor-inspector-tabs">
             <button type="button" class="editor-insp-tab active" data-insp-tab="textbox">
-              <span>🔤 Textbox / Fuente</span>
+              <i data-lucide="type"></i>
+              <span>Textbox / Fuente</span>
             </button>
             <button type="button" class="editor-insp-tab" data-insp-tab="item">
-              <span>🎨 Diapositiva & Caja</span>
+              <i data-lucide="palette"></i>
+              <span>Diapositiva & Caja</span>
             </button>
           </div>
 
@@ -1003,22 +1008,22 @@
               <!-- Acordeón 1: Alineación (Align) -->
               <div class="insp-accordion open">
                 <div class="insp-accordion-header">
-                  <span>🟰 Alineación (Align)</span>
+                  <span style="display: inline-flex; align-items: center; gap: 6px;"><i data-lucide="align-center"></i> Alineación (Align)</span>
                   <span class="acc-chevron">▾</span>
                 </div>
                 <div class="insp-accordion-body">
                   <label class="insp-sublabel">Alineación Horizontal:</label>
                   <div class="insp-btn-toggle-row" style="margin-bottom: 8px;">
-                    <button type="button" class="insp-btn-toggle ed-align-btn" data-align="left" title="Izquierda">◀ Izq</button>
-                    <button type="button" class="insp-btn-toggle ed-align-btn active" data-align="center" title="Centrado">■ Centro</button>
-                    <button type="button" class="insp-btn-toggle ed-align-btn" data-align="right" title="Derecha">▶ Der</button>
-                    <button type="button" class="insp-btn-toggle ed-align-btn" data-align="justify" title="Justificado">▤ Justif</button>
+                    <button type="button" class="insp-btn-toggle ed-align-btn" data-align="left" title="Izquierda"><i data-lucide="align-left"></i> <span>Izq</span></button>
+                    <button type="button" class="insp-btn-toggle ed-align-btn active" data-align="center" title="Centrado"><i data-lucide="align-center"></i> <span>Centro</span></button>
+                    <button type="button" class="insp-btn-toggle ed-align-btn" data-align="right" title="Derecha"><i data-lucide="align-right"></i> <span>Der</span></button>
+                    <button type="button" class="insp-btn-toggle ed-align-btn" data-align="justify" title="Justificado"><i data-lucide="align-justify"></i> <span>Justif</span></button>
                   </div>
                   <label class="insp-sublabel">Posición Vertical:</label>
                   <div class="insp-btn-toggle-row">
-                    <button type="button" class="insp-btn-toggle ed-valign-btn" data-valign="top" title="Arriba">⬆ Arriba</button>
-                    <button type="button" class="insp-btn-toggle ed-valign-btn active" data-valign="center" title="Medio / Centro">⬍ Centro</button>
-                    <button type="button" class="insp-btn-toggle ed-valign-btn" data-valign="bottom" title="Abajo">⬇ Abajo</button>
+                    <button type="button" class="insp-btn-toggle ed-valign-btn" data-valign="top" title="Arriba"><i data-lucide="arrow-up-to-line"></i> <span>Arriba</span></button>
+                    <button type="button" class="insp-btn-toggle ed-valign-btn active" data-valign="center" title="Medio / Centro"><i data-lucide="fold-vertical"></i> <span>Centro</span></button>
+                    <button type="button" class="insp-btn-toggle ed-valign-btn" data-valign="bottom" title="Abajo"><i data-lucide="arrow-down-to-line"></i> <span>Abajo</span></button>
                   </div>
                 </div>
               </div>
@@ -1026,7 +1031,7 @@
               <!-- Acordeón 2: Caracteres y Párrafos (Text) -->
               <div class="insp-accordion open">
                 <div class="insp-accordion-header">
-                  <span>Tt Caracteres y Párrafos (Text)</span>
+                  <span style="display: inline-flex; align-items: center; gap: 6px;"><i data-lucide="type"></i> Caracteres y Párrafos (Text)</span>
                   <span class="acc-chevron">▾</span>
                 </div>
                 <div class="insp-accordion-body">
@@ -1053,7 +1058,7 @@
               <!-- Acordeón 3: Renglones (Lines) -->
               <div class="insp-accordion">
                 <div class="insp-accordion-header">
-                  <span>☰ Renglones por Diapositiva (Lines)</span>
+                  <span style="display: inline-flex; align-items: center; gap: 6px;"><i data-lucide="rows"></i> Renglones por Diapositiva (Lines)</span>
                   <span class="acc-chevron">▾</span>
                 </div>
                 <div class="insp-accordion-body">
@@ -1065,14 +1070,14 @@
                     <option value="3">3 Renglones</option>
                     <option value="4">4 Renglones</option>
                   </select>
-                  <button type="button" id="btn-ed-apply-reflow" class="btn-insp-action">✂️ Re-dividir todas las filminas</button>
+                  <button type="button" id="btn-ed-apply-reflow" class="btn-insp-action"><i data-lucide="scissors"></i> <span>Re-dividir todas las filminas</span></button>
                 </div>
               </div>
 
               <!-- Acordeón 4: Contorno (Outline) -->
               <div class="insp-accordion">
                 <div class="insp-accordion-header">
-                  <span>🔲 Contorno de Texto (Outline)</span>
+                  <span style="display: inline-flex; align-items: center; gap: 6px;"><i data-lucide="square"></i> Contorno de Texto (Outline)</span>
                   <span class="acc-chevron">▾</span>
                 </div>
                 <div class="insp-accordion-body">
@@ -1093,7 +1098,7 @@
               <!-- Acordeón 5: Sombra (Shadow) -->
               <div class="insp-accordion open">
                 <div class="insp-accordion-header">
-                  <span>🔳 Sombra de Texto (Shadow)</span>
+                  <span style="display: inline-flex; align-items: center; gap: 6px;"><i data-lucide="box"></i> Sombra de Texto (Shadow)</span>
                   <span class="acc-chevron">▾</span>
                 </div>
                 <div class="insp-accordion-body">
@@ -1140,7 +1145,7 @@
               <div class="insp-group">
                 <label class="insp-label">Plantilla Preset para esta Canción:</label>
                 <select id="ed-deck-template" class="insp-select" style="margin-top: 4px;"></select>
-                <button type="button" id="btn-ed-apply-template" class="btn-insp-action" style="margin-top: 6px;">📄 Aplicar Plantilla a la Canción</button>
+                <button type="button" id="btn-ed-apply-template" class="btn-insp-action" style="margin-top: 6px;"><i data-lucide="file-check"></i> Aplicar Plantilla a la Canción</button>
               </div>
 
               <!-- Caja de Fondo Semitransparente -->
@@ -1194,7 +1199,7 @@
           <!-- Footer del Inspector -->
           <div class="editor-inspector-footer">
             <button type="button" id="btn-editor-quick-save" class="btn-editor-action btn-editor-save" style="width: 100%; justify-content: center;">
-              💾 Guardar Canción y Volver a Show
+              <i data-lucide="save"></i> Guardar Canción y Volver a Show
             </button>
           </div>
 
@@ -1221,7 +1226,7 @@
     <div id="modal-create-show" class="modal-overlay">
       <div class="modal-card" style="max-width: 780px; width: 92vw;">
         <div class="modal-header">
-          <h3 id="modal-show-header-title">🎵 Agregar Nueva Canción o Presentación</h3>
+          <h3 id="modal-show-header-title"><i data-lucide="music" class="icon-pink" style="width: 18px; height: 18px; margin-right: 6px;"></i> Agregar Nueva Canción o Presentación</h3>
           <button id="btn-close-modal" class="modal-close-btn">&times;</button>
         </div>
         <div class="modal-body" style="max-height: 78vh; overflow-y: auto;">
@@ -1229,13 +1234,16 @@
           <!-- Selector de Modo: Crear de 0 vs Buscar Web vs Pegar Portapapeles -->
           <div class="modal-mode-tabs" style="display: flex; gap: 8px; margin-bottom: 14px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
             <button type="button" id="tab-create-manual" class="modal-mode-tab active" style="flex: 1; padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-card); color: #fff; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
-              <span>✍️ Crear Manual</span>
+              <i data-lucide="pencil"></i>
+              <span>Crear Manual</span>
             </button>
             <button type="button" id="tab-create-clipboard" class="modal-mode-tab" style="flex: 1; padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); background: transparent; color: var(--text-muted); font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
-              <span>📋 Pegar Portapapeles</span>
+              <i data-lucide="clipboard-paste"></i>
+              <span>Pegar Portapapeles</span>
             </button>
             <button type="button" id="tab-create-search" class="modal-mode-tab" style="flex: 1; padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); background: transparent; color: var(--text-muted); font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
-              <span>🔍 Buscar en la Web</span>
+              <i data-lucide="search"></i>
+              <span>Buscar en la Web</span>
             </button>
           </div>
 
@@ -1285,20 +1293,20 @@
 
             <div class="section-quick-chips" style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; margin-bottom: 6px; align-items: center;">
               <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700;">Etiquetas de Sección:</span>
-              <button type="button" class="btn-chip-section" data-sec="[Intro]" title="Insertar sección Intro">🎵 +Intro</button>
-              <button type="button" class="btn-chip-section" data-sec="[Verso 1]" title="Insertar sección Verso">📖 +Verso</button>
-              <button type="button" class="btn-chip-section" data-sec="[Pre-Coro]" title="Insertar sección Pre-Coro">⚡ +Pre-Coro</button>
-              <button type="button" class="btn-chip-section" data-sec="[Coro]" title="Insertar sección Coro">🔥 +Coro</button>
-              <button type="button" class="btn-chip-section" data-sec="[Puente]" title="Insertar sección Puente">🌉 +Puente</button>
-              <button type="button" class="btn-chip-section" data-sec="[Instrumental]" title="Insertar sección Instrumental">🎸 +Instrumental</button>
-              <button type="button" class="btn-chip-section" data-sec="[Final]" title="Insertar sección Final/Outro">🏁 +Final</button>
-              <button type="button" class="btn-chip-section" data-sec="[Overlay]" title="Insertar sección Overlay / Lower Third (Línea 1 = Título, Línea 2 = Subtítulo)">👤 +Overlay</button>
+              <button type="button" class="btn-chip-section" data-sec="[Intro]" title="Insertar sección Intro"><i data-lucide="music"></i> +Intro</button>
+              <button type="button" class="btn-chip-section" data-sec="[Verso 1]" title="Insertar sección Verso"><i data-lucide="book-open"></i> +Verso</button>
+              <button type="button" class="btn-chip-section" data-sec="[Pre-Coro]" title="Insertar sección Pre-Coro"><i data-lucide="zap"></i> +Pre-Coro</button>
+              <button type="button" class="btn-chip-section" data-sec="[Coro]" title="Insertar sección Coro"><i data-lucide="flame"></i> +Coro</button>
+              <button type="button" class="btn-chip-section" data-sec="[Puente]" title="Insertar sección Puente"><i data-lucide="git-commit"></i> +Puente</button>
+              <button type="button" class="btn-chip-section" data-sec="[Instrumental]" title="Insertar sección Instrumental"><i data-lucide="headphones"></i> +Instrumental</button>
+              <button type="button" class="btn-chip-section" data-sec="[Final]" title="Insertar sección Final/Outro"><i data-lucide="flag"></i> +Final</button>
+              <button type="button" class="btn-chip-section" data-sec="[Overlay]" title="Insertar sección Overlay / Lower Third (Línea 1 = Título, Línea 2 = Subtítulo)"><i data-lucide="user"></i> +Overlay</button>
             </div>
 
             <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px; margin-bottom: 4px;">
               <label style="margin: 0;">Contenido de Diapositivas (selecciona texto para borrar o usa la vista de control debajo):</label>
               <button type="button" id="btn-paste-clipboard" style="background: linear-gradient(135deg, var(--accent-cyan), #0284c7); color: #fff; border: none; padding: 4px 10px; border-radius: 4px; font-size: 0.73rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 4px;" title="Pegar automáticamente el texto copiado en el portapapeles">
-                📋 Pegar Portapapeles
+                <i data-lucide="clipboard-paste"></i> Pegar Portapapeles
               </button>
             </div>
             <textarea id="input-show-text" placeholder="[Intro]&#10;Línea instrumental&#10;&#10;[Verso 1]&#10;Línea uno del canto&#10;Línea dos del canto&#10;&#10;[Coro]&#10;Línea del coro 1&#10;Línea del coro 2"></textarea>
@@ -1306,10 +1314,10 @@
             <!-- Panel Visual de Control de Edición: Qué se mantiene y Qué se borra -->
             <div id="song-edit-diff-panel" class="song-edit-diff-panel">
               <div class="song-edit-diff-header">
-                <span class="diff-header-title">👁️ VISTA DE CONTROL DE EDICIÓN (QUÉ QUEDA Y QUÉ SE BORRA)</span>
+                <span class="diff-header-title"><i data-lucide="eye" style="width: 14px; height: 14px; margin-right: 4px;"></i> VISTA DE CONTROL DE EDICIÓN (QUÉ QUEDA Y QUÉ SE BORRA)</span>
                 <div class="diff-stats-badges">
                   <span id="badge-diff-kept" class="diff-badge-kept">✓ 0 líneas activas</span>
-                  <span id="badge-diff-deleted" class="diff-badge-deleted" style="display: none;">🗑️ 0 borradas</span>
+                  <span id="badge-diff-deleted" class="diff-badge-deleted" style="display: none;"><i data-lucide="trash-2" style="width: 11px; height: 11px;"></i> 0 borradas</span>
                 </div>
               </div>
               <div id="song-edit-diff-list" class="song-edit-diff-list">
@@ -1323,14 +1331,14 @@
             <label>Buscar Canción por Nombre, Autor o Frase:</label>
             <div style="display: flex; gap: 8px; margin-top: 4px;">
               <input type="text" id="input-song-search-query" placeholder="Ej: 'Cuan Grande es Dios', 'Way Maker', 'Marco Barrientos'..." style="flex: 1;" />
-              <button type="button" id="btn-song-search-submit" class="btn-modal-save" style="background: linear-gradient(135deg, var(--accent-magenta), #db2777); white-space: nowrap;">🔍 Buscar</button>
+              <button type="button" id="btn-song-search-submit" class="btn-modal-save" style="background: linear-gradient(135deg, var(--accent-magenta), #db2777); white-space: nowrap;"><i data-lucide="search"></i> Buscar</button>
             </div>
 
             <div style="margin-top: 12px; font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Resultados Encontrados:</div>
             
             <div id="song-search-results-list" style="margin-top: 6px; max-height: 230px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; border: 1px solid var(--border-color); border-radius: 6px; padding: 8px; background: var(--bg-darkest);">
               <div style="padding: 20px; text-align: center; color: var(--text-muted); font-size: 0.78rem;">
-                🔍 Ingresa el nombre o autor de la canción y presiona <strong>Buscar</strong> para obtener coincidencias con nombre, autor y fuente web.
+                <i data-lucide="search" class="icon-pink" style="width: 14px; height: 14px; margin-right: 4px;"></i> Ingresa el nombre o autor de la canción y presiona <strong>Buscar</strong> para obtener coincidencias con nombre, autor y fuente web.
               </div>
             </div>
           </div>
@@ -1338,7 +1346,7 @@
         </div>
         <div class="modal-footer">
           <button type="button" id="btn-cancel-show" class="btn-modal-cancel">Cancelar</button>
-          <button type="button" id="btn-save-show" class="btn-modal-save">💾 Guardar y Proyectar</button>
+          <button type="button" id="btn-save-show" class="btn-modal-save"><i data-lucide="save"></i> Guardar y Proyectar</button>
         </div>
       </div>
     </div>
@@ -1347,13 +1355,13 @@
     <div id="modal-upload-media" class="modal-overlay">
       <div class="modal-card">
         <div class="modal-header">
-          <h3>🎬 Cargar Fondo de Video / Imagen</h3>
+          <h3><i data-lucide="film" class="icon-cyan" style="width: 18px; height: 18px; margin-right: 6px;"></i> Cargar Fondo de Video / Imagen</h3>
           <button id="btn-close-media-modal" class="modal-close-btn">&times;</button>
         </div>
         <div class="modal-body">
           <label>Seleccionar Archivo de Video/Imagen:</label>
           <div style="display: flex; gap: 8px;">
-            <button id="btn-select-media-file" class="btn-output" style="background: var(--accent-cyan); color: white; border: none; font-weight: 700;">📂 Explorar Archivo...</button>
+            <button id="btn-select-media-file" class="btn-output" style="background: var(--accent-cyan); color: white; border: none; font-weight: 700;"><i data-lucide="folder-open"></i> Explorar Archivo...</button>
             <span id="selected-media-filename" style="font-size: 0.75rem; color: var(--text-muted); align-self: center;">Ningún archivo seleccionado</span>
           </div>
 
@@ -1371,7 +1379,7 @@
         </div>
         <div class="modal-footer">
           <button id="btn-cancel-media" class="btn-modal-cancel">Cancelar</button>
-          <button id="btn-save-media" class="btn-modal-save" style="background: linear-gradient(135deg, var(--accent-cyan), #0284c7);">🎬 Guardar y Asignar</button>
+          <button id="btn-save-media" class="btn-modal-save" style="background: linear-gradient(135deg, var(--accent-cyan), #0284c7);"><i data-lucide="film"></i> Guardar y Asignar</button>
         </div>
       </div>
     </div>
@@ -1380,7 +1388,7 @@
     <div id="modal-load-bible" class="modal-overlay">
       <div class="modal-card">
         <div class="modal-header">
-          <h3>📖 Cargar Nueva Biblia (URL / JSON)</h3>
+          <h3><i data-lucide="book-open" class="icon-blue" style="width: 18px; height: 18px; margin-right: 6px;"></i> Cargar Nueva Biblia (URL / JSON)</h3>
           <button id="btn-close-load-bible-modal" class="modal-close-btn">&times;</button>
         </div>
         <div class="modal-body">
@@ -1394,7 +1402,7 @@
 
           <div style="display: flex; gap: 8px; align-items: center;">
             <button id="btn-select-bible-file" class="btn-modal-save" style="background: var(--bg-card); border: 1px solid var(--border-color); color: #fff; font-size: 0.75rem;">
-              📁 Elegir archivo JSON...
+              <i data-lucide="folder"></i> Elegir archivo JSON...
             </button>
             <span id="label-selected-bible-file" style="font-size: 0.72rem; color: var(--text-muted);">Ningún archivo seleccionado</span>
             <input type="file" id="input-bible-file" accept=".json" style="display: none;" />
@@ -1405,7 +1413,7 @@
         <div class="modal-footer">
           <button id="btn-cancel-load-bible" class="btn-modal-cancel">Cancelar</button>
           <button id="btn-submit-load-bible" class="btn-modal-save" style="background: linear-gradient(135deg, var(--accent-magenta), #c026d3);">
-            ⚡ Cargar Biblia
+            <i data-lucide="zap"></i> Cargar Biblia
           </button>
         </div>
       </div>
@@ -1415,7 +1423,7 @@
     <div id="modal-create-event" class="modal-overlay">
       <div class="modal-card" style="max-width: 480px;">
         <div class="modal-header">
-          <h3>📅 Agregar Evento al Calendario</h3>
+          <h3><i data-lucide="calendar" class="icon-pink" style="width: 18px; height: 18px; margin-right: 6px;"></i> Agregar Evento al Calendario</h3>
           <button id="btn-close-event-modal" class="modal-close-btn">&times;</button>
         </div>
         <div class="modal-body">
@@ -1447,7 +1455,7 @@
         </div>
         <div class="modal-footer">
           <button id="btn-cancel-event" class="btn-modal-cancel">Cancelar</button>
-          <button id="btn-save-event" class="btn-modal-save" style="background: linear-gradient(135deg, var(--accent-cyan), #0284c7);">📅 Guardar Evento</button>
+          <button id="btn-save-event" class="btn-modal-save" style="background: linear-gradient(135deg, var(--accent-cyan), #0284c7);"><i data-lucide="calendar"></i> Guardar Evento</button>
         </div>
       </div>
     </div>
@@ -1456,7 +1464,7 @@
     <div id="modal-create-folder" class="modal-overlay">
       <div class="modal-card" style="max-width: 450px;">
         <div class="modal-header">
-          <h3>📁 Agregar Carpeta de Medios</h3>
+          <h3><i data-lucide="folder" class="icon-cyan" style="width: 18px; height: 18px; margin-right: 6px;"></i> Agregar Carpeta de Medios</h3>
           <button id="btn-close-create-folder-modal" class="modal-close-btn">&times;</button>
         </div>
         <div class="modal-body">
@@ -1469,7 +1477,7 @@
           </div>
 
           <button type="button" id="btn-link-physical-folder-modal" class="btn-output" style="width: 100%; justify-content: center; padding: 9px 12px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.5); color: #34d399; font-weight: 700; font-size: 0.78rem; gap: 6px;">
-            💽 Seleccionar Carpeta Física del Disco (Auto-Sync)
+            <i data-lucide="hard-drive"></i> Seleccionar Carpeta Física del Disco (Auto-Sync)
           </button>
           <span style="font-size: 0.68rem; color: var(--text-muted); margin-top: 2px;">
             Las carpetas físicas se suman a la misma lista y detectan automáticamente en vivo cuando agregas o quitas videos/imágenes en Windows.
@@ -1477,7 +1485,7 @@
         </div>
         <div class="modal-footer">
           <button id="btn-cancel-create-folder" class="btn-modal-cancel">Cancelar</button>
-          <button id="btn-save-virtual-folder-confirm" class="btn-modal-save" style="background: linear-gradient(135deg, var(--accent-cyan), #0284c7);">📁 Crear Carpeta Virtual</button>
+          <button id="btn-save-virtual-folder-confirm" class="btn-modal-save" style="background: linear-gradient(135deg, var(--accent-cyan), #0284c7);"><i data-lucide="folder-plus"></i> Crear Carpeta Virtual</button>
         </div>
       </div>
     </div>
@@ -1486,7 +1494,7 @@
     <div id="modal-create-template" class="modal-overlay">
       <div class="modal-card" style="max-width: 420px;">
         <div class="modal-header">
-          <h3>🎨 Crear Nueva Plantilla de Texto</h3>
+          <h3><i data-lucide="palette" class="icon-pink" style="width: 18px; height: 18px; margin-right: 6px;"></i> Crear Nueva Plantilla de Texto</h3>
           <button id="btn-close-create-template-modal" class="modal-close-btn">&times;</button>
         </div>
         <div class="modal-body">
@@ -1495,7 +1503,7 @@
         </div>
         <div class="modal-footer">
           <button id="btn-cancel-create-template" class="btn-modal-cancel">Cancelar</button>
-          <button id="btn-save-template-confirm" class="btn-modal-save" style="background: linear-gradient(135deg, var(--accent-cyan), #0284c7);">🎨 Crear Plantilla</button>
+          <button id="btn-save-template-confirm" class="btn-modal-save" style="background: linear-gradient(135deg, var(--accent-cyan), #0284c7);"><i data-lucide="palette"></i> Crear Plantilla</button>
         </div>
       </div>
     </div>
@@ -1504,7 +1512,7 @@
     <div id="modal-edit-slide" class="modal-overlay">
       <div class="modal-card" style="max-width: 500px;">
         <div class="modal-header">
-          <h3>✏️ Editar Diapositiva</h3>
+          <h3><i data-lucide="pencil" class="icon-cyan" style="width: 18px; height: 18px; margin-right: 6px;"></i> Editar Diapositiva</h3>
           <button id="btn-close-edit-slide-modal" class="modal-close-btn">&times;</button>
         </div>
         <div class="modal-body">
@@ -1512,15 +1520,15 @@
           <div style="margin-bottom: 10px;">
             <label style="font-weight: 700; font-size: 0.8rem; color: #cbd5e1; display: block; margin-bottom: 4px;">Sección de la Canción:</label>
             <select id="input-edit-slide-section" style="background: var(--bg-darkest); border: 1px solid var(--border-color); color: #fff; padding: 6px 10px; border-radius: 6px; width: 100%; outline: none; font-size: 0.85rem;">
-              <option value="badge-intro|Intro">🎵 Intro</option>
-              <option value="badge-verse|Verso">📖 Verso / Estrofa</option>
-              <option value="badge-prechorus|Pre-Coro">⚡ Pre-Coro</option>
-              <option value="badge-chorus|Coro">🔥 Coro</option>
-              <option value="badge-bridge|Puente">🌉 Puente</option>
-              <option value="badge-instrumental|Instrumental">🎸 Instrumental</option>
-              <option value="badge-outro|Final">🏁 Final / Outro</option>
-              <option value="badge-sermon|Sermón">💬 Sermón / Notas</option>
-              <option value="badge-lowerthird|Overlay">👤 Overlay / Lower Third</option>
+              <option value="badge-intro|Intro">Intro</option>
+              <option value="badge-verse|Verso">Verso / Estrofa</option>
+              <option value="badge-prechorus|Pre-Coro">Pre-Coro</option>
+              <option value="badge-chorus|Coro">Coro</option>
+              <option value="badge-bridge|Puente">Puente</option>
+              <option value="badge-instrumental|Instrumental">Instrumental</option>
+              <option value="badge-outro|Final">Final / Outro</option>
+              <option value="badge-sermon|Sermón">Sermón / Notas</option>
+              <option value="badge-lowerthird|Overlay">Overlay / Lower Third</option>
             </select>
           </div>
           <label>Contenido del Texto (selecciona para borrar o revisa el comparador debajo):</label>
@@ -1534,11 +1542,11 @@
             <div style="display: flex; gap: 15px; align-items: center;">
               <label style="display: flex; align-items: center; gap: 6px; font-size: 0.82rem; cursor: pointer; color: #fff;">
                 <input type="radio" name="edit-slide-scope" value="base" checked style="accent-color: var(--accent-cyan);">
-                <span>💾 En Base (Guardar permanente)</span>
+                <span><i data-lucide="save"></i> En Base (Guardar permanente)</span>
               </label>
               <label style="display: flex; align-items: center; gap: 6px; font-size: 0.82rem; cursor: pointer; color: #fff;">
                 <input type="radio" name="edit-slide-scope" value="temp" style="accent-color: var(--accent-cyan);">
-                <span>⚡ Temporal (Solo pantalla en vivo)</span>
+                <span><i data-lucide="zap"></i> Temporal (Solo pantalla en vivo)</span>
               </label>
             </div>
             <div style="font-size: 0.72rem; color: #94a3b8; margin-top: 6px;">
@@ -1549,7 +1557,7 @@
         </div>
         <div class="modal-footer">
           <button id="btn-cancel-edit-slide" class="btn-modal-cancel">Cancelar</button>
-          <button id="btn-save-edit-slide-confirm" class="btn-modal-save" style="background: linear-gradient(135deg, var(--accent-cyan), #0284c7);">💾 Aplicar Cambios</button>
+          <button id="btn-save-edit-slide-confirm" class="btn-modal-save" style="background: linear-gradient(135deg, var(--accent-cyan), #0284c7);"><i data-lucide="save"></i> Aplicar Cambios</button>
         </div>
       </div>
     </div>
@@ -1558,7 +1566,7 @@
     <div id="modal-reflow-deck" class="modal-overlay">
       <div class="modal-card" style="max-width: 440px;">
         <div class="modal-header">
-          <h3>✂️ Re-dividir Filminas de la Presentación</h3>
+          <h3><i data-lucide="scissors" class="icon-cyan" style="width: 18px; height: 18px; margin-right: 6px;"></i> Re-dividir Filminas de la Presentación</h3>
           <button id="btn-close-reflow-modal" class="modal-close-btn">&times;</button>
         </div>
         <div class="modal-body">
@@ -1575,7 +1583,86 @@
         </div>
         <div class="modal-footer">
           <button id="btn-cancel-reflow" class="btn-modal-cancel">Cancelar</button>
-          <button id="btn-confirm-reflow" class="btn-modal-save" style="background: linear-gradient(135deg, var(--accent-cyan), #0284c7);">✂️ Aplicar División</button>
+          <button id="btn-confirm-reflow" class="btn-modal-save" style="background: linear-gradient(135deg, var(--accent-cyan), #0284c7);"><i data-lucide="scissors"></i> Aplicar División</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal para Importar Presentación (PowerPoint / Impress / PDF) -->
+    <div id="modal-import-presentation" class="modal-overlay">
+      <div class="modal-card" style="max-width: 560px;">
+        <div class="modal-header">
+          <h3><i data-lucide="presentation" class="icon-gold" style="width: 18px; height: 18px; margin-right: 6px;"></i> Importar Presentación (PowerPoint / PDF)</h3>
+          <button id="btn-close-import-presentation" class="modal-close-btn">&times;</button>
+        </div>
+        <div class="modal-body" style="display: flex; flex-direction: column; gap: 12px;">
+          <p style="font-size: 0.78rem; color: var(--text-muted); line-height: 1.4;">
+            Carga archivos <strong>.pptx, .ppt, .ppsx, .odp o .pdf</strong>. El programa convierte cada diapositiva en alta definición (1080p) para proyectarla directamente con transiciones en vivo y notas del orador en Stage Display.
+          </p>
+
+          <!-- Estado de motores detectados -->
+          <div id="presentation-engines-bar" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 0.72rem; background: rgba(15, 23, 42, 0.7); border: 1px solid var(--border-color); padding: 6px 10px; border-radius: 6px;">
+            <span style="color: var(--text-muted); font-weight: 700;">Motores:</span>
+            <span id="badge-engine-ppt" class="badge" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8;">PowerPoint: verificando...</span>
+            <span id="badge-engine-pdf" class="badge" style="background: rgba(16, 185, 129, 0.18); color: #34d399;">PDF Integrado: Listo ✓</span>
+          </div>
+
+          <!-- Zona de selección / Drag & Drop -->
+          <input type="file" id="input-presentation-file-fallback" accept=".pptx,.ppt,.pps,.ppsx,.pptm,.potx,.odp,.pdf,application/pdf,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation" style="display: none;" />
+          <div id="presentation-dropzone" style="border: 2px dashed rgba(245, 158, 11, 0.55); background: rgba(245, 158, 11, 0.06); border-radius: 10px; padding: 18px 16px; text-align: center; cursor: pointer; transition: all 0.2s ease;">
+            <div style="margin-bottom: 6px;"><i data-lucide="folder-open" class="icon-gold" style="width: 32px; height: 32px;"></i></div>
+            <div id="lbl-presentation-selected-file" style="font-size: 0.86rem; font-weight: 700; color: #f8fafc;">
+              Haz clic para elegir tu archivo .PPTX / .PPT / .PDF o arrástralo aquí
+            </div>
+            <div id="lbl-presentation-selected-path" style="font-size: 0.72rem; color: var(--text-muted); margin-top: 4px; word-break: break-all;">
+              Soporta diseños personalizados, tipografías incrustadas, gráficos e imágenes
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 165px; gap: 10px;">
+            <div>
+              <label>Título de la Presentación:</label>
+              <input type="text" id="input-presentation-title" placeholder="Ej. Mensaje Dominical - Parte 1" />
+            </div>
+            <div>
+              <label>Categoría:</label>
+              <select id="input-presentation-category">
+                <option value="Presentación" selected>Presentación</option>
+                <option value="Predicación">Predicación</option>
+                <option value="Anuncios">Anuncios</option>
+                <option value="Alabanza">Alabanza</option>
+                <option value="Enseñanza">Enseñanza</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label>Modo de Proyección:</label>
+            <select id="input-presentation-mode">
+              <option value="slides" selected>Diapositivas Visuales (Diseño original fiel 1:1 - Recomendado)</option>
+              <option value="text">Extraer solo Texto editable (Usar plantillas de la aplicación)</option>
+            </select>
+          </div>
+
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.78rem; color: #cbd5e1; margin: 0;">
+            <input type="checkbox" id="check-presentation-include-hidden" style="width: auto; margin: 0;" />
+            <span>Incluir diapositivas marcadas como ocultas en PowerPoint</span>
+          </label>
+
+          <!-- Barra de Progreso durante la conversión -->
+          <div id="presentation-import-progress-box" style="display: none; background: rgba(15, 23, 42, 0.9); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 8px; padding: 10px 12px; flex-direction: column; gap: 6px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.76rem;">
+              <span id="lbl-presentation-progress-msg" style="color: #38bdf8; font-weight: 700;">Convirtiendo diapositivas...</span>
+              <span id="lbl-presentation-progress-pct" style="color: #cbd5e1; font-weight: 800;">0%</span>
+            </div>
+            <div style="width: 100%; height: 7px; background: rgba(255,255,255,0.08); border-radius: 999px; overflow: hidden;">
+              <div id="bar-presentation-progress-fill" style="width: 12%; height: 100%; background: linear-gradient(90deg, #f59e0b, #38bdf8); transition: width 0.2s ease;"></div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button id="btn-cancel-import-presentation" class="btn-modal-cancel">Cancelar</button>
+          <button id="btn-confirm-import-presentation" class="btn-modal-save" style="background: linear-gradient(135deg, #f59e0b, #ea580c);"><i data-lucide="presentation"></i> Importar y Cargar</button>
         </div>
       </div>
     </div>
@@ -1618,7 +1705,7 @@
         <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
         <line x1="7" y1="7" x2="7.01" y2="7"></line>
       </svg>
-      <span id="ctx-action-section-label">🏷️ Asignar Sección</span>
+      <span id="ctx-action-section-label">Asignar Sección</span>
     </div>
 
     <div id="ctx-action-queue-media" class="context-menu-item" style="display: none;">
@@ -1626,7 +1713,7 @@
         <polygon points="5 4 15 12 5 20 5 4"></polygon>
         <line x1="19" y1="5" x2="19" y2="19"></line>
       </svg>
-      <span>⏭️ Agregar a la Cola</span>
+      <span>Agregar a la Cola</span>
       <span class="context-menu-shortcut">Alt+Click</span>
     </div>
 
@@ -1647,54 +1734,63 @@
     <div class="modal-card" style="max-width: 480px;">
       <div class="modal-header">
         <div style="display: flex; align-items: center; gap: 8px;">
-          <span style="font-size: 1.2rem;">🏷️</span>
+          <span><i data-lucide="tag" class="icon-cyan" style="width: 18px; height: 18px;"></i></span>
           <div>
-            <h3 style="margin: 0; font-size: 1.05rem;">Asignar Sección a la Diapositiva</h3>
-            <p id="lbl-section-picker-target" style="font-size: 0.75rem; color: var(--text-muted); margin: 2px 0 0 0;">Filmina actual: Estrofa 1</p>
+            <h3 style="margin: 0; font-size: 0.95rem;">Asignar Sección a la Diapositiva</h3>
+            <p id="lbl-section-picker-target" style="font-size: 0.73rem; color: var(--text-muted); margin: 2px 0 0 0;">Filmina actual: Estrofa 1</p>
           </div>
         </div>
         <button id="btn-close-section-picker-modal" class="modal-close-btn">&times;</button>
       </div>
       <div class="modal-body">
-        <label style="font-weight: 700; font-size: 0.8rem; color: #cbd5e1; display: block; margin-bottom: 8px;">
+        <label style="font-weight: 700; font-size: 0.76rem; color: #cbd5e1; display: block; margin-bottom: 6px;">
           Selecciona el tipo de sección:
         </label>
         <div class="section-picker-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 12px;">
           <button type="button" class="btn-picker-section" data-badge="badge-intro" data-name="Intro">
             <span class="sec-dot" style="background: #0284c7;"></span>
-            <span>🎵 Intro</span>
+            <i data-lucide="music"></i>
+            <span>Intro</span>
           </button>
           <button type="button" class="btn-picker-section" data-badge="badge-verse" data-name="Verso">
             <span class="sec-dot" style="background: #2563eb;"></span>
-            <span>📖 Verso / Estrofa</span>
+            <i data-lucide="book-open"></i>
+            <span>Verso / Estrofa</span>
           </button>
           <button type="button" class="btn-picker-section" data-badge="badge-prechorus" data-name="Pre-Coro">
             <span class="sec-dot" style="background: #db2777;"></span>
-            <span>⚡ Pre-Coro</span>
+            <i data-lucide="zap"></i>
+            <span>Pre-Coro</span>
           </button>
           <button type="button" class="btn-picker-section" data-badge="badge-chorus" data-name="Coro">
             <span class="sec-dot" style="background: #7c3aed;"></span>
-            <span>🔥 Coro</span>
+            <i data-lucide="flame"></i>
+            <span>Coro</span>
           </button>
           <button type="button" class="btn-picker-section" data-badge="badge-bridge" data-name="Puente">
             <span class="sec-dot" style="background: #d97706;"></span>
-            <span>🌉 Puente</span>
+            <i data-lucide="git-commit"></i>
+            <span>Puente</span>
           </button>
           <button type="button" class="btn-picker-section" data-badge="badge-instrumental" data-name="Instrumental">
             <span class="sec-dot" style="background: #0d9488;"></span>
-            <span>🎸 Instrumental</span>
+            <i data-lucide="headphones"></i>
+            <span>Instrumental</span>
           </button>
           <button type="button" class="btn-picker-section" data-badge="badge-outro" data-name="Final">
             <span class="sec-dot" style="background: #e11d48;"></span>
-            <span>🏁 Final / Outro</span>
+            <i data-lucide="flag"></i>
+            <span>Final / Outro</span>
           </button>
           <button type="button" class="btn-picker-section" data-badge="badge-sermon" data-name="Sermón">
             <span class="sec-dot" style="background: #059669;"></span>
-            <span>💬 Sermón / Notas</span>
+            <i data-lucide="message-square"></i>
+            <span>Sermón / Notas</span>
           </button>
           <button type="button" class="btn-picker-section" data-badge="badge-lowerthird" data-name="Overlay">
             <span class="sec-dot" style="background: #db2777;"></span>
-            <span>👤 Overlay / Lower Third</span>
+            <i data-lucide="user"></i>
+            <span>Overlay / Lower Third</span>
           </button>
         </div>
 
@@ -1709,7 +1805,7 @@
         <div id="wrapper-section-split-action" style="display: none; background: rgba(14, 165, 233, 0.08); border: 1px dashed var(--accent-cyan); border-radius: 8px; padding: 10px;">
           <div style="display: flex; justify-content: space-between; align-items: center;">
             <div>
-              <strong style="font-size: 0.82rem; color: var(--accent-cyan);">✂️ Dividir sección a partir de esta filmina</strong>
+              <strong style="font-size: 0.82rem; color: var(--accent-cyan);"><i data-lucide="scissors"></i> Dividir sección a partir de esta filmina</strong>
               <p style="font-size: 0.72rem; color: #94a3b8; margin: 2px 0 0 0;">Crea una nueva sección independiente a partir de esta diapositiva.</p>
             </div>
             <button type="button" id="btn-split-at-slide" class="btn-output" style="background: var(--accent-cyan); color: #000; font-weight: 700; font-size: 0.75rem; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; white-space: nowrap;">Dividir Aquí</button>

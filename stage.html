@@ -90,6 +90,36 @@
       white-space: pre-wrap;
     }
 
+    .stage-slide-split {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      width: 100%;
+      flex: 1;
+      min-height: 0;
+    }
+
+    #current-slide-img {
+      max-height: 100%;
+      max-width: 62%;
+      object-fit: contain;
+      border-radius: 10px;
+      border: 2px solid #334155;
+      background: #000;
+      display: none;
+    }
+
+    #next-slide-img {
+      height: 82px;
+      width: auto;
+      object-fit: contain;
+      border-radius: 6px;
+      border: 1px solid #334155;
+      background: #000;
+      display: none;
+    }
+
     /* Bottom: Next Slide Preview */
     .next-slide-area {
       border: 2px solid #1e293b;
@@ -135,12 +165,18 @@
 
   <div class="current-slide-area">
     <div class="slide-label">● DIAPOSITIVA ACTUAL</div>
-    <div id="current-text" class="current-text">-- ESPERANDO DIAPOSITIVA --</div>
+    <div class="stage-slide-split">
+      <img id="current-slide-img" alt="Diapositiva actual" />
+      <div id="current-text" class="current-text">-- ESPERANDO DIAPOSITIVA --</div>
+    </div>
   </div>
 
   <div class="next-slide-area">
     <div class="next-label">SIGUIENTE DIAPOSITIVA ▶</div>
-    <div id="next-text" class="next-text">-- SIN SIGUIENTE --</div>
+    <div style="display: flex; align-items: center; gap: 16px;">
+      <img id="next-slide-img" alt="Siguiente diapositiva" />
+      <div id="next-text" class="next-text">-- SIN SIGUIENTE --</div>
+    </div>
   </div>
 
   <script type="module">
@@ -151,7 +187,9 @@
     const clockEl = document.getElementById('clock');
     const timerEl = document.getElementById('timer-container');
     const currentEl = document.getElementById('current-text');
+    const currentImgEl = document.getElementById('current-slide-img');
     const nextEl = document.getElementById('next-text');
+    const nextImgEl = document.getElementById('next-slide-img');
 
     // Real-time Clock
     setInterval(() => {
@@ -160,16 +198,43 @@
     }, 1000);
 
     sync.onUpdate((state) => {
-      // Current text
-      if (state.isTextCleared || !state.liveText) {
+      const hasSlideImg = !state.isTextCleared && Boolean(state.liveSlideImage);
+      if (currentImgEl) {
+        if (hasSlideImg) {
+          currentImgEl.src = state.liveSlideImage;
+          currentImgEl.style.display = 'block';
+        } else {
+          currentImgEl.style.display = 'none';
+        }
+      }
+
+      // Current text / speaker notes
+      if (state.isTextCleared || (!state.liveText && !hasSlideImg)) {
         currentEl.textContent = "[ TEXTO LIMPIO / EN PAUSA ]";
         currentEl.style.color = "#64748b";
+        currentEl.style.fontSize = "3.2rem";
+      } else if (hasSlideImg) {
+        const notesOrText = state.liveSlideNotes || state.liveText || "";
+        currentEl.textContent = notesOrText;
+        currentEl.style.color = state.liveSlideNotes ? "#fde68a" : "#cbd5e1";
+        currentEl.style.fontSize = "1.75rem";
+        currentEl.style.display = notesOrText ? "block" : "none";
       } else {
+        currentEl.style.display = "block";
         currentEl.textContent = state.liveText;
         currentEl.style.color = "#ffffff";
+        currentEl.style.fontSize = "3.2rem";
       }
 
       // Next slide preview
+      if (nextImgEl) {
+        if (!state.isTextCleared && state.nextSlideImage) {
+          nextImgEl.src = state.nextSlideImage;
+          nextImgEl.style.display = 'block';
+        } else {
+          nextImgEl.style.display = 'none';
+        }
+      }
       nextEl.textContent = state.nextText || "-- FINAL DEL DECK --";
 
       // Timer

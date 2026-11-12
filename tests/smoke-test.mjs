@@ -37,6 +37,8 @@ globalThis.BroadcastChannel = class {
 // 2. Importing Project Modules
 import { Store, DEFAULT_DECKS, DEFAULT_TEMPLATES, parseAndSplitText } from '../src/js/state.js';
 import { LiveCoderEngine } from '../src/js/live-coder.js';
+import { ensureCustomBiblesLoaded, getAllBibleVersions, parseAndAddCustomBible } from '../src/js/bible-data.js';
+import { BroadcastSync } from '../src/js/broadcast.js';
 
 let totalTests = 0;
 let passedTests = 0;
@@ -614,6 +616,110 @@ test('RF-59: Edición de canción en vista de pantalla completa con 3 columnas y
   if (store.state.activeTemplate.fontFamily !== "CMGSans" || store.state.activeTemplate.fontSize !== 72) {
     throw new Error('Seleccionar otra canción en el proyecto alteró indebidamente el estilo del slide en proyección');
   }
+});
+
+console.log('\n▶️ Grupo 14: Optimizaciones de Memoria, IPC y Ciclo de Vida (Performance Audit)');
+
+test('PERF-01/02: Payload IPC ligero (getProjectionPayload), exclusión de thumbnails Base64 en localStorage y limpieza de BroadcastSync', () => {
+  const store = new Store();
+  const item = store.addMediaItem("Fondo Pesado", "https://example.com/bg.mp4", "video/mp4", "General");
+  item.thumbnail = "data:image/jpeg;base64," + "A".repeat(1024);
+  store.notify();
+
+  // 1. getProjectionPayload no debe incluir mediaLibrary ni mediaFolders
+  const payload = store.getProjectionPayload();
+  if ('mediaLibrary' in payload || 'mediaFolders' in payload) {
+    throw new Error('getProjectionPayload no debe serializar mediaLibrary ni mediaFolders hacia IPC/BroadcastChannel');
+  }
+
+  // 2. localStorage no debe persistir thumbnails Base64 crudos (que están en IndexedDB MediaCache)
+  const persistedMedia = JSON.parse(globalThis.localStorage.getItem('propresenter_media_library') || '[]');
+  const savedItem = persistedMedia.find(m => m.id === item.id);
+  if (!savedItem || savedItem.thumbnail) {
+    throw new Error('saveState no debe persistir thumbnails Base64 pesados en localStorage');
+  }
+
+  // 3. Hidratación lazy de Biblias y cierre limpio de BroadcastSync
+  ensureCustomBiblesLoaded();
+  parseAndAddCustomBible({
+    local_abbreviation: 'RVR1960-TEST',
+    local_title: 'Reina Valera 1960 Test',
+    books: [{ book_usfm: 'GEN', name: 'Génesis', chapters: [{ items: [{ type: 'verse', verse_numbers: [1], lines: ['En el principio creó Dios los cielos y la tierra.'] }] }] }]
+  });
+  const versions = getAllBibleVersions();
+  if (!Array.isArray(versions) || !versions.some(v => v.id === 'RVR1960-TEST')) {
+    throw new Error('getAllBibleVersions debe retornar las versiones bíblicas tras hidratación lazy');
+  }
+
+  const sync = new BroadcastSync(false);
+  sync.close();
+});
+
+// ----------------------------------------------------
+// SUITE 15: Importador y Proyección de Presentaciones PPTX / PDF (RF-60)
+// ----------------------------------------------------
+console.log('\n▶️ Grupo 15: Importación y Proyección de Presentaciones PPT / PDF (RF-60)');
+test('RF-60: Creación de deck de presentación visual y textual, proyección de diapositivas e imágenes y limpieza', () => {
+  const store = new Store();
+
+  const mockImported = {
+    assetId: 'pres-test-123456',
+    title: 'Predicación Domingo',
+    sourcePath: 'C:/Presentaciones/Predicacion.pptx',
+    sourceName: 'Predicacion.pptx',
+    engine: 'powerpoint',
+    width: 1920,
+    height: 1080,
+    slides: [
+      { index: 1, image: 'file:///C:/slides/slide-001.png', thumb: 'file:///C:/slides/slide-001-thumb.jpg', text: 'Bienvenidos', notes: 'Saludar a la congregación', hidden: false },
+      { index: 2, image: 'file:///C:/slides/slide-002.png', thumb: 'file:///C:/slides/slide-002-thumb.jpg', text: 'Oculta', notes: '', hidden: true },
+      { index: 3, image: 'file:///C:/slides/slide-003.png', thumb: 'file:///C:/slides/slide-003-thumb.jpg', text: 'Punto 1: La Fe', notes: 'Leer Hebreos 11:1', hidden: false }
+    ]
+  };
+
+  // 1. Modo visual ('slides') omitiendo diapositivas ocultas por defecto
+  const visualDeck = store.createPresentationDeck(mockImported, {
+    title: 'Mensaje Dominical',
+    category: 'Predicación',
+    mode: 'slides',
+    includeHidden: false
+  });
+
+  if (visualDeck.type !== 'presentation') throw new Error('El deck debe ser de tipo presentation.');
+  if (visualDeck.groups[0].slides.length !== 2) throw new Error('Debe excluir diapositivas ocultas cuando includeHidden es false.');
+
+  // 2. Proyectar primera diapositiva y verificar liveSlideImage, liveSlideNotes y nextSlideImage
+  store.setLiveSlide(0, 0);
+  if (store.state.liveSlideImage !== 'file:///C:/slides/slide-001.png') {
+    throw new Error('liveSlideImage no coincide con la primera diapositiva.');
+  }
+  if (store.state.liveSlideNotes !== 'Saludar a la congregación') {
+    throw new Error('liveSlideNotes no coincide con las notas del orador.');
+  }
+  if (store.state.nextSlideImage !== 'file:///C:/slides/slide-003.png') {
+    throw new Error('nextSlideImage debe apuntar a la siguiente diapositiva visible.');
+  }
+
+  // 3. Avanzar a la siguiente diapositiva y luego limpiar con clearText()
+  store.nextSlide();
+  if (store.state.liveSlideImage !== 'file:///C:/slides/slide-003.png') {
+    throw new Error('nextSlide() debe proyectar la segunda diapositiva visible.');
+  }
+  store.clearText();
+  if (store.state.liveSlideImage !== '' || !store.state.isTextCleared) {
+    throw new Error('clearText() debe limpiar liveSlideImage.');
+  }
+
+  // 4. Modo texto ('text') incluyendo ocultas
+  const textDeck = store.createPresentationDeck(mockImported, {
+    title: 'Mensaje en Texto',
+    category: 'Predicación',
+    mode: 'text',
+    includeHidden: true
+  });
+  if (textDeck.type !== 'song') throw new Error('El modo texto debe crear un show editable estándar.');
+  const totalTextSlides = textDeck.groups.reduce((acc, g) => acc + g.slides.length, 0);
+  if (totalTextSlides !== 3) throw new Error('El modo texto con includeHidden=true debe incluir las 3 diapositivas.');
 });
 
 

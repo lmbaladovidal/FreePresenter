@@ -2,15 +2,15 @@ import { sync } from './broadcast.js';
 import { MediaCache } from './media-cache.js';
 
 export const SECTION_DEFINITIONS = [
-  { id: 'intro', name: 'Intro', badge: 'badge-intro', icon: '🎵', regex: /^\s*\[?(?:intro|introducci[oó]n)\]?:?\s*$/i },
-  { id: 'verse', name: 'Verso', badge: 'badge-verse', icon: '📖', regex: /^\s*\[?(?:verso|estrofa|vers[ií]culo)\s*(\d*)\]?:?\s*$/i },
-  { id: 'prechorus', name: 'Pre-Coro', badge: 'badge-prechorus', icon: '⚡', regex: /^\s*\[?(?:pre-?coro|pre-?chorus)\]?:?\s*$/i },
-  { id: 'chorus', name: 'Coro', badge: 'badge-chorus', icon: '🔥', regex: /^\s*\[?(?:coro|chorus)\s*(\d*)\]?:?\s*$/i },
-  { id: 'bridge', name: 'Puente', badge: 'badge-bridge', icon: '🌉', regex: /^\s*\[?(?:puente|bridge)\s*(\d*)\]?:?\s*$/i },
-  { id: 'instrumental', name: 'Instrumental', badge: 'badge-instrumental', icon: '🎸', regex: /^\s*\[?(?:instrumental|solo)\s*(\d*)\]?:?\s*$/i },
-  { id: 'outro', name: 'Final', badge: 'badge-outro', icon: '🏁', regex: /^\s*\[?(?:outro|final|coda)\]?:?\s*$/i },
-  { id: 'sermon', name: 'Sermón', badge: 'badge-sermon', icon: '💬', regex: /^\s*\[?(?:serm[oó]n|puntos)\]?:?\s*$/i },
-  { id: 'lowerthird', name: 'Overlay', badge: 'badge-lowerthird', icon: '👤', regex: /^\s*\[?(?:lower-?third|overlay|tercero|z[oó]calo)\]?:?\s*$/i }
+  { id: 'intro', name: 'Intro', badge: 'badge-intro', icon: 'music', regex: /^\s*\[?(?:intro|introducci[oó]n)\]?:?\s*$/i },
+  { id: 'verse', name: 'Verso', badge: 'badge-verse', icon: 'book-open', regex: /^\s*\[?(?:verso|estrofa|vers[ií]culo)\s*(\d*)\]?:?\s*$/i },
+  { id: 'prechorus', name: 'Pre-Coro', badge: 'badge-prechorus', icon: 'zap', regex: /^\s*\[?(?:pre-?coro|pre-?chorus)\]?:?\s*$/i },
+  { id: 'chorus', name: 'Coro', badge: 'badge-chorus', icon: 'flame', regex: /^\s*\[?(?:coro|chorus)\s*(\d*)\]?:?\s*$/i },
+  { id: 'bridge', name: 'Puente', badge: 'badge-bridge', icon: 'git-commit', regex: /^\s*\[?(?:puente|bridge)\s*(\d*)\]?:?\s*$/i },
+  { id: 'instrumental', name: 'Instrumental', badge: 'badge-instrumental', icon: 'headphones', regex: /^\s*\[?(?:instrumental|solo)\s*(\d*)\]?:?\s*$/i },
+  { id: 'outro', name: 'Final', badge: 'badge-outro', icon: 'flag', regex: /^\s*\[?(?:outro|final|coda)\]?:?\s*$/i },
+  { id: 'sermon', name: 'Sermón', badge: 'badge-sermon', icon: 'message-square', regex: /^\s*\[?(?:serm[oó]n|puntos)\]?:?\s*$/i },
+  { id: 'lowerthird', name: 'Overlay', badge: 'badge-lowerthird', icon: 'user', regex: /^\s*\[?(?:lower-?third|overlay|tercero|z[oó]calo)\]?:?\s*$/i }
 ];
 
 export function parseAndSplitText(rawText, splitMode = 'paragraph', maxLines = 0) {
@@ -339,12 +339,15 @@ export class Store {
       activeVideoName: "Space Stars Motion",
       activeMediaPlayId: 1,
       liveText: "",
+      liveSlideImage: "",
+      liveSlideNotes: "",
       liveDeckId: null,
       liveSlideId: null,
       liveGroupIndex: null,
       liveSlideIndex: null,
       nextText: "",
-      
+      nextSlideImage: "",
+
       // Master Clear Switches
       isTextCleared: false,
       isMediaCleared: false,
@@ -373,12 +376,12 @@ export class Store {
         }
       ],
       mediaQueue: savedMediaQueue ? JSON.parse(savedMediaQueue) : [],
-      
+
       // Lower Third / Overlay
       lowerThirdText: "",
       lowerThirdSubtext: "",
       isLowerThirdActive: false,
-      
+
       // Transitions Settings (cut | fade)
       textTransition: getStorageItem("propresenter_text_trans") || "fade",
       mediaTransition: getStorageItem("propresenter_media_trans") || "fade",
@@ -413,7 +416,7 @@ export class Store {
               item.thumbnail = t;
               this.notify();
             }
-          }).catch(() => {});
+          }).catch(() => { });
         }
         if (item.url && item.url.startsWith('blob:')) {
           if (item.filePath) {
@@ -424,7 +427,7 @@ export class Store {
                 item.url = URL.createObjectURL(blob);
                 this.notify();
               }
-            }).catch(() => {});
+            }).catch(() => { });
           }
         }
       });
@@ -581,7 +584,7 @@ export class Store {
       this.activeTemplateId = templateId;
       this.state.activeTemplate = { ...template };
       setStorageItem("propresenter_active_template", templateId);
-      
+
       // Si la plantilla especifica un máximo de renglones (> 0) y autoReflow es activo,
       // re-dividimos automáticamente las filminas excedentes de la presentación activa.
       if (autoReflow && template.maxLines && template.maxLines > 0 && this.activeDeckId) {
@@ -650,7 +653,10 @@ export class Store {
       this.state.isLowerThirdActive = true;
       this.state.isOverlayCleared = false;
     } else {
-      this.state.liveText = slide.text;
+      const slideLabel = slide.text || (slide.image ? `${deck.title} — Diapositiva ${slideIndex + 1}` : "");
+      this.state.liveText = slide.image ? (slide.text || slideLabel) : slide.text;
+      this.state.liveSlideImage = slide.image || "";
+      this.state.liveSlideNotes = slide.notes || "";
       this.state.liveDeckId = deck.id;
       this.state.liveSlideId = slide.id;
       this.state.liveGroupIndex = groupIndex;
@@ -658,13 +664,16 @@ export class Store {
       this.state.isTextCleared = false;
       this.state.activeTemplate = this.buildEffectiveTemplateForSlide(deck, slide);
 
-      let nextText = "";
+      let nextSlideObj = null;
       if (slideIndex + 1 < group.slides.length) {
-        nextText = group.slides[slideIndex + 1].text;
+        nextSlideObj = group.slides[slideIndex + 1];
       } else if (groupIndex + 1 < deck.groups.length) {
-        nextText = deck.groups[groupIndex + 1].slides[0]?.text || "";
+        nextSlideObj = deck.groups[groupIndex + 1].slides[0] || null;
       }
-      this.state.nextText = nextText;
+      this.state.nextText = nextSlideObj
+        ? (nextSlideObj.text || (nextSlideObj.image ? `Diapositiva siguiente` : ""))
+        : "";
+      this.state.nextSlideImage = nextSlideObj?.image || "";
     }
 
     this.notify();
@@ -676,6 +685,9 @@ export class Store {
     this.state.isMediaCleared = true;
     this.state.isOverlayCleared = true;
     this.state.liveSlideId = null;
+    this.state.liveSlideImage = "";
+    this.state.liveSlideNotes = "";
+    this.state.nextSlideImage = "";
     this.state.isLowerThirdActive = false;
     this.state.isMediaPaused = false;
     this.notify();
@@ -684,6 +696,9 @@ export class Store {
   clearText() {
     this.state.isTextCleared = true;
     this.state.liveSlideId = null;
+    this.state.liveSlideImage = "";
+    this.state.liveSlideNotes = "";
+    this.state.nextSlideImage = "";
     this.notify();
   }
 
@@ -857,6 +872,70 @@ export class Store {
     return newDeck;
   }
 
+  /**
+   * Crea un deck a partir de una presentación importada (PPTX / PPT / PPSX / ODP / PDF).
+   * - mode === 'slides' (por defecto): proyecta cada diapositiva tal cual con su diseño original.
+   * - mode === 'text': extrae el texto de cada diapositiva como filminas editables con plantilla.
+   */
+  createPresentationDeck(payload = {}, options = {}) {
+    const mode = options.mode === 'text' ? 'text' : 'slides';
+    const includeHidden = Boolean(options.includeHidden);
+    const category = options.category || 'Presentación';
+    const title = (options.title || payload.title || 'Presentación Importada').trim();
+    const rawSlides = Array.isArray(payload.slides) ? payload.slides : [];
+    const visibleSlides = includeHidden ? rawSlides : rawSlides.filter(s => !s.hidden);
+    const slidesSource = visibleSlides.length > 0 ? visibleSlides : rawSlides;
+
+    if (mode === 'text') {
+      const blocks = slidesSource
+        .map((s, idx) => (s.text || '').trim() || `Diapositiva ${idx + 1}`)
+        .filter(Boolean);
+      if (payload.assetId && typeof window !== 'undefined' && window.electronAPI?.deletePresentationAssets) {
+        window.electronAPI.deletePresentationAssets(payload.assetId).catch(() => { });
+      }
+      return this.createNewShow(title, category, blocks.join('\n\n'), {
+        templateId: options.templateId || this.activeTemplateId,
+        splitMode: 'paragraph',
+        maxLines: options.maxLines || 0
+      });
+    }
+
+    const now = Date.now();
+    const deckSlides = slidesSource.map((s, idx) => ({
+      id: `slide-${now}-${idx}`,
+      text: (s.text || '').trim(),
+      notes: (s.notes || '').trim(),
+      image: s.image || '',
+      thumb: s.thumb || s.image || '',
+      slideNumber: s.index || (idx + 1)
+    }));
+
+    const newDeck = {
+      id: `pres-deck-${now}-${Math.random().toString(36).substr(2, 4)}`,
+      title,
+      type: 'presentation',
+      category,
+      assetId: payload.assetId || null,
+      sourcePath: payload.sourcePath || '',
+      sourceName: payload.sourceName || '',
+      engine: payload.engine || 'powerpoint',
+      aspectWidth: payload.width || 1920,
+      aspectHeight: payload.height || 1080,
+      groups: [
+        {
+          name: 'Diapositivas',
+          badge: 'badge-sermon',
+          slides: deckSlides.length > 0 ? deckSlides : [
+            { id: `slide-${now}-0`, text: title, image: '', thumb: '' }
+          ]
+        }
+      ]
+    };
+
+    this.addDeck(newDeck);
+    return newDeck;
+  }
+
   updateDeckContent(deckId, title, category, rawText, options = {}) {
     const deck = this.decks.find(d => d.id === deckId);
     if (!deck) return null;
@@ -912,7 +991,7 @@ export class Store {
     const duplicated = JSON.parse(JSON.stringify(source));
     duplicated.id = "deck-" + Date.now() + Math.random().toString(36).substr(2, 4);
     duplicated.title = `${source.title} (Copia)`;
-    
+
     duplicated.groups.forEach((group, gIdx) => {
       group.slides.forEach((slide, sIdx) => {
         slide.id = `slide-${Date.now()}-${gIdx}-${sIdx}`;
@@ -1115,12 +1194,21 @@ export class Store {
 
   deleteDeck(deckId) {
     if (this.decks.length <= 1) return;
+    const target = this.decks.find(d => d.id === deckId);
     this.decks = this.decks.filter(d => d.id !== deckId);
     this.projectDeckIds = this.projectDeckIds.filter(id => id !== deckId);
     setStorageItem("propresenter_decks", JSON.stringify(this.decks));
     setStorageItem("propresenter_project_deck_ids", JSON.stringify(this.projectDeckIds));
     if (this.activeDeckId === deckId) {
       this.activeDeckId = this.projectDeckIds[0] || this.decks[0]?.id;
+    }
+    if (this.state.liveDeckId === deckId) {
+      this.clearText();
+    }
+    if (target?.assetId && !this.decks.some(d => d.assetId === target.assetId)) {
+      if (typeof window !== 'undefined' && window.electronAPI?.deletePresentationAssets) {
+        window.electronAPI.deletePresentationAssets(target.assetId).catch(() => { });
+      }
     }
     this.notify();
   }
@@ -1218,7 +1306,7 @@ export class Store {
           url: fileUrl,
           filePath: f.filePath || "",
           type: f.type || (isImg ? "image/png" : "video/mp4"),
-          folder: `💽 ${derivedName}`,
+          folder: derivedName,
           folderDisplayName: derivedName,
           physicalFolder: normalizedPath,
           physicalFolderPath: normalizedPath,
@@ -1226,7 +1314,7 @@ export class Store {
           thumbnail: f.thumbnail || ""
         });
       } else if (existingItem) {
-        existingItem.folder = `💽 ${derivedName}`;
+        existingItem.folder = derivedName;
         existingItem.folderDisplayName = derivedName;
         existingItem.physicalFolder = normalizedPath;
         existingItem.physicalFolderPath = normalizedPath;
@@ -1249,7 +1337,7 @@ export class Store {
         item.physicalFolderPath === normalizedPath ||
         item.folder === folderTag;
       if (belongsToFolder && typeof item.url === 'string' && item.url.startsWith('blob:')) {
-        try { URL.revokeObjectURL(item.url); } catch (e) {}
+        try { URL.revokeObjectURL(item.url); } catch (e) { }
       }
     });
     this.state.mediaLibrary = this.state.mediaLibrary.filter(item =>
@@ -1288,7 +1376,7 @@ export class Store {
 
   addMediaBatch(items) {
     if (!Array.isArray(items) || items.length === 0) return [];
-    
+
     const added = [];
     items.forEach((item, index) => {
       const targetFolder = item.folder ? item.folder.trim() : "General";
@@ -1334,7 +1422,7 @@ export class Store {
 
     try {
       MediaCache.deleteMedia(itemId);
-    } catch (e) {}
+    } catch (e) { }
 
     this.state.mediaLibrary = this.state.mediaLibrary.filter(m => m.id !== itemId);
     if (Array.isArray(this.state.mediaQueue)) {

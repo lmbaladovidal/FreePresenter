@@ -4,9 +4,32 @@ Este archivo registra el control de versiones, cambios granulares, mejoras y cor
 
 ---
 
-## 📌 Versión Actual: `v1.6.0` (Build 20261108.1)
+## 📌 Versión Actual: `v2.0.0` (Build 20261112.1)
 
 ### 🗓️ Registro de Cambios (Changelog Histórico)
+
+### [2.0.0] - 2026-11-12
+#### 🎨 Rediseño Visual Completo & Experiencia de Usuario Profesional
+- **Coherencia Tipográfica y Jerarquía Visual:**
+  - Estandarización de tamaños de fuente, espaciados y line-heights en toda la interfaz (banner de deck, barra de navegación rápida por secciones, sub-sidebars y docks).
+- **Iconografía Vectorial Lucide Unificada:**
+  - Normalización de dimensiones a `14x14px` en todos los componentes para evitar desbordes y desalineaciones.
+  - Reemplazo de caracteres Unicode/Emojis (`▶`, `⏸`, `⏮`, `+`, `◀`, `■`, `×`, `▲`, `▼`) por iconos SVG Lucide nítidos y accesibles.
+- **Optimización de Disposición (Layout) y Prevención de Envolturas:**
+  - Tarjetas de canciones en el dock de Shows rediseñadas con botones de altura uniforme (`22px`) en una sola línea, evitando cortes o saltos de línea.
+  - Barra de herramientas del deck central rediseñada con botones homogéneos de `30px`, selector de zoom integrado y controles de navegación directos.
+  - Ajuste de cuadrícula del espacio de trabajo (`255px 1fr 460px`) y monitores de operador/audiencia al 100% de ancho sin márgenes vacíos.
+  - Corrección de visibilidad del monitor de confianza (Stage Display) en el dock derecho para evitar solapamientos verticales.
+  - Soporte e incorporación de variables de color de acento (`--accent-magenta`, `--accent-magenta-dark`).
+
+### [1.7.0] - 2026-11-11
+#### 🆕 Nuevas Funcionalidades & Mejoras
+- **📊 Importador de Presentaciones PowerPoint y PDF:**
+  - Soporte para importación y conversión de presentaciones (`.pptx`, `.ppt`, `.ppsx`, `.pps`, `.odp`) y documentos `.pdf`.
+  - Rasterización de páginas y generación de diapositivas mediante `pdfjs-dist`.
+- **🖥️ Sincronización y Mejoras en Monitores de Escenario y Audiencia:**
+  - Refuerzo en la comunicación en tiempo real entre ventanas (`Stage`, `Audience` y `Main`).
+  - Optimización en carga de biblias, búsquedas y suite de pruebas de humo (`smoke-test.mjs`).
 
 ### [1.6.0] - 2026-11-08
 #### 🆕 Nuevas Funcionalidades & Mejoras

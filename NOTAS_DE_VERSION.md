@@ -4,6 +4,42 @@ Todas las novedades, mejoras y correcciones de errores importantes de **ProPrese
 
 ---
 
+## 🚀 Versión 2.0.0 (Rediseño Visual Completo, Coherencia Tipográfica y Experiencia Pro) — *12 de Noviembre, 2026*
+
+Esta versión mayor representa una renovación visual integral para **ProPresenter AI Studio / FreePresenter AI**, logrando una estética coherente, limpia y profesional en todas sus vistas, modales y barras de herramientas.
+
+### ✨ Novedades y Mejoras Visuales
+
+#### 🎨 Alineación e Iconografía Vectorial
+- Estandarización de toda la iconografía a gráficos vectoriales **Lucide** con un tamaño nítido uniforme (`14×14px`), eliminando desalineaciones y desbordes.
+- Sustitución completa de emojis y símbolos Unicode (`▶`, `⏸`, `⏮`, `+`, `◀`, `■`, `×`) por componentes SVG vectoriales integrados.
+- Incorporación de paleta de variables CSS `--accent-magenta` y corrección de contrastes.
+
+#### 📐 Coherencia en Tarjetas, Botones y Docks
+- **Dock de Shows & Canciones:** Rediseño del pie de cada tarjeta (`.show-card-footer`) con botones de acción (`Editar`, `Proyecto`, `Eliminar`) en una sola línea homogénea de 22px de alto, eliminando saltos de línea antiestéticos.
+- **Banner del Deck Central:** Reorganización de acciones con botones de altura uniforme (30px), zoom slider integrado y navegación limpia sin envolturas de texto.
+- **Consola del Operador y Monitor en Vivo:** Ajuste del monitor al 100% del ancho del contenedor, alineado con la barra de transporte de medios y el panel de transiciones en vivo.
+- **Stage Display:** Ajuste de proporción para mantener visible y legible el monitor de confianza sin solapamientos.
+
+---
+
+## 🚀 Versión 1.7.0 (Importador de Presentaciones PowerPoint y PDF & Mejoras de Monitores) — *11 de Noviembre, 2026*
+
+Esta versión introduce la importación directa de presentaciones de PowerPoint y archivos PDF, rasterizando páginas a diapositivas proyectables con extracción de texto y optimizaciones integrales para los monitores de Escenario y Audiencia.
+
+### ✨ Novedades y Funcionalidades Principales
+
+#### 📊 Importador Directo de Presentaciones PowerPoint y PDF
+- Soporte para archivos `.pptx`, `.ppt`, `.ppsx`, `.pps`, `.odp` y documentos `.pdf`.
+- Renderizado de alta definición de diapositivas mediante `pdfjs-dist` y rasterización de lienzo.
+- Extracción automática de títulos y contenido de texto editable por diapositiva.
+
+#### 🖥️ Mejoras en Monitores de Escenario (Stage) y Audiencia
+- Mayor robustez en la sincronización en tiempo real vía IPC y BroadcastChannel entre la ventana principal, el monitor de escenario y la pantalla de proyección.
+- Suite de pruebas de humo automatizadas (`tests/smoke-test.mjs`).
+
+---
+
 ## 🚀 Versión 1.6.0 (Editor de Canción en Pantalla Completa Estilo FreeShow & Overlays Personalizados) — *8 de Noviembre, 2026*
 
 Esta versión transforma por completo la experiencia de edición de canciones, sustituyendo los modales flotantes por una **vista inmersiva de pantalla completa en 3 columnas** inspirada en los estándares de producción profesional (FreeShow), junto con el soporte integral para creación y proyección de Overlays / Lower Thirds personalizados.
