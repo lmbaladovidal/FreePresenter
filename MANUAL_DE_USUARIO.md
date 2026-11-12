@@ -312,3 +312,4 @@ Memorizar estos atajos agilizará notablemente tu operación durante los servici
 ---
 
 *Manual elaborado para **FreePresenter AI Studio v2.0.0** — Sistema de Producción Multimedia para Iglesias y Eventos.*
+

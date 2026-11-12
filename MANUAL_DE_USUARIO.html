@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Manual de Usuario - FreePresenter AI Studio</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 18mm 16mm 18mm 16mm;
+      @bottom-right {
+        content: counter(page);
+      }
+    }
+    
+    * {
+      box-sizing: border-box;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 10pt;
+      line-height: 1.55;
+      color: #1e293b;
+      background: #ffffff;
+      margin: 0;
+      padding: 0;
+    }
+
+    h1 {
+      font-size: 20pt;
+      font-weight: 800;
+      color: #0f172a;
+      border-bottom: 3px solid #ec4899;
+      padding-bottom: 6px;
+      margin-top: 0;
+      margin-bottom: 12px;
+      letter-spacing: -0.5px;
+    }
+
+    h2 {
+      font-size: 13pt;
+      font-weight: 700;
+      color: #0f172a;
+      border-bottom: 1.5px solid #cbd5e1;
+      padding-bottom: 4px;
+      margin-top: 22px;
+      margin-bottom: 10px;
+      page-break-after: avoid;
+    }
+
+    h3 {
+      font-size: 11pt;
+      font-weight: 700;
+      color: #1e293b;
+      margin-top: 14px;
+      margin-bottom: 6px;
+      page-break-after: avoid;
+    }
+
+    h4 {
+      font-size: 10pt;
+      font-weight: 700;
+      color: #334155;
+      margin-top: 10px;
+      margin-bottom: 4px;
+      page-break-after: avoid;
+    }
+
+    p {
+      margin-top: 0;
+      margin-bottom: 8px;
+      text-align: justify;
+    }
+
+    ul, ol {
+      margin-top: 0;
+      margin-bottom: 8px;
+      padding-left: 20px;
+    }
+
+    li {
+      margin-bottom: 3px;
+    }
+
+    .list-step {
+      margin-bottom: 4px;
+      padding-left: 4px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+      margin-bottom: 14px;
+      font-size: 8.5pt;
+      page-break-inside: avoid;
+    }
+
+    th {
+      background: #0f172a;
+      color: #ffffff;
+      text-align: left;
+      padding: 6px 8px;
+      font-weight: 700;
+      border: 1px solid #0f172a;
+    }
+
+    td {
+      padding: 5px 8px;
+      border: 1px solid #cbd5e1;
+      vertical-align: middle;
+    }
+
+    tr:nth-child(even) td {
+      background: #f8fafc;
+    }
+
+    code {
+      font-family: "Consolas", "Fira Code", monospace;
+      font-size: 8.5pt;
+      background: #f1f5f9;
+      color: #be185d;
+      padding: 1px 4px;
+      border-radius: 4px;
+      border: 1px solid #e2e8f0;
+    }
+
+    pre {
+      background: #0f172a;
+      color: #f8fafc;
+      padding: 10px 12px;
+      border-radius: 6px;
+      font-size: 8.5pt;
+      line-height: 1.4;
+      overflow-x: hidden;
+      margin-top: 6px;
+      margin-bottom: 10px;
+      page-break-inside: avoid;
+    }
+
+    pre code {
+      background: transparent;
+      color: #38bdf8;
+      border: none;
+      padding: 0;
+      font-size: 8.5pt;
+    }
+
+    hr {
+      border: none;
+      border-top: 1px solid #e2e8f0;
+      margin: 16px 0;
+    }
+
+    .alert {
+      padding: 8px 12px;
+      border-radius: 6px;
+      margin: 10px 0;
+      font-size: 9pt;
+      page-break-inside: avoid;
+    }
+
+    .alert-tip {
+      background: #eff6ff;
+      border-left: 4px solid #3b82f6;
+      color: #1e3a8a;
+    }
+
+    .alert-note {
+      background: #f8fafc;
+      border-left: 4px solid #64748b;
+      color: #334155;
+    }
+
+    .alert-important {
+      background: #fffbeb;
+      border-left: 4px solid #f59e0b;
+      color: #92400e;
+    }
+
+    a {
+      color: #0284c7;
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .badge-intro { background: #0284c7; color: white; padding: 1px 4px; border-radius: 3px; font-size: 8pt; }
+    .badge-verse { background: #1d4ed8; color: white; padding: 1px 4px; border-radius: 3px; font-size: 8pt; }
+    .badge-prechorus { background: #be185d; color: white; padding: 1px 4px; border-radius: 3px; font-size: 8pt; }
+    .badge-chorus { background: #6d28d9; color: white; padding: 1px 4px; border-radius: 3px; font-size: 8pt; }
+    .badge-bridge { background: #b45309; color: white; padding: 1px 4px; border-radius: 3px; font-size: 8pt; }
+    .badge-instrumental { background: #0f766e; color: white; padding: 1px 4px; border-radius: 3px; font-size: 8pt; }
+    .badge-outro { background: #be123c; color: white; padding: 1px 4px; border-radius: 3px; font-size: 8pt; }
+    .badge-sermon { background: #047857; color: white; padding: 1px 4px; border-radius: 3px; font-size: 8pt; }
+    .badge-lowerthird { background: #be185d; color: white; padding: 1px 4px; border-radius: 3px; font-size: 8pt; }
+  </style>
+</head>
+<body>
+  <h1>📖 Manual de Usuario — FreePresenter AI / ProPresenter Studio</h1>
+<p>&gt; <strong>Versión del Software:</strong> <code>v2.0.0</code>  </p>
+<p>&gt; <strong>Propósito:</strong> Guía integral de operación para operadores de medios, técnicos de sonido/video, pastores y líderes de alabanza en cultos, congresos y transmisiones en vivo.</p>
+<hr/>
+<h2 id="tabla-de-contenidos">📑 Tabla de Contenidos</h2>
+<div class="list-step"><a href="#1-introducción-y-arquitectura-de-pantallas">Introducción y Arquitectura de Pantallas</a></div>
+<div class="list-step"><a href="#2-recorrido-visual-de-la-interfaz">Recorrido Visual de la Interfaz</a></div>
+<div class="list-step"><a href="#3-gestión-y-carga-de-canciones-y-shows">Gestión y Carga de Canciones y Shows</a></div>
+<div class="list-step"><a href="#4-uso-de-etiquetas-y-secciones">Uso de Etiquetas y Secciones</a></div>
+<div class="list-step"><a href="#5-sistema-de-plantillas-templates-y-asignación-de-estilos">Sistema de Plantillas (Templates) y Asignación de Estilos</a></div>
+<div class="list-step"><a href="#6-operación-en-vivo-y-controles-de-proyección">Operación en Vivo y Controles de Proyección</a></div>
+<div class="list-step"><a href="#7-galería-multimedia-fondos-y-cola-de-reproducción">Galería Multimedia, Fondos y Cola de Reproducción</a></div>
+<div class="list-step"><a href="#8-módulo-bíblico-scripture">Módulo Bíblico (Scripture)</a></div>
+<div class="list-step"><a href="#9-presentaciones-powerpoint--pdf-y-calendario">Presentaciones PowerPoint / PDF y Calendario</a></div>
+<div class="list-step"><a href="#10-editor-en-pantalla-completa-full-screen-editor">Editor en Pantalla Completa (Full-Screen Editor)</a></div>
+<div class="list-step"><a href="#11-tabla-de-atajos-de-teclado">Tabla de Atajos de Teclado</a></div>
+<div class="list-step"><a href="#12-preguntas-frecuentes-y-solución-de-problemas">Preguntas Frecuentes y Solución de Problemas</a></div>
+<hr/>
+<h2 id="1-introduccin-y-arquitectura-de-pantallas">1. Introducción y Arquitectura de Pantallas</h2>
+<p><strong>FreePresenter AI</strong> funciona con un modelo de <strong>triple pantalla sincronizada en tiempo real</strong> mediante canales IPC y Web Broadcast de ultra baja latencia:</p>
+<pre><code class="language-">
+┌────────────────────────────────────────────────────────────────────────┐
+│                        CONSOLA DEL OPERADOR                            │
+│  (Pantalla Principal: Control de Shows, Medios, Plantillas y Letras)    │
+└──────────────┬──────────────────────────────────────────┬──────────────┘
+               │                                          │
+               ▼                                          ▼
+┌──────────────────────────────┐        ┌────────────────────────────────┐
+│     PANTALLA DE AUDIENCIA    │        │       MONITOR DE ESCENARIO     │
+│       (`audience.html`)      │        │        (`stage.html`)          │
+│ • Proyector / TV Principal   │        │ • Pantalla para Músicos/Pastor │
+│ • Salida limpia para OBS/NDI │        │ • Reloj, Timer, Diapositiva    │
+│ • Texto + Fondos dinámicos   │        │   actual y siguiente filmina   │
+└──────────────────────────────┘        └────────────────────────────────┘
+</code></pre>
+<div class="list-step"><strong>Pantalla Principal (Operador):</strong> Donde se administran los proyectos, canciones, búsquedas y órdenes del servicio.</div>
+<div class="list-step"><strong>Pantalla de Audiencia (<code>audience.html</code>):</strong> Ventana limpia sin marcos destinada a los proyectores del auditorio o tarjetas capturadoras de streaming.</div>
+<div class="list-step"><strong>Monitor de Escenario / Stage Display (<code>stage.html</code>):</strong> Ventana con texto en alto contraste, reloj en tiempo real, cuenta regresiva del predicador y aviso de la diapositiva que viene.</div>
+<div class="alert alert-tip"><strong>💡 TIP:</strong> Puedes abrir o relanzar las pantallas de salida en cualquier momento desde los botones superiores <strong><code>Audiencia</code></strong> y <strong><code>Stage</code></strong> situados en la esquina superior derecha del encabezado.</div>
+<hr/>
+<h2 id="2-recorrido-visual-de-la-interfaz">2. Recorrido Visual de la Interfaz</h2>
+<p>La pantalla principal está dividida en cuatro áreas estratégicas:</p>
+<pre><code class="language-">
+┌────────────────────────────────────────────────────────────────────────────┐
+│ 1. BARRA SUPERIOR: Menú, Modo (Show/Edit/Stage) y Lanzadores de Pantalla  │
+├──────────────┬──────────────────────────────────────────────┬──────────────┤
+│ 2. PROYECTO  │ 3. ÁREA CENTRAL (DECK ACTIVO)                │ 4. OPERADOR  │
+│    (Sidebar  │ • Banner con Título y Navegación             │ • Monitor    │
+│    Izquierdo)│ • Barra de Secciones (Coro, Estrofa...)      │   Audiencia  │
+│              │ • Cuadrícula de Diapositivas (16:9)          │ • Transporte │
+│              │                                              │ • Clear All  │
+│              │                                              │ • Transición │
+│              │                                              │ • Stage Mon. │
+├──────────────┴──────────────────────────────────────────────┴──────────────┤
+│ 5. DOCK DE RECURSOS (Shows | Media | Templates | Scripture | Calendar)     │
+└────────────────────────────────────────────────────────────────────────────┘
+</code></pre>
+<ul>
+<li><strong>Panel Izquierdo (Proyecto del Día):</strong> Muestra el orden de las canciones y elementos que se usarán en el servicio actual.</li>
+<li><strong>Centro (Lienzo de Diapositivas):</strong> Visualiza todas las filminas de la canción seleccionada con su fondo y estilo real.</li>
+<li><strong>Panel Derecho (Control de Emisión):</strong> Previsualización en vivo de lo que ve el público, botones de emergencia (<em>Clear All, Clear Text, Clear Media</em>), controles de transiciones y monitor de confianza.</li>
+<li><strong>Dock Inferior (Biblioteca General):</strong> Acceso rápido a toda la base de datos de canciones, biblioteca de videos/imágenes, editor de plantillas, buscador de Biblias y agenda.</li>
+</ul>
+<hr/>
+<h2 id="3-gestin-y-carga-de-canciones-y-shows">3. Gestión y Carga de Canciones y Shows</h2>
+<p>Existen tres métodos para incorporar canciones al software:</p>
+<h3>Método A: Creación Manual con División Automática</h3>
+<div class="list-step">En el dock inferior, haz clic en la pestaña <strong><code>Shows</code></strong>.</div>
+<div class="list-step">Presiona el botón rosa <strong><code>+ Nuevo Texto / Canción</code></strong>.</div>
+<div class="list-step">Completa los campos:</div>
+<ul>
+<li><strong>Título:</strong> Nombre de la canción (ej. <em>Cuan Grande Es Él</em>).</li>
+<li><strong>Categoría:</strong> Selecciona <em>Alabanza</em>, <em>Adoración</em>, <em>Sermón</em>, <em>Avisos</em> u <em>Overlays Stream</em>.</li>
+<li><strong>Plantilla Inicial:</strong> Elige la plantilla visual con la que nacerá la canción.</li>
+<li><strong>Modo de División:</strong></li>
+<li><em>Por Párrafo:</em> Cada salto de párrafo doble genera una filmina.</li>
+<li><em>Por Líneas:</em> Cada línea de texto genera una diapositiva individual.</li>
+<li><em>Fijo por N renglones:</em> Define un límite estricto (ej. 2 o 4 renglones por diapositiva).</li>
+</ul>
+<div class="list-step">Pega la letra completa en el cuadro de texto y pulsa <strong><code>Guardar Show</code></strong>.</div>
+<h3>Método B: Búsqueda Web de Canciones en 1 Clic</h3>
+<div class="list-step">En el modal de creación de show, haz clic en la pestaña <strong><code>Buscar en la Web</code></strong>.</div>
+<div class="list-step">Escribe el nombre de la canción o parte de la letra.</div>
+<div class="list-step">El buscador listará:</div>
+<ul>
+<li>Coincidencias en tu biblioteca local (si ya la tienes descargada).</li>
+<li>Resultados en línea extraídos de bases de alabanza cristiana.</li>
+</ul>
+<div class="list-step">Haz clic en <strong><code>Importar Letra</code></strong>. La letra se limpiará automáticamente, detectará sus secciones y estará lista para guardar.</div>
+<h3>Método C: Agregar Canciones al Proyecto del Día</h3>
+<ul>
+<li>En la cuadrícula de canciones del dock inferior, cada tarjeta tiene un botón <strong><code>+ Proyecto</code></strong>.</li>
+<li>Al pulsarlo, la canción se ancla en el panel lateral izquierdo (<strong>PROJECTS</strong>).</li>
+<li>Puedes quitarla del proyecto en cualquier momento tocando la cruz <strong><code>×</code></strong> en el sidebar (la canción seguirá existiendo en tu biblioteca general).</li>
+</ul>
+<hr/>
+<h2 id="4-uso-de-etiquetas-y-secciones">4. Uso de Etiquetas y Secciones</h2>
+<p>FreePresenter AI incluye un analizador inteligente de estructura musical. Al pegar la letra de una canción, el sistema identifica automáticamente los bloques mediante corchetes o dos puntos:</p>
+<h3>Etiquetas Reconocidas Automáticamente</h3>
+<table>
+<thead><tr>
+<th>Etiqueta en la Letra</th>
+<th>Sección Resultante</th>
+<th>Color del Badge</th>
+<th>Icono</th>
+</tr></thead><tbody>
+<tr>
+<td><code>[Intro]</code> o <code>Intro:</code></td>
+<td>Introducción instrumental</td>
+<td>Azul Celeste (<code>badge-intro</code>)</td>
+<td>🎵 Nota</td>
+</tr>
+<tr>
+<td><code>[Estrofa 1]</code>, <code>[Verso 1]</code></td>
+<td>Estrofas o versos principales</td>
+<td>Azul Real (<code>badge-verse</code>)</td>
+<td>📖 Libro</td>
+</tr>
+<tr>
+<td><code>[Pre-Coro]</code> o <code>Pre-coro:</code></td>
+<td>Preparación al coro</td>
+<td>Rosa Fuerte (<code>badge-prechorus</code>)</td>
+<td>⚡ Rayo</td>
+</tr>
+<tr>
+<td><code>[Coro]</code> o <code>Chorus:</code></td>
+<td>Estribillo principal</td>
+<td>Violeta Neón (<code>badge-chorus</code>)</td>
+<td>🔥 Fuego</td>
+</tr>
+<tr>
+<td><code>[Puente]</code> o <code>Bridge:</code></td>
+<td>Clímax o puente de la canción</td>
+<td>Ámbar / Dorado (<code>badge-bridge</code>)</td>
+<td>🔗 Enlace</td>
+</tr>
+<tr>
+<td><code>[Instrumental]</code> o <code>Solo:</code></td>
+<td>Solo musical</td>
+<td>Turquesa (<code>badge-instrumental</code>)</td>
+<td>🎧 Auricular</td>
+</tr>
+<tr>
+<td><code>[Final]</code>, <code>[Outro]</code> o <code>Coda:</code></td>
+<td>Cierre de la canción</td>
+<td>Rojo Carmín (<code>badge-outro</code>)</td>
+<td>🚩 Bandera</td>
+</tr>
+<tr>
+<td><code>[Sermón]</code> o <code>Puntos:</code></td>
+<td>Notas del predicador</td>
+<td>Verde Esmeralda (<code>badge-sermon</code>)</td>
+<td>💬 Mensaje</td>
+</tr>
+<tr>
+<td><code>[Overlay]</code> o <code>LowerThird:</code></td>
+<td>Zócalo inferior para nombres</td>
+<td>Fucsia Oscuro (<code>badge-lowerthird</code>)</td>
+<td>👤 Persona</td>
+</tr>
+</tbody></table>
+<h3>Barra de Navegación Rápida por Secciones</h3>
+<p>En la parte superior de la cuadrícula de filminas encontrarás una botonera con todas las secciones de la canción:</p>
+<p>!<a href="file:///f:/Proyectos/propresenter-ai-studio/src/css/style.css#L428-L530">Barra de Secciones</a></p>
+<ul>
+<li>Si el líder de alabanza decide repetir el coro de forma espontánea, no tienes que buscar la filmina: simplemente <strong>haz clic en el botón <code>Coro</code></strong> de la barra de secciones y saltarás inmediatamente a esa estrofa.</li>
+<li>La sección que se encuentra actualmente proyectándose en vivo parpadea con un punto rojo indicador <code>●</code> (<strong>En Vivo</strong>).</li>
+</ul>
+<hr/>
+<h2 id="5-sistema-de-plantillas-templates-y-asignacin-de-estilos">5. Sistema de Plantillas (Templates) y Asignación de Estilos</h2>
+<p>Las plantillas definen la tipografía, tamaño de letra, colores, bordes, sombras, alineación y cajas de fondo de las diapositivas.</p>
+<h3>Asignación Rápida con 1 Clic (¡Nueva función v2.0!)</h3>
+<p>Si tienes un show cargado en pantalla y deseas cambiarle el diseño rápidamente:</p>
+<div class="list-step">Haz clic en la canción en el panel izquierdo o en el dock inferior para que sea el <strong>show activo</strong>.</div>
+<div class="list-step">En el dock inferior, dirígete a la pestaña <strong><code>Templates</code></strong>.</div>
+<div class="list-step"><strong>Haz clic sobre la plantilla que deseas aplicar</strong> en la lista lateral izquierda.</div>
+<div class="list-step"><strong>Listo:</strong> El show activo adoptará inmediatamente el estilo de esa plantilla (y si la plantilla define un límite de renglones, ajustará sus filminas automáticamente).</div>
+<div class="list-step"><strong>Aislamiento total:</strong> Ninguna otra canción de tu biblioteca se verá afectada; el cambio se aplica únicamente al show seleccionado.</div>
+<h3>Otras Formas de Asignar Plantillas</h3>
+<ul>
+<li><strong>Al crear un Show:</strong> Desde el menú desplegable <em>Plantilla</em> del modal de creación.</li>
+<li><strong>Desde el Editor en Pantalla Completa:</strong> En la columna derecha (Inspector), en la sección <em>Plantilla de la Canción</em>.</li>
+</ul>
+<h3>Crear y Editar Plantillas</h3>
+<p>En la pestaña <strong><code>Templates</code></strong> del dock inferior puedes:</p>
+<ul>
+<li>Modificar en tiempo real la tipografía (<code>Inter</code>, <code>Montserrat</code>, <code>CMGSans</code>, <code>Outfit</code>, <code>Roboto</code>, etc.).</li>
+<li>Variar tamaño, interlineado y separación de caracteres con previsualización en vivo.</li>
+<li>Configurar cajas traslúcidas (<code>bgColor</code>) detrás del texto para garantizar legibilidad sobre fondos claros.</li>
+<li>Crear nuevas plantillas con el botón <strong><code>+ Nueva Plantilla</code></strong>.</li>
+</ul>
+<hr/>
+<h2 id="6-operacin-en-vivo-y-controles-de-proyeccin">6. Operación en Vivo y Controles de Proyección</h2>
+<h3>Cómo Proyectar una Diapositiva</h3>
+<div class="list-step">Haz clic sobre cualquier filmina en la cuadrícula central.</div>
+<div class="list-step">La filmina se rodeará de un <strong>borde rojo brillante</strong> con el badge <code>EN VIVO</code>.</div>
+<div class="list-step">Inmediatamente el texto aparecerá en la pantalla de Audiencia y en el monitor del operador.</div>
+<h3>Navegación Durante el Servicio</h3>
+<ul>
+<li><strong>Avanzar:</strong> Presiona la tecla <strong><code>Espacio</code></strong>, <strong><code>Enter</code></strong> o <strong><code>Flecha Derecha</code></strong>.</li>
+<li><strong>Retroceder:</strong> Presiona la tecla <strong><code>Flecha Izquierda</code></strong>.</li>
+<li><strong>Salto libre:</strong> Haz clic con el ratón directamente sobre la filmina deseada.</li>
+</ul>
+<h3>Botones de Emergencia (Master Clear)</h3>
+<p>Ubicados en la consola derecha del operador:</p>
+<ul>
+<li><strong><code>CLEAR ALL</code> (<code>Escape</code>):</strong> Apaga instantáneamente el texto, los fondos multimedia y los zócalos inferiores. La pantalla de audiencia queda en negro absoluto.</li>
+<li><strong><code>Text (F2)</code>:</strong> Oculta solo la letra de la canción, manteniendo el video de fondo en reproducción (ideal para momentos de oración o solos instrumentales).</li>
+<li><strong><code>Media (F3)</code>:</strong> Apaga el fondo de video o imagen, manteniendo el texto visible.</li>
+<li><strong><code>Overlays (F4)</code>:</strong> Oculta zócalos o tercios inferiores de nombres.</li>
+</ul>
+<h3>Panel de Transiciones</h3>
+<p>Permite definir cómo entra y sale el contenido:</p>
+<ul>
+<li><strong>Texto:</strong> Alterna entre <code>Cut</code> (corte directo instantáneo) y <code>Fade</code> (desvanecimiento suave).</li>
+<li><strong>Medios:</strong> Alterna entre corte o disolución de video.</li>
+<li><strong>Tiempo (ms):</strong> Deslizador que gradúa la velocidad del fundido (desde <code>100ms</code> hasta <code>1000ms</code>, predeterminado <code>250ms</code>).</li>
+<li><strong>Control de Audio:</strong> Botón para silenciar/activar el sonido de los videos y slider de volumen general.</li>
+</ul>
+<hr/>
+<h2 id="7-galera-multimedia-fondos-y-cola-de-reproduccin">7. Galería Multimedia, Fondos y Cola de Reproducción</h2>
+<p>Haz clic en la pestaña <strong><code>Media</code></strong> en el dock inferior para gestionar videos e imágenes de fondo.</p>
+<h3>Cargar Contenido</h3>
+<ul>
+<li><strong>Arrastrar y Soltar:</strong> Arrastra archivos de video (<code>.mp4</code>, <code>.webm</code>, <code>.mov</code>) o imágenes (<code>.jpg</code>, <code>.png</code>) directamente a la zona punteada (<em>Dropzone</em>).</li>
+<li><strong>Vincular Carpeta de Disco en Tiempo Real:</strong> Pulsa el botón <code>+ Carpeta Física</code> para seleccionar una carpeta de tu disco duro. Cualquier video que pegues en esa carpeta de Windows aparecerá automáticamente en FreePresenter sin necesidad de volver a importarlo.</li>
+</ul>
+<h3>Proyección de Medios</h3>
+<ul>
+<li><strong>Clic simple:</strong> Proyecta el video o imagen de fondo inmediatamente en bucle infinito (<code>Loop</code>).</li>
+</ul>
+<h3>Cola de Reproducción Continua (Playlist Automática)</h3>
+<p>Si vas a pasar varios videos de anuncios o testimonios uno tras otro:</p>
+<div class="list-step">Mantén presionada la tecla <strong><code>Alt</code> y haz clic</strong> en los videos que deseas encolar (o pulsa el botón <code>+Cola</code> de la tarjeta).</div>
+<div class="list-step">Los videos recibirán badges numéricos (<code>#1</code>, <code>#2</code>, <code>#3</code>).</div>
+<div class="list-step">El video activo desactivará su repetición en bucle y, al terminar su reproducción de forma natural, <strong>pasará automáticamente al siguiente video en cola</strong> con transición suave.</div>
+<hr/>
+<h2 id="8-mdulo-bblico-scripture">8. Módulo Bíblico (Scripture)</h2>
+<p>En el dock inferior, selecciona la pestaña <strong><code>Scripture</code></strong>:</p>
+<h3>Búsqueda Rápida de Pasajes</h3>
+<div class="list-step">En la caja de búsqueda escribe el libro, capítulo y versículo (ej. <code>Juan 3:16</code>, <code>Salmos 23</code> o <code>Gen 1</code>).</div>
+<div class="list-step"><strong>Atajo <code>Tab ↹</code>:</strong> Al escribir <code>G-e-n</code>, presiona <code>Tab</code> para que el sistema complete automáticamente <code>Génesis</code>.</div>
+<div class="list-step">Presiona <code>Enter</code> para buscar.</div>
+<h3>Navegación por Columnas (3-Col View)</h3>
+<p>Si prefieres explorar visualmente:</p>
+<ul>
+<li><strong>Columna 1:</strong> Selecciona el Libro de la Biblia.</li>
+<li><strong>Columna 2:</strong> Elige el Capítulo.</li>
+<li><strong>Columna 3:</strong> Visualiza todos los versículos listados.</li>
+</ul>
+<h3>Proyección de Versículos</h3>
+<ul>
+<li><strong>Doble clic o clic en versículo:</strong> Proyecta el texto bíblico al instante en la pantalla de Audiencia.</li>
+<li><strong>Ajustes Bíblicos:</strong> En el panel lateral derecho de la pestaña bíblica puedes configurar:</li>
+<li>Máximo de renglones por filmina (para versículos largos).</li>
+<li>Incluir referencia automática al pie (<em>ej. Juan 3:16 RVR1960</em>).</li>
+<li>Selector de versión bíblica (Reina Valera 1960, NVI, etc.).</li>
+<li><strong>Importar Nuevas Biblias:</strong> Puedes añadir traducciones adicionales pegando un enlace URL o cargando un archivo JSON bíblico con el botón <code>+ Cargar Biblia</code>.</li>
+</ul>
+<hr/>
+<h2 id="9-presentaciones-powerpoint-pdf-y-calendario">9. Presentaciones PowerPoint / PDF y Calendario</h2>
+<h3>Importar Presentaciones de PowerPoint y PDF</h3>
+<p>FreePresenter AI te permite proyectar presentaciones sin necesidad de tener Microsoft Office instalado:</p>
+<div class="list-step">En el dock de Shows, presiona el botón naranja <strong><code>📊 Importar PPT / PDF</code></strong>.</div>
+<div class="list-step">Selecciona tu archivo (<code>.pptx</code>, <code>.ppt</code>, <code>.ppsx</code>, <code>.odp</code> o <code>.pdf</code>).</div>
+<div class="list-step">Elige el modo de importación:</div>
+<ul>
+<li><strong>Presentación Visual (Recomendado):</strong> Convierte cada lámina en una filmina de alta fidelidad 16:9 preservando las fuentes, fotos y diagramas originales.</li>
+<li><strong>Extraer Texto:</strong> Convierte el contenido de la presentación en diapositivas editables adaptadas a tus plantillas de alabanza.</li>
+</ul>
+<h3>Calendario de Eventos y Anuncios</h3>
+<p>En la pestaña <strong><code>Calendar</code></strong>:</p>
+<ul>
+<li>Agenda cultos dominicales, reuniones de oración, discipulados y vigilias.</li>
+<li>Selecciona cualquier evento y haz clic en <strong><code>Proyectar Anuncio</code></strong> para lanzar una placa visual en la pantalla de audiencia con la fecha, hora y notas del evento.</li>
+</ul>
+<hr/>
+<h2 id="10-editor-en-pantalla-completa-full-screen-editor">10. Editor en Pantalla Completa (Full-Screen Editor)</h2>
+<p>Para diseñar o retocar una canción a fondo, pulsa el botón <strong><code>Editar Canción</code></strong> en el banner central o presiona la pestaña superior <strong><code>Edit</code></strong>:</p>
+<pre><code class="language-">
+┌────────────────────────────────────────────────────────────────────────┐
+│                      SUB-HEADER: TÍTULO Y GUARDAR                      │
+├─────────────────┬──────────────────────────────────┬───────────────────┤
+│ FILMINAS (Izq)  │ LIENZO 16:9 (Centro)             │ INSPECTOR (Der)   │
+│ • Miniaturas    │ • Bounding Box con 8 handles     │ • Fuente y Tamaño │
+│ • Reordenar ↑/↓ │ • Edición directa haciendo clic  │ • Color y Sombras │
+│ • Duplicar      │ • División en cursor (✂️)        │ • Cajas de Fondo  │
+│ • + Nueva filmina│ • Pestaña "Texto Completo" (Diff)│ • Alineación H/V  │
+└─────────────────┴──────────────────────────────────┴───────────────────┘
+</code></pre>
+<ul>
+<li><strong>Edición Directa (WYSIWYG):</strong> Haz clic sobre el texto dentro del recuadro del lienzo central y escribe directamente.</li>
+<li><strong>Bounding Box Interactivo:</strong> Arrastra los bordes y esquinas para definir el área donde debe confinarse el texto.</li>
+<li><strong>División de Filmina en el Cursor (<code>✂️</code>):</strong> Coloca el cursor en la mitad de una estrofa y pulsa <code>Dividir</code>; el texto posterior pasará a una nueva filmina automáticamente.</li>
+<li><strong>Comparador Visual de Cambios (Diff):</strong> En la pestaña <em>Texto Completo</em>, el sistema te mostrará en verde lo que se conserva y en rojo tachado lo que se borra, evitando pérdidas accidentales de estrofas.</li>
+<li><strong>Salir:</strong> Presiona <code>Escape</code> o el botón <code>Cerrar Editor</code> para regresar a la vista de proyección.</li>
+</ul>
+<hr/>
+<h2 id="11-tabla-de-atajos-de-teclado">11. Tabla de Atajos de Teclado</h2>
+<p>Memorizar estos atajos agilizará notablemente tu operación durante los servicios:</p>
+<table>
+<thead><tr>
+<th>Tecla / Combinación</th>
+<th>Función en Proyección</th>
+<th>Función en Edición / Búsqueda</th>
+</tr></thead><tbody>
+<tr>
+<td><strong><code>Espacio</code></strong> / <strong><code>→</code></strong></td>
+<td>Siguiente diapositiva</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong><code>←</code></strong></td>
+<td>Diapositiva anterior</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong><code>F2</code></strong></td>
+<td>Limpiar / Restaurar Texto</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong><code>F3</code></strong></td>
+<td>Limpiar / Restaurar Fondo Multimedia</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong><code>F4</code></strong></td>
+<td>Limpiar / Restaurar Overlays (Zócalos)</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong><code>Escape</code></strong></td>
+<td><strong>CLEAR ALL</strong> (Apagón de emergencia)</td>
+<td>Salir del Editor / Cerrar Modales</td>
+</tr>
+<tr>
+<td><strong><code>Supr</code> / <code>Delete</code></strong></td>
+<td>Eliminar canción, video o Biblia seleccionada</td>
+<td>Borrar filmina en el editor</td>
+</tr>
+<tr>
+<td><strong><code>Tab ↹</code></strong></td>
+<td>—</td>
+<td>Autocompletar libro en buscador bíblico</td>
+</tr>
+<tr>
+<td><strong><code>Ctrl + S</code></strong></td>
+<td>—</td>
+<td>Guardar cambios en el Editor</td>
+</tr>
+<tr>
+<td><strong><code>Alt + Clic</code></strong></td>
+<td>Agregar video a la cola de reproducción</td>
+<td>—</td>
+</tr>
+</tbody></table>
+<hr/>
+<h2 id="12-preguntas-frecuentes-y-solucin-de-problemas">12. Preguntas Frecuentes y Solución de Problemas</h2>
+<h3>❓ La pantalla de Audiencia no se abre o quedó minimizada</h3>
+<p><strong>Solución:</strong> Haz clic en el botón <strong><code>Audiencia</code></strong> en la esquina superior derecha del menú principal. Si tienes un segundo monitor o proyector conectado en modo extendido en Windows (<code>Windows + P</code> ➔ <em>Extender</em>), la ventana se posicionará automáticamente en el proyector.</p>
+<h3>❓ El video se reproduce pero no se escucha el audio</h3>
+<p><strong>Solución:</strong> Revisa el panel derecho en la sección <em>TRANSICIONES EN VIVO</em>. Comprueba que el botón de audio indique <code>AUDIO: ON</code> y que el deslizador de volumen esté al 100%.</p>
+<h3>❓ Le cambié la plantilla a una canción pero sigue viéndose con letra pequeña</h3>
+<p><strong>Solución:</strong> Con la canción seleccionada en pantalla, ve a la pestaña <strong><code>Templates</code></strong> en el dock inferior y haz clic sobre la plantilla que deseas aplicar. Si la canción tenía estilos locales personalizados aplicados desde el editor, este clic unificará y limpiará los estilos residuales aplicando la plantilla seleccionada.</p>
+<h3>❓ ¿Cómo proyectar un fondo negro sin texto rápidamente?</h3>
+<p><strong>Solución:</strong> Pulsa la tecla <strong><code>F2</code></strong> para limpiar el texto y <strong><code>F3</code></strong> para limpiar el video, o pulsa <strong><code>Escape</code></strong> para un borrado maestro total.</p>
+<hr/>
+<p><em>Manual elaborado para <strong>FreePresenter AI Studio v2.0.0</strong> — Sistema de Producción Multimedia para Iglesias y Eventos.</em></p>
+</body>
+</html>
