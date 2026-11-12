@@ -1192,6 +1192,61 @@ export class Store {
     return deck.style;
   }
 
+  setDeckTemplate(deckId, templateId) {
+    const deck = this.decks.find(d => d.id === deckId);
+    const template = this.templates.find(t => t.id === templateId);
+    if (!deck || !template) return false;
+
+    deck.templateId = templateId;
+    // Asignar el estilo base de la plantilla al deck y limpiar estilos locales residuales
+    deck.style = { ...template };
+    if (Array.isArray(deck.groups)) {
+      deck.groups.forEach(group => {
+        (group.slides || []).forEach(slide => {
+          if (slide && slide.style) {
+            slide.style = {};
+          }
+        });
+      });
+    }
+
+    // Si la plantilla define límite de renglones, re-dividir las filminas de este show si excede
+    if (template.maxLines && template.maxLines > 0) {
+      const targetMax = parseInt(template.maxLines);
+      let modified = false;
+      deck.groups.forEach((group, gIdx) => {
+        const newSlides = [];
+        group.slides.forEach((slide, sIdx) => {
+          const lines = (slide.text || '').split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+          if (lines.length > targetMax) {
+            modified = true;
+            for (let i = 0; i < lines.length; i += targetMax) {
+              const chunkLines = lines.slice(i, i + targetMax);
+              newSlides.push({
+                id: `slide-${Date.now()}-${gIdx}-${sIdx}-${i / targetMax}`,
+                text: chunkLines.join('\n'),
+                isLowerThird: slide.isLowerThird || false
+              });
+            }
+          } else {
+            newSlides.push(slide);
+          }
+        });
+        group.slides = newSlides;
+      });
+    }
+
+    // Si este show está proyectándose actualmente en vivo, actualizar el activeTemplate proyectado
+    if (deck.id === this.state.liveDeckId) {
+      const activeGroup = deck.groups?.[this.state.liveGroupIndex] || deck.groups?.[0];
+      const activeSlide = activeGroup?.slides?.[this.state.liveSlideIndex] || null;
+      this.state.activeTemplate = this.buildEffectiveTemplateForSlide(deck, activeSlide);
+    }
+
+    this.notify();
+    return true;
+  }
+
   deleteDeck(deckId) {
     if (this.decks.length <= 1) return;
     const target = this.decks.find(d => d.id === deckId);

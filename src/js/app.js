@@ -4199,8 +4199,8 @@ class ProPresenterApp {
         if (e.target.closest('.btn-delete-tpl')) return;
         const id = item.getAttribute('data-tpl-id');
         store.setActiveTemplate(id);
-        if (store.activeDeck) {
-          store.activeDeck.templateId = id;
+        if (store.activeDeckId) {
+          store.setDeckTemplate(store.activeDeckId, id);
         }
         this.populateTemplateForm(store.state.activeTemplate);
       });

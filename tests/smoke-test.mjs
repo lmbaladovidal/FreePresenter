@@ -192,6 +192,34 @@ test('RF-29/30/31: Gestión y Actualización de Plantilla Activa', () => {
   if (store.state.activeTemplate.color !== '#00ff00') throw new Error('color no se actualizó');
 });
 
+test('RF-61: Asignación exclusiva de template a un show seleccionado (setDeckTemplate)', () => {
+  const store = new Store();
+  const deck1 = store.createNewShow("Canción 1", "Alabanza", "Letra 1", { templateId: "preset-modern" });
+  const deck2 = store.createNewShow("Canción 2", "Alabanza", "Letra 2", { templateId: "preset-modern" });
+
+  // Con deck1 activo/seleccionado, asignamos preset-lowerthird
+  store.setActiveDeck(deck1.id);
+  store.setDeckTemplate(deck1.id, "preset-lowerthird");
+
+  // deck1 debe tener preset-lowerthird
+  if (deck1.templateId !== "preset-lowerthird") {
+    throw new Error('deck1 no tomó la plantilla asignada');
+  }
+  const effective1 = store.buildEffectiveTemplateForSlide(deck1);
+  if (effective1.fontFamily !== "Outfit, sans-serif" || effective1.fontSize !== 36) {
+    throw new Error('El estilo efectivo de deck1 no coincide con preset-lowerthird');
+  }
+
+  // deck2 NO debe haber sido alterado
+  if (deck2.templateId !== "preset-modern") {
+    throw new Error('deck2 fue alterado indebidamente al cambiar el template de deck1');
+  }
+  const effective2 = store.buildEffectiveTemplateForSlide(deck2);
+  if (effective2.fontFamily === "Outfit, sans-serif") {
+    throw new Error('El estilo de deck2 se vio afectado por deck1');
+  }
+});
+
 // ----------------------------------------------------
 // SUITE 6: Persistencia Local (RF-36)
 // ----------------------------------------------------
