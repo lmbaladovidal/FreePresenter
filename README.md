@@ -46,6 +46,14 @@
 
 ---
 
+## 📚 Documentación y Manuales
+
+- 📖 **[Manual de Usuario Completo](./MANUAL_DE_USUARIO.md):** Guía práctica para operadores que explica paso a paso la carga de canciones, uso de etiquetas musicales (`[Coro]`, `[Estrofa]`), cambio y asignación de plantillas con 1 clic, cola de videos y atajos de teclado.
+- 📝 **[Notas de Versión](./NOTAS_DE_VERSION.md):** Historial detallado de lanzamientos y novedades.
+- 🧪 **[Guía de Pruebas de Humo](./SMOKE_TEST.md):** Suite de verificación y pruebas automatizadas.
+
+---
+
 ## ⌨️ Atajos de Teclado
 
 | Tecla / Combinación | Acción |
